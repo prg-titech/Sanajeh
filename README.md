@@ -1,2 +1,2 @@
 # Ikra-Python
-A python interface to call Dynasoar APIs.
+A python interface for calling Dynasoar APIs.
