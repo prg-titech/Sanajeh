@@ -4,7 +4,7 @@ ffibuilder = FFI()
 # cdef() expects a single string declaring the C types, functions and
 # globals needed to use the shared object. It must be in valid C syntax.
 ffibuilder.cdef("""
-    float pi_approx(int n);
+    float pi_approx(int n1);
 """)
 
 # set_source() gives the name of the python extension module to
