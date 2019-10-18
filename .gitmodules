@@ -1,0 +1,3 @@
+[submodule "dynasoar"]
+	path = dynasoar
+	url = git@github.com:prg-titech/dynasoar.git
