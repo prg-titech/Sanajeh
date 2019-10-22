@@ -1,1 +1,0 @@
-cuda_add_executable(traffic_baseline_soa traffic.cu)

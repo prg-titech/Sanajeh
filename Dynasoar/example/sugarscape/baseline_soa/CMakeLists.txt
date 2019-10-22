@@ -1,1 +1,0 @@
-cuda_add_executable(sugarscape_baseline_soa sugarscape.cu)

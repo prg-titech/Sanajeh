@@ -1,3 +1,0 @@
-add_subdirectory(dynasoar)
-add_subdirectory(baseline_aos)
-add_subdirectory(baseline_soa)
