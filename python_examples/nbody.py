@@ -18,7 +18,7 @@ __device__ AllocatorT* device_allocator;
 """
 
 
-class Body:
+class Body:  # クラスをDynaSOArを使う必要があることを何らかのシンタックスで宣言すべき（DynaSOArだとAllocator::Baseの子クラスにする）
     pos_x: float
     pos_y: float
     vel_x: float
@@ -60,8 +60,8 @@ class Body:
             dist: float = math.sqrt(dx * dx + dy * dy)
             f: float = (kGravityConstant * self.mass * other.mass /
                         (dist * dist + kDampeningFactor))
-            other.force_x += f*dx / dist
-            other.force_y += f*dy / dist
+            other.force_x += f * dx / dist
+            other.force_y += f * dy / dist
 
     def body_update(self):
         self.vel_x += self.force_x * kDt / self.mass
@@ -90,6 +90,7 @@ class Body:
             /*vel_y=*/ (curand_uniform(&rand_state) - 0.5) / 1000,
             /*mass=*/ (curand_uniform(&rand_state)/2 + 0.5) * kMaxMass);
     """
+
     def kernel_initialize_bodies(self):
         pass
 
