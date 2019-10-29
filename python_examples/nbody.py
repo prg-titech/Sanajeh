@@ -1,4 +1,3 @@
-from typing import List
 import math
 from configuration import *
 
@@ -16,7 +15,6 @@ __device__ AllocatorT* device_allocator;
 
 
 """
-
 
 class Body:  # クラスをDynaSOArを使う必要があることを何らかのシンタックスで宣言すべき（DynaSOArだとAllocator::Baseの子クラスにする）
     pos_x: float
@@ -62,6 +60,7 @@ class Body:  # クラスをDynaSOArを使う必要があることを何らかの
                         (dist * dist + kDampeningFactor))
             other.force_x += f * dx / dist
             other.force_y += f * dy / dist
+            a = 0
 
     def body_update(self):
         self.vel_x += self.force_x * kDt / self.mass
@@ -72,7 +71,7 @@ class Body:  # クラスをDynaSOArを使う必要があることを何らかの
         if self.pos_x < -1 or self.pos_x > 1:
             self.vel_x = -self.vel_x
 
-        if self.pos_y < -1 or selfpos_y > 1:
+        if self.pos_y < -1 or self.pos_y > 1:
             self.vel_y = -self.vel_y
 
     # この関数はcudaを使う必要がある
@@ -95,7 +94,7 @@ class Body:  # クラスをDynaSOArを使う必要があることを何らかの
         pass
 
 
-if __name == '__main__':
+if __name__ == '__main__':
 
     # Allocatorを作成する
     """
