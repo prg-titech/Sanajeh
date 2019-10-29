@@ -28,7 +28,7 @@ class Body:  # クラスをDynaSOArを使う必要があることを何らかの
     mass: float
     # ここでAllocatorのFieldを呼び出す
     """
-    declare_field_types(float, float, float, float, float, float, float, float);
+    declare_field_types(Body, float, float, float, float, float, float, float);
     Field<Body, 0> pos_x_;
     Field<Body, 1> pos_y_;
     Field<Body, 2> vel_x_;

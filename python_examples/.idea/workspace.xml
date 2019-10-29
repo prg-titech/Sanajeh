@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="b584712e-4c6a-4726-9e97-62ad55f7fc3c" name="Default Changelist" comment="" />
+    <list default="true" id="a1f5117f-4e2c-46bc-b375-a7d51e26897f" name="Default Changelist" comment="" />
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -11,11 +11,8 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
   </component>
-  <component name="ProjectId" id="1SsjtzLkec2HdEUZaYrpoWm2XZB" />
+  <component name="ProjectId" id="1SspKXYzJ06mVbEsyrSKilOg3Da" />
   <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
-  <component name="PropertiesComponent">
-    <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
-  </component>
   <component name="RunDashboard">
     <option name="ruleStates">
       <list>
@@ -33,11 +30,11 @@
   </component>
   <component name="TaskManager">
     <task active="true" id="Default" summary="Default task">
-      <changelist id="b584712e-4c6a-4726-9e97-62ad55f7fc3c" name="Default Changelist" comment="" />
-      <created>1572359415557</created>
+      <changelist id="a1f5117f-4e2c-46bc-b375-a7d51e26897f" name="Default Changelist" comment="" />
+      <created>1572362093934</created>
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
-      <updated>1572359415557</updated>
+      <updated>1572362093934</updated>
     </task>
     <servers />
   </component>
@@ -46,9 +43,7 @@
       <map>
         <entry key="MAIN">
           <value>
-            <State>
-              <option name="COLUMN_ORDER" />
-            </State>
+            <State />
           </value>
         </entry>
       </map>
