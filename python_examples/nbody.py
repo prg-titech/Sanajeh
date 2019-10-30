@@ -1,5 +1,6 @@
 import math
 from configuration import *
+from __future__ import annotations
 
 # cuda_block_size = 256
 
