@@ -1,5 +1,6 @@
 import math
-from configuration import *
+from AllocatorProto import *
+from Config import *
 from __future__ import annotations
 
 # cuda_block_size = 256
@@ -44,6 +45,7 @@ class Body:  # クラスをDynaSOArを使う必要があることを何らかの
     def compute_force(self):
         self.force_x = 0.0
         self.force_y = 0.0
+
         # ここでdevice_doを呼び出す
         # device_allocator->template device_do<Body>(&Body::apply_force, this);
 
