@@ -1,5 +1,5 @@
 # Sanajeh
 A python interface for calling Dynasoar APIs.
 
-# get-start
+# Get-start
 You can open this project by pycharm
