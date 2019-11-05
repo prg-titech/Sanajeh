@@ -1,12 +1,10 @@
 import math
 from AllocatorProto import *
 from Config import *
-from __future__ import annotations
+from typing import TypeVar
+# from __future__ import annotations
 
-# cuda_block_size = 256
-
-# DynaSOArの初期化
-
+# DynaSOArの初期化----------------------------------------------------------------------------------------------------
 # //何らかのシンタックスでここで使いたいクラスをすべて宣言する
 # class Body;
 # using AllocatorT = SoaAllocator<kNumObjects, Body>;
@@ -14,18 +12,19 @@ from __future__ import annotations
 # //Allocatorを宣言する
 # AllocatorHandle<AllocatorT>* allocator_handle;
 # __device__ AllocatorT* device_allocator;
+# Allocatorを作成する
+# allocator_handle = new AllocatorHandle<AllocatorT>(/*unified_memory=*/ true);
+# AllocatorT* dev_ptr = allocator_handle->device_pointer();
+# cudaMemcpyToSymbol(device_allocator, &dev_ptr, sizeof(AllocatorT*), 0, cudaMemcpyHostToDevice);
+Body = TypeVar("Body")
+pAT = PyAllocatorT(kNumObjects, Body)  # Allocatorを宣言する(devide_do)
+py_allocator_handle = PyAllocatorTHandle(pAT)  # Host側のAllocatorのHandleを作る(parallel_do)
+# -------------------------------------------------------------------------------------------------------------------
 
 
 class Body:  # クラスをDynaSOArを使う必要があることを何らかのシンタックスで宣言すべき（DynaSOArだとAllocator::Baseの子クラスにする）
-    pos_x: float
-    pos_y: float
-    vel_x: float
-    vel_y: float
-    force_x: float
-    force_y: float
-    mass: float
 
-    # ここでAllocatorのFieldを呼び出す
+    # ここでAllocatorのFieldを呼び出す----------------------------------------------------------------------------------
     # declare_field_types(Body, float, float, float, float, float, float, float);
     # Field<Body, 0> pos_x_;
     # Field<Body, 1> pos_y_;
@@ -34,6 +33,14 @@ class Body:  # クラスをDynaSOArを使う必要があることを何らかの
     # Field<Body, 4> force_x_;
     # Field<Body, 5> force_y_;
     # Field<Body, 6> mass_;
+    pos_x: float
+    pos_y: float
+    vel_x: float
+    vel_y: float
+    force_x: float
+    force_y: float
+    mass: float
+    # ---------------------------------------------------------------------------------------------------------------
 
     def __init__(self, px: float, py: float, vx: float, vy: float, m: float):
         self.pos_x = px
@@ -45,9 +52,10 @@ class Body:  # クラスをDynaSOArを使う必要があることを何らかの
     def compute_force(self):
         self.force_x = 0.0
         self.force_y = 0.0
-
-        # ここでdevice_doを呼び出す
+        # ここでdevice_doを呼び出す-------------------------------------------------------------------------------------
         # device_allocator->template device_do<Body>(&Body::apply_force, this);
+        pAT.device_do(self.apply_force)
+        # -----------------------------------------------------------------------------------------------------------
 
     def apply_force(self, other: Body):
         if other is not self:
@@ -58,7 +66,6 @@ class Body:  # クラスをDynaSOArを使う必要があることを何らかの
                         (dist * dist + kDampeningFactor))
             other.force_x += f * dx / dist
             other.force_y += f * dy / dist
-            a = 0
 
     def body_update(self):
         self.vel_x += self.force_x * kDt / self.mass
@@ -91,10 +98,6 @@ class Body:  # クラスをDynaSOArを使う必要があることを何らかの
 
 
 if __name__ == '__main__':
-
-    # Allocatorを作成する
-    # allocator_handle = new AllocatorHandle<AllocatorT>(/*unified_memory=*/ true);
-    # AllocatorT* dev_ptr = allocator_handle->device_pointer();
     # cudaMemcpyToSymbol(device_allocator, &dev_ptr, sizeof(AllocatorT*), 0,
     #                     cudaMemcpyHostToDevice);
 
@@ -103,9 +106,11 @@ if __name__ == '__main__':
     # gpuErrchk(cudaDeviceSynchronize());
 
     for i in range(kNumIterations):
-        pass
-        # parallel_doを呼び出してforceを計算し、適用する
+        # parallel_doを呼び出してforceを計算し、適用する-----------------------------------------------------------------
         # allocator_handle->parallel_do < Body, & Body::compute_force > ();
         # allocator_handle->parallel_do < Body, & Body::update > ();
+        py_allocator_handle.parallel_do(Body.compute_force)
+        py_allocator_handle.parallel_do(Body.body_update)
+        # -----------------------------------------------------------------------------------------------------------
 
     # rendering part
