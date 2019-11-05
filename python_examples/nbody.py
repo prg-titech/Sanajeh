@@ -54,7 +54,7 @@ class Body:  # クラスをDynaSOArを使う必要があることを何らかの
         self.force_y = 0.0
         # ここでdevice_doを呼び出す-------------------------------------------------------------------------------------
         # device_allocator->template device_do<Body>(&Body::apply_force, this);
-        pAT.device_do(self.apply_force)
+        pAT.device_do(Body, Body.apply_force)
         # -----------------------------------------------------------------------------------------------------------
 
     def apply_force(self, other: Body):
@@ -109,8 +109,8 @@ if __name__ == '__main__':
         # parallel_doを呼び出してforceを計算し、適用する-----------------------------------------------------------------
         # allocator_handle->parallel_do < Body, & Body::compute_force > ();
         # allocator_handle->parallel_do < Body, & Body::update > ();
-        py_allocator_handle.parallel_do(Body.compute_force)
-        py_allocator_handle.parallel_do(Body.body_update)
+        py_allocator_handle.parallel_do(Body, Body.compute_force)
+        py_allocator_handle.parallel_do(Body, Body.body_update)
         # -----------------------------------------------------------------------------------------------------------
 
     # rendering part

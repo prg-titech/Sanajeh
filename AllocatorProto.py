@@ -22,7 +22,7 @@ class PyAllocatorT:
         self.numObjects = object_num
         self.classes = class_names
 
-    def device_do(self, func: Callable[[], None]):
+    def device_do(self, t: type, func: Callable[[], None]):
         # return func()
         pass
 
@@ -34,7 +34,7 @@ class PyAllocatorTHandle:
     def __init__(self, pat: PyAllocatorT) -> None:
         self.py_alloc_t = pat
 
-    def parallel_do(self, func: Callable[[], None]):
+    def parallel_do(self, t: type, func: Callable[[], None]):
         pass
 
 
@@ -42,4 +42,4 @@ if __name__ == '__main__':
     p = PyAllocatorT(5, A)
     a = A()
     # print(type(a.device_do))
-    p.device_do(a.test)
+    p.device_do(A, a.test)
