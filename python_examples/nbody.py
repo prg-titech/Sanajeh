@@ -133,10 +133,9 @@ if __name__ == '__main__':
     # for i in range(10):
     #     print(body_list[i].vel_y)
 
-    start_time = time.time()
-
     # 直列
     for i in range(kNumIterations):
+        start_time = time.time()
         for j in range(kNumBodies):
             body_list[j].compute_force()
         for j in range(kNumBodies):
@@ -146,9 +145,12 @@ if __name__ == '__main__':
             body_list[j].body_update()
             plt.scatter(body_list[j].pos_x, body_list[j].pos_y, color="k")
         # print(body_list[1].force_x)
-        plt.pause(0.0001)
+        plt.pause(0.00001)
         plt.clf()
         plt.axis([-1, 1, -1, 1], frameon=False, aspect=1)
+        end_time = time.time()
+
+        print("循環%-4d実行時間は%.2f秒" % (i, (end_time - start_time)))
 
     # 並列
     # for i in range(kNumIterations):
@@ -158,7 +160,3 @@ if __name__ == '__main__':
     #     py_allocator_handle.parallel_do(Body, Body.compute_force)
     #     py_allocator_handle.parallel_do(Body, Body.body_update)
     #     # -----------------------------------------------------------------------------------------------------------
-
-    end_time = time.time()
-
-    print("実行時間は%.2f秒" % (end_time - start_time))
