@@ -2,10 +2,14 @@ import math
 from AllocatorProto import *
 from Config import *
 from typing import TypeVar
+from typing import List
 import random
 import time
+import matplotlib.pyplot as plt
+from matplotlib import animation
 
-# from __future__ import annotations
+# from __future__
+# import annotations
 
 # DynaSOArの初期化----------------------------------------------------------------------------------------------------
 # //何らかのシンタックスでここで使いたいクラスをすべて宣言する
@@ -70,8 +74,8 @@ class Body:  # クラスをDynaSOArを使う必要があることを何らかの
             dx: float = self.pos_x - other.pos_x
             dy: float = self.pos_x - other.pos_y
             dist: float = math.sqrt(dx * dx + dy * dy)
-            f: float = (kGravityConstant * self.mass * other.mass /
-                        (dist * dist + kDampeningFactor))
+            f: float = kGravityConstant * self.mass * other.mass \
+                       / (dist * dist + kDampeningFactor)
 
             other.force_x += f * dx / dist
             other.force_y += f * dy / dist
@@ -115,12 +119,15 @@ if __name__ == '__main__':
     # gpuErrchk(cudaDeviceSynchronize());
 
     body_list: List[Body] = []
+    plt.ion()
+    fig = plt.figure(figsize=(5, 5))
+    plt.axis([-1, 1, -1, 1], frameon=False, aspect=1)
 
     for i in range(kNumBodies):
         px_ = 2.0 * random.random() - 1.0
         py_ = 2.0 * random.random() - 1.0
-        vx_ = (random.random()-0.5) / 1000.0
-        vy_ = (random.random()-0.5) / 1000.0
+        vx_ = (random.random() - 0.5) / 1000.0
+        vy_ = (random.random() - 0.5) / 1000.0
         ms_ = (random.random() / 2.0 + 0.5) * kMaxMass
         body_list.append(Body(px_, py_, vx_, vy_, ms_))
     # for i in range(10):
@@ -131,11 +138,17 @@ if __name__ == '__main__':
     # 直列
     for i in range(kNumIterations):
         for j in range(kNumBodies):
+            body_list[j].compute_force()
+        for j in range(kNumBodies):
             for k in range(kNumBodies):
                 body_list[j].apply_force(body_list[k])
         for j in range(kNumBodies):
             body_list[j].body_update()
-    # rendering part
+            plt.scatter(body_list[j].pos_x, body_list[j].pos_y, color="k")
+        # print(body_list[1].force_x)
+        plt.pause(0.0001)
+        plt.clf()
+        plt.axis([-1, 1, -1, 1], frameon=False, aspect=1)
 
     # 並列
     # for i in range(kNumIterations):
@@ -149,4 +162,3 @@ if __name__ == '__main__':
     end_time = time.time()
 
     print("実行時間は%.2f秒" % (end_time - start_time))
-

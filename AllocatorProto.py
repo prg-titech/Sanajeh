@@ -1,5 +1,5 @@
 # This is a python version prototype of the AllocatorHandle(host side API) and AllocatorT(device side API) in DynaSOAr
-from typing import List
+from typing import Tuple
 from typing import Callable
 from typing import TypeVar
 
@@ -10,13 +10,14 @@ F = TypeVar('F', int, float, complex)
 class A:
     def test(self) -> None:
         print(1)
+
     pass
 
 
 # Device side allocator
 class PyAllocatorT:
     numObjects: int
-    classes: List[type]
+    classes: Tuple[type, ...]
 
     def __init__(self, object_num: int, *class_names) -> None:
         self.numObjects = object_num
