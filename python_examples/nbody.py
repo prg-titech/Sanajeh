@@ -2,6 +2,9 @@ import math
 from AllocatorProto import *
 from Config import *
 from typing import TypeVar
+import random
+import time
+
 # from __future__ import annotations
 
 # DynaSOArの初期化----------------------------------------------------------------------------------------------------
@@ -19,6 +22,8 @@ from typing import TypeVar
 Body = TypeVar("Body")
 pAT = PyAllocatorT(kNumObjects, Body)  # Allocatorを宣言する(devide_do)
 py_allocator_handle = PyAllocatorTHandle(pAT)  # Host側のAllocatorのHandleを作る(parallel_do)
+
+
 # -------------------------------------------------------------------------------------------------------------------
 
 
@@ -40,6 +45,7 @@ class Body:  # クラスをDynaSOArを使う必要があることを何らかの
     force_x: float
     force_y: float
     mass: float
+
     # ---------------------------------------------------------------------------------------------------------------
 
     def __init__(self, px: float, py: float, vx: float, vy: float, m: float):
@@ -48,6 +54,8 @@ class Body:  # クラスをDynaSOArを使う必要があることを何らかの
         self.vel_x = vx
         self.vel_y = vy
         self.mass = m
+        self.force_x = 0.0
+        self.force_y = 0.0
 
     def compute_force(self):
         self.force_x = 0.0
@@ -64,6 +72,7 @@ class Body:  # クラスをDynaSOArを使う必要があることを何らかの
             dist: float = math.sqrt(dx * dx + dy * dy)
             f: float = (kGravityConstant * self.mass * other.mass /
                         (dist * dist + kDampeningFactor))
+
             other.force_x += f * dx / dist
             other.force_y += f * dy / dist
 
@@ -105,12 +114,39 @@ if __name__ == '__main__':
     # kernel_initialize_bodies << < 128, 128 >> > ();
     # gpuErrchk(cudaDeviceSynchronize());
 
-    for i in range(kNumIterations):
-        # parallel_doを呼び出してforceを計算し、適用する-----------------------------------------------------------------
-        # allocator_handle->parallel_do < Body, & Body::compute_force > ();
-        # allocator_handle->parallel_do < Body, & Body::update > ();
-        py_allocator_handle.parallel_do(Body, Body.compute_force)
-        py_allocator_handle.parallel_do(Body, Body.body_update)
-        # -----------------------------------------------------------------------------------------------------------
+    body_list: List[Body] = []
 
+    for i in range(kNumBodies):
+        px_ = 2.0 * random.random() - 1.0
+        py_ = 2.0 * random.random() - 1.0
+        vx_ = (random.random()-0.5) / 1000.0
+        vy_ = (random.random()-0.5) / 1000.0
+        ms_ = (random.random() / 2.0 + 0.5) * kMaxMass
+        body_list.append(Body(px_, py_, vx_, vy_, ms_))
+    # for i in range(10):
+    #     print(body_list[i].vel_y)
+
+    start_time = time.time()
+
+    # 直列
+    for i in range(kNumIterations):
+        for j in range(kNumBodies):
+            for k in range(kNumBodies):
+                body_list[j].apply_force(body_list[k])
+        for j in range(kNumBodies):
+            body_list[j].body_update()
     # rendering part
+
+    # 並列
+    # for i in range(kNumIterations):
+    #     # parallel_doを呼び出してforceを計算し、適用する---------------------------------------------------------------
+    #     # allocator_handle->parallel_do < Body, & Body::compute_force > ();
+    #     # allocator_handle->parallel_do < Body, & Body::update > ();
+    #     py_allocator_handle.parallel_do(Body, Body.compute_force)
+    #     py_allocator_handle.parallel_do(Body, Body.body_update)
+    #     # -----------------------------------------------------------------------------------------------------------
+
+    end_time = time.time()
+
+    print("実行時間は%.2f秒" % (end_time - start_time))
+
