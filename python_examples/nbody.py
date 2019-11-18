@@ -150,7 +150,7 @@ if __name__ == '__main__':
         plt.axis([-1, 1, -1, 1], frameon=False, aspect=1)
         end_time = time.time()
 
-        print("循環%-4d実行時間は%.2f秒" % (i, (end_time - start_time)))
+        print("ループ%-4d実行時間は%.2f秒" % (i, (end_time - start_time)))
 
     # 並列
     # for i in range(kNumIterations):
