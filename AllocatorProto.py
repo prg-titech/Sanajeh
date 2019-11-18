@@ -6,9 +6,14 @@ from typing import TypeVar
 
 
 class A:
-    def __init__(self):
-        print("a")
+    def __init__(self, a: int):
+        self.aa = a
+        print(self.aa)
     pass
+
+    def add3(self):
+        self.aa += 3
+        print(self.aa)
 
 
 class B:
@@ -19,9 +24,7 @@ class B:
 
 # Device side allocator
 class PyAllocatorT:
-    # T = TypeVar("T")
     numObjects: int
-    # classDictionary: Dict[T, List[T]]
 
     def __init__(self, object_num: int, *class_names: type) -> None:
         self.numObjects = object_num
@@ -29,32 +32,42 @@ class PyAllocatorT:
         for i in class_names:
             self.classDictionary.setdefault(i, [])
 
-    def new_(self, class_name: type) -> None:
-        self.classDictionary.setdefault(class_name, []).append(class_name())
+    def new_(self, class_name: type, *args) -> None:
+        self.classDictionary.setdefault(class_name.__name__, []).append(class_name(*args))
 
-    def device_do(self, t: type, func: Callable[[], None]):
-        # return func()
+    def device_do(self,  class_name: type, func: Callable, *args):
+        for i in self.classDictionary[class_name.__name__]:
+            func(i, *args)
+        pass
+
+    def parallel_do(self,  class_name: type, func: Callable, *args):
+        for i in self.classDictionary[class_name.__name__]:
+            func(i, *args)
         pass
 
 
 # Host side allocator
 class PyAllocatorTHandle:
-    py_alloc_t: PyAllocatorT
+    __device_allocator__: PyAllocatorT
 
     def __init__(self, pat: PyAllocatorT) -> None:
-        self.py_alloc_t = pat
+        self.__device_allocator__ = pat
 
-    def parallel_do(self, t: type, func: Callable[[], None]):
-        pass
+    def device_do(self,  class_name: type, func, *args):
+        return self.__device_allocator__.device_do(class_name, func, *args)
+
+    def parallel_do(self,  class_name: type, func, *args):
+        return self.__device_allocator__.parallel_do(class_name, func, *args)
 
 
 if __name__ == '__main__':
     p = PyAllocatorT(5, A, B)
     print(p.classDictionary)
-    p.new_(A)
-    p.new_(A)
+    p.new_(A, 1)
+    p.new_(A, 2)
     p.new_(B)
-    p.new_(A)
+    p.new_(A, 3)
+    p.device_do(A, A.add3)
     print(p.classDictionary)
     print(p.classDictionary[A])
     print(p.classDictionary[A][0])

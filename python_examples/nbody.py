@@ -1,8 +1,8 @@
+from __future__ import annotations
 import math
 from AllocatorProto import *
 from Config import *
 from typing import TypeVar
-from typing import List
 import random
 import time
 import matplotlib.pyplot as plt
@@ -23,9 +23,8 @@ from matplotlib import animation
 # allocator_handle = new AllocatorHandle<AllocatorT>(/*unified_memory=*/ true);
 # AllocatorT* dev_ptr = allocator_handle->device_pointer();
 # cudaMemcpyToSymbol(device_allocator, &dev_ptr, sizeof(AllocatorT*), 0, cudaMemcpyHostToDevice);
-Body = TypeVar("Body")
-pAT = PyAllocatorT(kNumObjects, Body)  # Allocatorを宣言する(devide_do)
-py_allocator_handle = PyAllocatorTHandle(pAT)  # Host側のAllocatorのHandleを作る(parallel_do)
+pAT = PyAllocatorT(kNumObjects, "Body")  # Allocatorを宣言する(devide_do)
+ph = PyAllocatorTHandle(pAT)  # Host側のAllocatorのHandleを作る(parallel_do)
 
 
 # -------------------------------------------------------------------------------------------------------------------
@@ -66,7 +65,7 @@ class Body:  # クラスをDynaSOArを使う必要があることを何らかの
         self.force_y = 0.0
         # ここでdevice_doを呼び出す-------------------------------------------------------------------------------------
         # device_allocator->template device_do<Body>(&Body::apply_force, this);
-        pAT.device_do(Body, Body.apply_force)
+        pAT.device_do(Body, Body.apply_force, self)
         # -----------------------------------------------------------------------------------------------------------
 
     def apply_force(self, other: Body):
@@ -74,8 +73,7 @@ class Body:  # クラスをDynaSOArを使う必要があることを何らかの
             dx: float = self.pos_x - other.pos_x
             dy: float = self.pos_x - other.pos_y
             dist: float = math.sqrt(dx * dx + dy * dy)
-            f: float = kGravityConstant * self.mass * other.mass \
-                       / (dist * dist + kDampeningFactor)
+            f: float = kGravityConstant * self.mass * other.mass / (dist * dist + kDampeningFactor)
 
             other.force_x += f * dx / dist
             other.force_y += f * dy / dist
@@ -92,22 +90,15 @@ class Body:  # クラスをDynaSOArを使う必要があることを何らかの
         if self.pos_y < -1 or self.pos_y > 1:
             self.vel_y = -self.vel_y
 
-    # この関数はcudaを使う必要がある
-    # __global__ void kernel_initialize_bodies() {
-    # int tid = threadIdx.x + blockDim.x * blockIdx.x;
-    # curandState rand_state;
-    # curand_init(kSeed, tid, 0, &rand_state);
-    #
-    # for (int i = tid; i < kNumBodies; i += blockDim.x * gridDim.x) {
-    #     new(device_allocator) Body(
-    #         /*pos_x=*/ 2 * curand_uniform(&rand_state) - 1,
-    #         /*pos_y=*/ 2 * curand_uniform(&rand_state) - 1,
-    #         /*vel_x=*/ (curand_uniform(&rand_state) - 0.5) / 1000,
-    #         /*vel_y=*/ (curand_uniform(&rand_state) - 0.5) / 1000,
-    #         /*mass=*/ (curand_uniform(&rand_state)/2 + 0.5) * kMaxMass);
 
-    def kernel_initialize_bodies(self):
-        pass
+def kernel_initialize_bodies():
+    for ii in range(kNumBodies):
+        px_ = 2.0 * random.random() - 1.0
+        py_ = 2.0 * random.random() - 1.0
+        vx_ = (random.random() - 0.5) / 1000.0
+        vy_ = (random.random() - 0.5) / 1000.0
+        ms_ = (random.random() / 2.0 + 0.5) * kMaxMass
+        ph.__device_allocator__.new_(Body, px_, py_, vx_, vy_, ms_)
 
 
 if __name__ == '__main__':
@@ -118,45 +109,29 @@ if __name__ == '__main__':
     # kernel_initialize_bodies << < 128, 128 >> > ();
     # gpuErrchk(cudaDeviceSynchronize());
 
-    body_list: List[Body] = []
+    kernel_initialize_bodies()
     plt.ion()
     fig = plt.figure(figsize=(5, 5))
     plt.axis([-1, 1, -1, 1], frameon=False, aspect=1)
+    print(ph.__device_allocator__.classDictionary)
 
-    for i in range(kNumBodies):
-        px_ = 2.0 * random.random() - 1.0
-        py_ = 2.0 * random.random() - 1.0
-        vx_ = (random.random() - 0.5) / 1000.0
-        vy_ = (random.random() - 0.5) / 1000.0
-        ms_ = (random.random() / 2.0 + 0.5) * kMaxMass
-        body_list.append(Body(px_, py_, vx_, vy_, ms_))
-    # for i in range(10):
-    #     print(body_list[i].vel_y)
-
-    # 直列
+    # 並列
     for i in range(kNumIterations):
         start_time = time.time()
+        # parallel_doを呼び出してforceを計算し、適用する---------------------------------------------------------------
+        # allocator_handle->parallel_do < Body, & Body::compute_force > ();
+        # allocator_handle->parallel_do < Body, & Body::update > ();
+        ph.parallel_do(Body, Body.compute_force)
+        ph.parallel_do(Body, Body.body_update)
+
         for j in range(kNumBodies):
-            body_list[j].compute_force()
-        for j in range(kNumBodies):
-            for k in range(kNumBodies):
-                body_list[j].apply_force(body_list[k])
-        for j in range(kNumBodies):
-            body_list[j].body_update()
-            plt.scatter(body_list[j].pos_x, body_list[j].pos_y, color="k")
-        # print(body_list[1].force_x)
+            plt.scatter(ph.__device_allocator__.classDictionary["Body"][j].pos_x,
+                        ph.__device_allocator__.classDictionary["Body"][j].pos_y,
+                        color='k'
+                        )
+        # ---------------------------------------------------------------------------------------------------------
         plt.pause(0.00001)
         plt.clf()
         plt.axis([-1, 1, -1, 1], frameon=False, aspect=1)
         end_time = time.time()
-
         print("ループ%-4d実行時間は%.2f秒" % (i, (end_time - start_time)))
-
-    # 並列
-    # for i in range(kNumIterations):
-    #     # parallel_doを呼び出してforceを計算し、適用する---------------------------------------------------------------
-    #     # allocator_handle->parallel_do < Body, & Body::compute_force > ();
-    #     # allocator_handle->parallel_do < Body, & Body::update > ();
-    #     py_allocator_handle.parallel_do(Body, Body.compute_force)
-    #     py_allocator_handle.parallel_do(Body, Body.body_update)
-    #     # -----------------------------------------------------------------------------------------------------------
