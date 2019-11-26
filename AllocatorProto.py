@@ -5,21 +5,21 @@ from typing import Callable
 from typing import TypeVar
 
 
-class A:
-    def __init__(self, a: int):
-        self.aa = a
-        print(self.aa)
-    pass
-
-    def add3(self):
-        self.aa += 3
-        print(self.aa)
-
-
-class B:
-    def __init__(self):
-        print("b")
-    pass
+# class A:
+#     def __init__(self, a: int):
+#         self.aa = a
+#         print(self.aa)
+#     pass
+#
+#     def add3(self):
+#         self.aa += 3
+#         print(self.aa)
+#
+#
+# class B:
+#     def __init__(self):
+#         print("b")
+#     pass
 
 
 # Device side allocator
@@ -60,15 +60,15 @@ class PyAllocatorTHandle:
         return self.__device_allocator__.parallel_do(class_name, func, *args)
 
 
-if __name__ == '__main__':
-    p = PyAllocatorT(5, A, B)
-    print(p.classDictionary)
-    p.new_(A, 1)
-    p.new_(A, 2)
-    p.new_(B)
-    p.new_(A, 3)
-    p.device_do(A, A.add3)
-    print(p.classDictionary)
-    print(p.classDictionary[A])
-    print(p.classDictionary[A][0])
-    # print(type(a.device_do))
+# if __name__ == '__main__':
+#     p = PyAllocatorT(5, A, B)
+#     print(p.classDictionary)
+#     p.new_(A, 1)
+#     p.new_(A, 2)
+#     p.new_(B)
+#     p.new_(A, 3)
+#     p.device_do(A, A.add3)
+#     print(p.classDictionary)
+#     print(p.classDictionary[A])
+#     print(p.classDictionary[A][0])
+#     # print(type(a.device_do))
