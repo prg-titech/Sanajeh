@@ -25,38 +25,39 @@ from typing import TypeVar
 # Device side allocator
 class PyAllocatorT:
     numObjects: int
+    classDictionary: Dict
 
-    def __init__(self, object_num: int, *class_names: type) -> None:
+    def __init__(self, object_num, *class_names):
         self.numObjects = object_num
         self.classDictionary = {}
         for i in class_names:
             self.classDictionary.setdefault(i, [])
 
-    def new_(self, class_name: type, *args) -> None:
-        self.classDictionary.setdefault(class_name.__name__, []).append(class_name(*args))
+    def new_(self, class_name, *args):
+        ob = class_name(*args)
+        self.classDictionary.setdefault(class_name.__name__, []).append(ob)
+        return ob
 
-    def device_do(self,  class_name: type, func: Callable, *args):
+    def device_do(self,  class_name, func: Callable, *args):
         for i in self.classDictionary[class_name.__name__]:
             func(i, *args)
-        pass
 
-    def parallel_do(self,  class_name: type, func: Callable, *args):
+    def parallel_do(self,  class_name, func: Callable, *args):
         for i in self.classDictionary[class_name.__name__]:
             func(i, *args)
-        pass
 
 
 # Host side allocator
 class PyAllocatorTHandle:
     __device_allocator__: PyAllocatorT
 
-    def __init__(self, pat: PyAllocatorT) -> None:
+    def __init__(self, pat: PyAllocatorT):
         self.__device_allocator__ = pat
 
-    def device_do(self,  class_name: type, func, *args):
+    def device_do(self,  class_name, func, *args):
         return self.__device_allocator__.device_do(class_name, func, *args)
 
-    def parallel_do(self,  class_name: type, func, *args):
+    def parallel_do(self,  class_name, func, *args):
         return self.__device_allocator__.parallel_do(class_name, func, *args)
 
 
