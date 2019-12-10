@@ -1,6 +1,7 @@
 from __future__ import annotations
 import math
-from AllocatorProto import *
+from sanajeh import *
+from sanajeh import __pyallocator__
 from Config import *
 from typing import TypeVar
 import random
@@ -23,8 +24,9 @@ from matplotlib import animation
 # allocator_handle = new AllocatorHandle<AllocatorT>(/*unified_memory=*/ true);
 # AllocatorT* dev_ptr = allocator_handle->device_pointer();
 # cudaMemcpyToSymbol(device_allocator, &dev_ptr, sizeof(AllocatorT*), 0, cudaMemcpyHostToDevice);
-pAT = PyAllocatorT(kNumObjects, "Body")  # Allocatorを宣言する(devide_do)
-ph = PyAllocatorTHandle(pAT)  # Host側のAllocatorのHandleを作る(parallel_do)
+
+
+ph = PyAllocatorTHandle(__pyallocator__)  # Host側のAllocatorのHandleを作る(parallel_do)
 
 
 # -------------------------------------------------------------------------------------------------------------------
@@ -65,7 +67,7 @@ class Body:  # クラスをDynaSOArを使う必要があることを何らかの
         self.force_y = 0.0
         # ここでdevice_doを呼び出す-------------------------------------------------------------------------------------
         # device_allocator->template device_do<Body>(&Body::apply_force, this);
-        pAT.device_do(Body, Body.apply_force, self)
+        __pyallocator__.device_do(Body, Body.apply_force, self)
         # -----------------------------------------------------------------------------------------------------------
 
     def apply_force(self, other: Body):
@@ -91,6 +93,7 @@ class Body:  # クラスをDynaSOArを使う必要があることを何らかの
             self.vel_y = -self.vel_y
 
 
+# __ global__ in cuda
 def kernel_initialize_bodies():
     for ii in range(kNumBodies):
         px_ = 2.0 * random.random() - 1.0
@@ -98,7 +101,7 @@ def kernel_initialize_bodies():
         vx_ = (random.random() - 0.5) / 1000.0
         vy_ = (random.random() - 0.5) / 1000.0
         ms_ = (random.random() / 2.0 + 0.5) * kMaxMass
-        ph.__device_allocator__.new_(Body, px_, py_, vx_, vy_, ms_)
+        __pyallocator__.new_(Body, px_, py_, vx_, vy_, ms_)
 
 
 if __name__ == '__main__':
@@ -113,7 +116,7 @@ if __name__ == '__main__':
     plt.ion()
     fig = plt.figure(figsize=(5, 5))
     plt.axis([-1, 1, -1, 1], frameon=False, aspect=1)
-    print(ph.__device_allocator__.classDictionary)
+    # print(__pyallocator__.classDictionary)
 
     # 並列
     for i in range(kNumIterations):

@@ -27,11 +27,11 @@ class PyAllocatorT:
     numObjects: int
     classDictionary: Dict
 
-    def __init__(self, object_num, *class_names):
-        self.numObjects = object_num
+    def __init__(self):
+        # self.numObjects = object_num
         self.classDictionary = {}
-        for i in class_names:
-            self.classDictionary.setdefault(i, [])
+        # for i in class_names:
+        #     self.classDictionary.setdefault(i, [])
 
     def new_(self, class_name, *args):
         ob = class_name(*args)
@@ -60,6 +60,14 @@ class PyAllocatorTHandle:
     def parallel_do(self,  class_name, func, *args):
         return self.__device_allocator__.parallel_do(class_name, func, *args)
 
+
+__pyallocator__ = PyAllocatorT()
+
+# Base class, every class that use the allocator should be child of this class
+
+
+class Base:
+    pass
 
 # if __name__ == '__main__':
 #     p = PyAllocatorT(5, A, B)
