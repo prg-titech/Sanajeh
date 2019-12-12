@@ -23,7 +23,7 @@ from typing import TypeVar
 
 
 # Device side allocator
-class PyAllocatorT:
+class PyAllocator:
     numObjects: int
     classDictionary: Dict
 
@@ -34,40 +34,45 @@ class PyAllocatorT:
         #     self.classDictionary.setdefault(i, [])
 
     def new_(self, class_name, *args):
+        # ffiでnew(device_allocator)を呼び出す
         ob = class_name(*args)
         self.classDictionary.setdefault(class_name.__name__, []).append(ob)
         return ob
 
     def device_do(self,  class_name, func: Callable, *args):
+        # ffiでdevice_doを呼び出す
         for i in self.classDictionary[class_name.__name__]:
             func(i, *args)
 
     def parallel_do(self,  class_name, func: Callable, *args):
+        # ffiでparallel_doを呼び出す
         for i in self.classDictionary[class_name.__name__]:
             func(i, *args)
 
-
-# Host side allocator
-class PyAllocatorTHandle:
-    __device_allocator__: PyAllocatorT
-
-    def __init__(self, pat: PyAllocatorT):
-        self.__device_allocator__ = pat
-
-    def device_do(self,  class_name, func, *args):
-        return self.__device_allocator__.device_do(class_name, func, *args)
-
-    def parallel_do(self,  class_name, func, *args):
-        return self.__device_allocator__.parallel_do(class_name, func, *args)
+    def parallel_new(self,  class_name, func: Callable, *args):
+        # ffiでparallel_newを呼び出す
+        pass
 
 
-__pyallocator__ = PyAllocatorT()
+# # Host side allocator
+# class PyAllocatorTHandle:
+#     __device_allocator__: PyAllocatorT
+#
+#     def __init__(self, pat: PyAllocatorT):
+#         self.__device_allocator__ = pat
+#
+#     def device_do(self,  class_name, func, *args):
+#         return self.__device_allocator__.device_do(class_name, func, *args)
+#
+#     def parallel_do(self,  class_name, func, *args):
+#         return self.__device_allocator__.parallel_do(class_name, func, *args)
+
+
+__pyallocator__ = PyAllocator()
 
 # Base class, every class that use the allocator should be child of this class
 
 
-class Base:
-    pass
 
 # if __name__ == '__main__':
 #     p = PyAllocatorT(5, A, B)

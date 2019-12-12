@@ -26,9 +26,6 @@ from matplotlib import animation
 # cudaMemcpyToSymbol(device_allocator, &dev_ptr, sizeof(AllocatorT*), 0, cudaMemcpyHostToDevice);
 
 
-ph = PyAllocatorTHandle(__pyallocator__)  # Host側のAllocatorのHandleを作る(parallel_do)
-
-
 # -------------------------------------------------------------------------------------------------------------------
 
 
@@ -124,12 +121,12 @@ if __name__ == '__main__':
         # parallel_doを呼び出してforceを計算し、適用する---------------------------------------------------------------
         # allocator_handle->parallel_do < Body, & Body::compute_force > ();
         # allocator_handle->parallel_do < Body, & Body::update > ();
-        ph.parallel_do(Body, Body.compute_force)
-        ph.parallel_do(Body, Body.body_update)
+        __pyallocator__.parallel_do(Body, Body.compute_force)
+        __pyallocator__.parallel_do(Body, Body.body_update)
 
         for j in range(kNumBodies):
-            plt.scatter(ph.__device_allocator__.classDictionary["Body"][j].pos_x,
-                        ph.__device_allocator__.classDictionary["Body"][j].pos_y,
+            plt.scatter(__pyallocator__.classDictionary["Body"][j].pos_x,
+                        __pyallocator__.classDictionary["Body"][j].pos_y,
                         color='k'
                         )
         # ---------------------------------------------------------------------------------------------------------
