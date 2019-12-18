@@ -1,8 +1,6 @@
 # This is a python version prototype of the AllocatorHandle(host side API) and AllocatorT(device side API) in DynaSOAr
-from typing import List
 from typing import Dict
 from typing import Callable
-from typing import TypeVar
 
 
 # class A:

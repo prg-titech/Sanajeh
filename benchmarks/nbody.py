@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from benchmarks.nbodyclass import *
-from sanajeh import *
 from sanajeh import __pyallocator__
 import random
 import time
