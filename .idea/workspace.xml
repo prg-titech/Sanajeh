@@ -5,6 +5,191 @@
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/benchmarks/nbody.py" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/nbody.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/benchmarks/nbodyclass.py" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/nbodyclass.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar" beforeDir="false" afterPath="$PROJECT_DIR$/dynasoar" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/.gitmodules" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/Doxyfile" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/LICENSE" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/README.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/allocator/allocator_handle.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/allocator/compiler_check.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/allocator/configuration.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/allocator/soa_allocator.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/allocator/soa_base.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/allocator/soa_block.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/allocator/soa_debug.inc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/allocator/soa_defrag.inc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/allocator/soa_defrag_record.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/allocator/soa_executor.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/allocator/soa_field.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/allocator/soa_helper.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/allocator/tuple_helper.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/allocator/type_system.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/allocator/util.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/benchmark_scripts/eval_defrag_bench.sh" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/benchmark_scripts/run_benchmarks.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/bitmap/bitmap.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/bitmap/sequential_enumerate.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/build_scripts/build_api_example.sh" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/build_scripts/build_barnes_hut.sh" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/build_scripts/build_collision.sh" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/build_scripts/build_generation.sh" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/build_scripts/build_gol.sh" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/build_scripts/build_linux_scalability.sh" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/build_scripts/build_nbody.sh" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/build_scripts/build_structure.sh" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/build_scripts/build_sugarscape.sh" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/build_scripts/build_traffic.sh" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/build_scripts/build_tutorial.cu" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/build_scripts/build_unified_example.sh" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/build_scripts/build_wa_tor.sh" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/build_scripts/nvcc.sh" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/build_scripts/sanity_check.sh" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/dynasoar.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/api-example/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/api-example/example.cu" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/barnes-hut-dynamic/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/barnes-hut-dynamic/configuration.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/barnes-hut-dynamic/dynasoar/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/barnes-hut-dynamic/dynasoar/barnes_hut.cu" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/barnes-hut-dynamic/dynasoar/barnes_hut.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/barnes-hut-dynamic/rendering.cu" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/barnes-hut-dynamic/rendering.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/collision/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/collision/baseline_aos/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/collision/baseline_aos/collision.cu" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/collision/baseline_soa/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/collision/baseline_soa/collision.cu" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/collision/configuration.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/collision/dynasoar/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/collision/dynasoar/collision.cu" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/collision/rendering.cu" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/collision/rendering.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/configuration/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/configuration/allocator_interface_adapter.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/configuration/bitmap/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/configuration/bitmap/allocator_config.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/configuration/cuda/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/configuration/cuda/allocator_config.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/configuration/dynasoar/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/configuration/dynasoar/allocator_config.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/configuration/halloc/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/configuration/halloc/allocator_config.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/configuration/mallocmc/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/configuration/mallocmc/allocator_config.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/configuration/mallocmc/mallocmc_config.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/defrag-bench/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/defrag-bench/configuration.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/defrag-bench/defrag_benchmark.cu" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/game-of-life/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/game-of-life/baseline_aos/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/game-of-life/baseline_aos/gol.cu" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/game-of-life/baseline_simple/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/game-of-life/baseline_simple/gol.cu" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/game-of-life/baseline_soa/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/game-of-life/baseline_soa/gol.cu" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/game-of-life/configuration.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/game-of-life/dataset/source.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/game-of-life/dataset/turing_machines.tar.gz" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/game-of-life/dataset_loader.cu" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/game-of-life/dataset_loader.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/game-of-life/dynasoar/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/game-of-life/dynasoar/gol.cu" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/game-of-life/dynasoar/gol.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/game-of-life/dynasoar_no_cell/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/game-of-life/dynasoar_no_cell/gol.cu" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/game-of-life/dynasoar_no_cell/gol.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/game-of-life/rendering.cu" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/game-of-life/rendering.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/generation/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/generation/configuration.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/generation/dataset_loader.cu" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/generation/dataset_loader.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/generation/dynasoar/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/generation/dynasoar/generation.cu" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/generation/dynasoar/generation.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/generation/rendering.cu" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/generation/rendering.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/linux-scalability/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/linux-scalability/dynasoar/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/linux-scalability/dynasoar/configuration.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/linux-scalability/dynasoar/linux_scalability.cu" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/linux-scalability/dynasoar/linux_scalability.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/nbody/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/nbody/baseline_aos/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/nbody/baseline_aos/nbody.cu" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/nbody/baseline_soa/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/nbody/baseline_soa/nbody.cu" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/nbody/configuration.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/nbody/dynasoar/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/nbody/dynasoar/nbody.cu" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/nbody/dynasoar/nbody.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/nbody/rendering.cu" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/nbody/rendering.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/structure/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/structure/baseline_aos/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/structure/baseline_aos/structure.cu" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/structure/baseline_soa/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/structure/baseline_soa/structure.cu" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/structure/configuration.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/structure/dataset.cc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/structure/dataset.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/structure/dynasoar/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/structure/dynasoar/structure.cu" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/structure/dynasoar/structure.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/structure/rendering.cu" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/structure/rendering.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/sugarscape/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/sugarscape/baseline_aos/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/sugarscape/baseline_aos/sugarscape.cu" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/sugarscape/baseline_soa/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/sugarscape/baseline_soa/sugarscape.cu" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/sugarscape/configuration.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/sugarscape/dynasoar/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/sugarscape/dynasoar/sugarscape.cu" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/sugarscape/dynasoar/sugarscape.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/sugarscape/dynasoar_no_cell/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/sugarscape/dynasoar_no_cell/sugarscape.cu" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/sugarscape/dynasoar_no_cell/sugarscape.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/sugarscape/rendering.cu" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/sugarscape/rendering.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/traffic/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/traffic/baseline_aos/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/traffic/baseline_aos/traffic.cu" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/traffic/baseline_aos_prefixsum/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/traffic/baseline_aos_prefixsum/traffic.cu" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/traffic/baseline_soa/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/traffic/baseline_soa/traffic.cu" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/traffic/baseline_soa_prefixsum/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/traffic/baseline_soa_prefixsum/traffic.cu" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/traffic/configuration.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/traffic/dataset.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/traffic/dynasoar/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/traffic/dynasoar/traffic.cu" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/traffic/dynasoar/traffic.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/traffic/rendering.cu" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/traffic/rendering.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/tutorial/dynasoar/tutorial.cu" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/unified-example/example.cu" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/wa-tor/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/wa-tor/baseline_aos/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/wa-tor/baseline_aos/wator.cu" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/wa-tor/baseline_soa/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/wa-tor/baseline_soa/wator.cu" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/wa-tor/configuration.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/wa-tor/dynasoar/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/wa-tor/dynasoar/wator.cu" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/wa-tor/dynasoar/wator.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/wa-tor/dynasoar_no_cell/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/wa-tor/dynasoar_no_cell/wator.cu" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/wa-tor/dynasoar_no_cell/wator.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/wa-tor/rendering.cu" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/example/wa-tor/rendering.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dynasoar/util/util.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/py2cpp.py" beforeDir="false" afterPath="$PROJECT_DIR$/py2cpp.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/python2cpp_examples/Sample1.py" beforeDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -28,8 +213,8 @@
     <ConfirmationsSetting value="1" id="Add" />
   </component>
   <component name="PropertiesComponent">
-    <property name="last_opened_file_path" value="$PROJECT_DIR$/../Program Files/Git/cmd/git.exe" />
-    <property name="settings.editor.selected.configurable" value="settings.github" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/py2cpp.py" />
+    <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
   </component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
@@ -53,7 +238,7 @@
       </list>
     </option>
   </component>
-  <component name="RunManager" selected="Python.nbody">
+  <component name="RunManager" selected="Python.py2cpp">
     <configuration name="nbody" type="PythonConfigurationType" factoryName="Python">
       <module name="Sanajeh" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -75,16 +260,16 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
-    <configuration name="py2cpp" type="PythonConfigurationType" factoryName="Python" temporary="true">
+    <configuration name="py2cpp" type="PythonConfigurationType" factoryName="Python" nameIsGenerated="true">
       <module name="Sanajeh" />
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
       <envs>
         <env name="PYTHONUNBUFFERED" value="1" />
       </envs>
-      <option name="SDK_HOME" value="" />
+      <option name="SDK_HOME" value="C:\Users\prg\AppData\Local\Programs\Python\Python37\python.exe" />
       <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
-      <option name="IS_MODULE_SDK" value="true" />
+      <option name="IS_MODULE_SDK" value="false" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/py2cpp.py" />
@@ -177,6 +362,16 @@
     </task>
     <option name="localTasksCounter" value="3" />
     <servers />
+  </component>
+  <component name="Vcs.Log.History.Properties">
+    <option name="COLUMN_ORDER">
+      <list>
+        <option value="0" />
+        <option value="2" />
+        <option value="3" />
+        <option value="1" />
+      </list>
+    </option>
   </component>
   <component name="Vcs.Log.Tabs.Properties">
     <option name="TAB_STATES">

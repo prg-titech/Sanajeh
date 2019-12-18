@@ -2,10 +2,9 @@ from __future__ import annotations
 import math
 from sanajeh import __pyallocator__
 
-kSeed: int = 42
 kMaxMass: float = 1000.0
 kDt: float = 0.02
-kGravityConstant: float = 6.673e-4
+kGravityConstant: float = 6.673e-5
 kDampeningFactor: float = 0.05
 
 

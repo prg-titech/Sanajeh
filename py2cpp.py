@@ -1,7 +1,7 @@
 import ast
 
-source = open('./benchmarks/nbody.py', encoding="utf-8").read()
-source2 = open('./python2cpp_examples/Sample1.py', encoding="utf-8").read()
+source = open('./benchmarks/nbodyclass.py', encoding="utf-8").read()
+source2 = open('./python2cpp_examples/Sample.py', encoding="utf-8").read()
 tree = ast.parse(source2)
 
 
@@ -11,9 +11,13 @@ class GenCppVisitor(ast.NodeVisitor):
 
     def generic_visit(self, node):
         print(type(node).__name__)
-        for x in node.body:
-            x.visit()
-        # ast.NodeVisitor.generic_visit(self, node)
+        # for x in node.body:
+        #     x.visit()
+        ast.NodeVisitor.generic_visit(self, node)
+
+    def visit_ClassDef(self, node):
+        print(type(node).__name__)
+        ast.NodeVisitor.generic_visit(self, node)
 
     def visit_FunctionDef(self, node):
         print(type(node).__name__)
