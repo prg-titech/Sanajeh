@@ -1,37 +1,17 @@
 from __future__ import annotations
 
+import numpy as np
+
 from benchmarks.nbodyclass import *
 from sanajeh import __pyallocator__
 import random
 import time
-import matplotlib.pyplot as plt
+from matplotlib import pyplot as plt
+from matplotlib import animation
 
-
-# DynaSOArの初期化----------------------------------------------------------------------------------------------------
-# //何らかのシンタックスでここで使いたいクラスをすべて宣言する
-# class Body;
-# using AllocatorT = SoaAllocator<kNumObjects, Body>;
-#
-# //Allocatorを宣言する
-# AllocatorHandle<AllocatorT>* allocator_handle;
-# __device__ AllocatorT* device_allocator;
-# Allocatorを作成する
-# allocator_handle = new AllocatorHandle<AllocatorT>(/*unified_memory=*/ true);
-# AllocatorT* dev_ptr = allocator_handle->device_pointer();
-# cudaMemcpyToSymbol(device_allocator, &dev_ptr, sizeof(AllocatorT*), 0, cudaMemcpyHostToDevice);
-
-
-# -------------------------------------------------------------------------------------------------------------------
-
-
-kSeed: int = 42
-kMaxMass: float = 1000.0
 kNumIterations: int = 3000
 kNumBodies: int = 30
-kDt: float = 0.02
-kGravityConstant: float = 6.673e-4
-kDampeningFactor: float = 0.05
-kNumObjects: int = 64 * 64 * 64 * 64
+inx = 0
 
 
 # __ global__ in cuda
@@ -45,6 +25,23 @@ def kernel_initialize_bodies():
         __pyallocator__.new_(Body, px_, py_, vx_, vy_, ms_)
 
 
+def _update(frame):
+    global inx
+    # 現在のグラフを消去する
+    plt.cla()
+    __pyallocator__.parallel_do(Body, Body.compute_force)
+    __pyallocator__.parallel_do(Body, Body.body_update)
+    start_time = time.time()
+    for j in range(kNumBodies):
+        x = __pyallocator__.classDictionary["Body"][j].pos_x
+        y = __pyallocator__.classDictionary["Body"][j].pos_y
+        plt.scatter(x, y, color='k')
+    end_time = time.time()
+    inx += 1
+    print("ループ%-4d実行時間は%.2f秒" % (inx, (end_time - start_time)))
+    plt.axis([-1, 1, -1, 1], frameon=False, aspect=1)
+
+
 if __name__ == '__main__':
     # cudaMemcpyToSymbol(device_allocator, &dev_ptr, sizeof(AllocatorT*), 0,
     #                     cudaMemcpyHostToDevice);
@@ -54,28 +51,18 @@ if __name__ == '__main__':
     # gpuErrchk(cudaDeviceSynchronize());
 
     kernel_initialize_bodies()
-    plt.ion()
     fig = plt.figure(figsize=(5, 5))
     plt.axis([-1, 1, -1, 1], frameon=False, aspect=1)
     # print(__pyallocator__.classDictionary)
 
-    # 並列
-    for i in range(kNumIterations):
-        start_time = time.time()
-        # parallel_doを呼び出してforceを計算し、適用する---------------------------------------------------------------
-        # allocator_handle->parallel_do < Body, & Body::compute_force > ();
-        # allocator_handle->parallel_do < Body, & Body::update > ();
-        __pyallocator__.parallel_do(Body, Body.compute_force)
-        __pyallocator__.parallel_do(Body, Body.body_update)
+    params = {
+        'fig': fig,
+        'func': _update,  # グラフを更新する関数
+        'fargs': (),  # 関数の引数 (フレーム番号を除く)
+        'interval': 1,  # 更新間隔 (ミリ秒)
+        # 'frames': np.arange(0, 10, 0.1),  # フレーム番号を生成するイテレータ
+        'repeat': True,  # 繰り返す
+    }
+    anime = animation.FuncAnimation(**params)
+    plt.show()
 
-        for j in range(kNumBodies):
-            plt.scatter(__pyallocator__.classDictionary["Body"][j].pos_x,
-                        __pyallocator__.classDictionary["Body"][j].pos_y,
-                        color='k'
-                        )
-        # ---------------------------------------------------------------------------------------------------------
-        plt.pause(0.00001)
-        plt.clf()
-        plt.axis([-1, 1, -1, 1], frameon=False, aspect=1)
-        end_time = time.time()
-        print("ループ%-4d実行時間は%.2f秒" % (i, (end_time - start_time)))

@@ -4,13 +4,26 @@ from sanajeh import __pyallocator__
 
 kSeed: int = 42
 kMaxMass: float = 1000.0
-kNumIterations: int = 3000
-kNumBodies: int = 30
 kDt: float = 0.02
 kGravityConstant: float = 6.673e-4
 kDampeningFactor: float = 0.05
-kNumObjects: int = 64 * 64 * 64 * 64
 
+
+# DynaSOArの初期化----------------------------------------------------------------------------------------------------
+# //何らかのシンタックスでここで使いたいクラスをすべて宣言する
+# class Body;
+# using AllocatorT = SoaAllocator<kNumObjects, Body>;
+#
+# //Allocatorを宣言する
+# AllocatorHandle<AllocatorT>* allocator_handle;
+# __device__ AllocatorT* device_allocator;
+# Allocatorを作成する
+# allocator_handle = new AllocatorHandle<AllocatorT>(/*unified_memory=*/ true);
+# AllocatorT* dev_ptr = allocator_handle->device_pointer();
+# cudaMemcpyToSymbol(device_allocator, &dev_ptr, sizeof(AllocatorT*), 0, cudaMemcpyHostToDevice);
+
+
+# -------------------------------------------------------------------------------------------------------------------
 
 class Body:  # クラスをDynaSOArを使う必要があることを何らかのシンタックスで宣言すべき（DynaSOArだとAllocator::Baseの子クラスにする）
 
