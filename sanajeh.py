@@ -37,6 +37,7 @@ class PyAllocator:
         self.classDictionary.setdefault(class_name.__name__, []).append(ob)
         return ob
 
+    # can only be used in device code
     def device_do(self,  class_name, func: Callable, *args):
         # ffiでdevice_doを呼び出す
         for i in self.classDictionary[class_name.__name__]:
@@ -67,8 +68,6 @@ class PyAllocator:
 
 
 __pyallocator__ = PyAllocator()
-
-# Base class, every class that use the allocator should be child of this class
 
 
 
