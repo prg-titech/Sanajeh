@@ -4,16 +4,121 @@
     <list default="true" id="d86895dc-251a-4e36-a9c1-6bb7fe2fb2f3" name="Default Changelist" comment="k">
       <change beforePath="$PROJECT_DIR$/.idea/Sanajeh.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/Sanajeh.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/nbody.py" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/nbody.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/nbodyclass.py" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/benchmarks/output.html" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000000.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000000.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000001.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000001.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000002.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000002.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000003.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000003.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000004.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000004.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000005.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000005.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000006.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000006.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000007.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000007.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000008.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000008.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000009.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000009.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000010.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000010.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000011.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000011.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000012.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000012.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000013.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000013.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000014.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000014.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000015.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000015.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000016.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000016.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000017.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000017.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000018.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000018.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000019.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000019.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000020.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000020.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000021.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000021.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000022.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000022.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000023.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000023.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000024.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000024.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000025.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000025.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000026.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000026.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000027.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000027.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000028.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000028.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000029.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000029.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000030.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000030.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000031.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000031.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000032.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000032.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000033.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000033.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000034.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000034.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000035.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000035.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000036.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000036.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000037.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000037.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000038.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000038.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000039.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000039.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000040.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000040.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000041.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000041.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000042.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000042.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000043.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000043.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000044.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000044.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000045.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000045.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000046.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000046.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000047.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000047.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000048.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000048.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000049.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000049.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000050.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000050.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000051.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000051.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000052.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000052.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000053.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000053.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000054.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000054.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000055.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000055.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000056.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000056.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000057.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000057.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000058.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000058.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000059.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000059.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000060.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000060.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000061.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000061.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000062.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000062.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000063.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000063.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000064.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000064.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000065.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000065.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000066.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000066.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000067.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000067.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000068.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000068.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000069.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000069.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000070.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000070.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000071.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000071.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000072.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000072.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000073.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000073.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000074.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000074.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000075.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000075.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000076.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000076.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000077.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000077.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000078.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000078.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000079.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000079.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000080.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000080.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000081.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000081.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000082.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000082.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000083.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000083.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000084.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000084.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000085.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000085.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000086.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000086.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000087.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000087.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000088.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000088.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000089.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000089.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000090.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000090.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000091.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000091.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000092.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000092.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000093.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000093.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000094.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000094.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000095.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000095.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000096.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000096.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000097.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000097.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000098.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000098.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/benchmarks/output_frames/frame0000099.png" beforeDir="false" afterPath="$PROJECT_DIR$/benchmarks/output_frames/frame0000099.png" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/py2cpp.py" beforeDir="false" afterPath="$PROJECT_DIR$/py2cpp.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sanajeh.py" beforeDir="false" afterPath="$PROJECT_DIR$/sanajeh.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FavoritesManager">
+    <favorites_list name="Sanajeh" />
   </component>
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
@@ -32,7 +137,7 @@
   </component>
   <component name="PropertiesComponent">
     <property name="last_opened_file_path" value="$PROJECT_DIR$/py2cpp.py" />
-    <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
+    <property name="settings.editor.selected.configurable" value="project.propVCSSupport.Mappings" />
   </component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
@@ -85,7 +190,7 @@
       <envs>
         <env name="PYTHONUNBUFFERED" value="1" />
       </envs>
-      <option name="SDK_HOME" value="$PROJECT_DIR$/venv/bin/python" />
+      <option name="SDK_HOME" value="C:\Users\prg\AppData\Local\Programs\Python\Python37\python.exe" />
       <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
       <option name="IS_MODULE_SDK" value="false" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
@@ -205,6 +310,11 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
+    <ignored-roots>
+      <path value="$PROJECT_DIR$/dynasoar/example/configuration/halloc/halloc" />
+      <path value="$PROJECT_DIR$/dynasoar/example/configuration/mallocmc/mallocMC" />
+      <path value="$PROJECT_DIR$/dynasoar/lib/cub" />
+    </ignored-roots>
     <MESSAGE value="Merge branch 'master' of github.com:prg-titech/Sanajeh&#10;&#10;# Please enter a commit message to explain why this merge is necessary,&#10;# especially if it merges an updated upstream into a topic branch.&#10;#&#10;# Lines starting with '#' will be ignored, and an empty message aborts&#10;# the commit." />
     <MESSAGE value="Merge branch 'master' of github.com:prg-titech/Sanajeh&#10;&#10;# Please enter a commit message to explain why this merge is necessary,&#10;# especially if it merges an updated upstream into a topic branch.&#10;#&#10;# Lines starting with '#' will be ignored, and an empty message aborts&#10;# the commit.&#10;&#10;test pycharm git" />
     <option name="LAST_COMMIT_MESSAGE" value="Merge branch 'master' of github.com:prg-titech/Sanajeh&#10;&#10;# Please enter a commit message to explain why this merge is necessary,&#10;# especially if it merges an updated upstream into a topic branch.&#10;#&#10;# Lines starting with '#' will be ignored, and an empty message aborts&#10;# the commit.&#10;&#10;test pycharm git" />

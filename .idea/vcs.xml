@@ -3,8 +3,5 @@
   <component name="VcsDirectoryMappings">
     <mapping directory="$PROJECT_DIR$" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/dynasoar" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/dynasoar/example/configuration/halloc/halloc" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/dynasoar/example/configuration/mallocmc/mallocMC" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/dynasoar/lib/cub" vcs="Git" />
   </component>
 </project>
