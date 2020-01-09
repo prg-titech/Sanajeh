@@ -54,7 +54,6 @@ class Body:  # クラスをDynaSOArを使う必要があることを何らかの
     force_x: float
     force_y: float
     mass: float
-
     # ---------------------------------------------------------------------------------------------------------------
 
     def __init__(self, px: float, py: float, vx: float, vy: float, m: float):

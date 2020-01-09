@@ -1,17 +1,44 @@
-"""
-全部の呼び出し関係を辿り着くのは問題があり
-やり方検討したい
-(astライブラリを使ったら辿り着く順序が決まっているので、何回もコードをスキャンする必要がある（違うvistor classか同じか）)
-今の流れは
-    クラスをマーク
-        ⇒グラスの中のメンバー変数、クラス変数、関数、ローカル変数、使用されたクラスの外のグローバル変数(？)をマーク
-            ⇒関数内で更に使用された関数、変数をマーク
-                ⇒更に使用された関数内で関数内で更に使用された関数、変数をマーク
-                    ⇒…
-"""
 
-'''
-deviceのローカル変数とhostのグローバル変数の名前は同じ時どうする？
-クラスのfieldなら、class::varや、class.varのようにしたら解決できるんだが、関数のローカル変数は？
-（例えばapply_force()関数の中のdx）
-'''
+# Find all functions and variables they will be copied in device memory. HUNT THEM!
+class HunterVisitor(ast.NodeVisitor):
+    __sv = ScoutVisitor()
+    variables = {}
+
+    @property
+    def classes(self):
+        return self.__sv.classes
+
+    def visit_Module(self, node):
+        self.__sv.visit(node)
+
+        for x in node.body:
+            self.visit(x)
+            # # Only visit those classes that are intended to be allocated in device
+            # if type(x) is ast.ClassDef and x.name in self.classes:
+            #     self.visit(x)
+
+    # def visit_FunctionDef(self, node):
+
+    def visit_AnnAssign(self, node):
+        self.variables.setdefault(node.target.id, []).append(node.annotation.id)
+        # print(self.variables)
+        self.generic_visit(node)
+
+        pn = node.parent
+        #
+        # To know whether a variable which appears in the value of the assignment is an argument, if so, then we don't
+        # want to create a device version of this variable, if not so, the variable probably is an global variable(?) so
+        # we need to mark that
+        #
+        # while (type(pn) is not ast.ClassDef) and (type(pn) is not ast.FunctionDef):
+        #     pn = pn.parent
+        # print(type(pn))
+
+    def visit_BinOp(self, node):
+        self.generic_visit(node)
+
+    def visit_Assign(self, node):
+        self.generic_visit(node)
+
+    def visit_AugAssign(self, node):
+        self.generic_visit(node)
