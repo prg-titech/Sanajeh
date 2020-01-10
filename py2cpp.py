@@ -1,4 +1,6 @@
 import ast
+from typing import List
+from typing import Set
 
 source = open('./benchmarks/nbody.py', encoding="utf-8").read()
 source2 = open('./python2cpp_examples/Sample.py', encoding="utf-8").read()
@@ -15,20 +17,34 @@ for parent_node in ast.walk(tree):
 # reserved for nested class 
 class FunctionTreeNode:
 
-    def __init__(self, nm):
-        self.name = nm  # function name
-        self.declared_Functions = set()  # functions declared in this function (nested functions)
-        self.called_Functions = set()  # functions called by this function
+    def __init__(self, function_name, class_name, identifier_name):
+        self.f_name:str = function_name  # function name
+        self.c_name:str = class_name  # class name
+        self.i_name:str = identifier_name  # identifier name
+        self.declared_Functions: List[FunctionTreeNode] = []  # functions declared in this function (nested functions)
+        self.called_Functions: Set[FunctionTreeNode] = set()  # functions called by this function
         self.is_Device_Func = False  # if it is an __device__ function
 
-    # Find the function 'nm' by BFS
-    def GetFunctionNode(self, nm):
+    # Find the function 'function_name' by BFS
+    def GetFunctionNode(self, function_name, class_name, identifier_name):
         q = [self]
         while len(q) != 0:
             nd = q[0]
             for x in nd.declared_Functions:
-                if x.name == nm:
+                if x.f_name == function_name and x.c_name == class_name and x.i_name == identifier_name:
                     return x
+                q.append(x)
+            q.pop(0)
+        return None
+
+    # Mark all the functions called by this function node to device function
+    def RecursiveMark(self):
+        q = [self]
+        while len(q) != 0:
+            nd = q[0]
+            self.is_Device_Func = True
+            print('Marking, function: {}, class: {}, identifier: {}'.format(nd.f_name, nd.c_name, nd.i_name))
+            for x in nd.called_Functions:
                 q.append(x)
             q.pop(0)
         return None
@@ -36,19 +52,36 @@ class FunctionTreeNode:
 
 # Generate python function tree
 class GenPyTreeVisitor(ast.NodeVisitor):
-    root = FunctionTreeNode('global')
+    __root = FunctionTreeNode('global', None, None)
+
+    @property
+    def root(self):
+        return self.__root
 
     # Create nodes for all functions declared
     def visit_FunctionDef(self, node):
         pn = node.parent
-        func_node = None
+        func_name = node.name
         while (type(pn) is not ast.Module) and (type(pn) is not ast.ClassDef):
             pn = pn.parent
         if type(pn) is ast.Module:
-            func_node = FunctionTreeNode(node.name)
+            func_node = self.root.GetFunctionNode(func_name, None, None)
+            if func_node is None:
+                func_node = FunctionTreeNode(func_name, None, None)
+                self.root.declared_Functions.append(func_node)
+            else:
+                # Program shouldn't come to here, which means a function is defined twice
+                print("A function is defined twice.")
+                return
         elif type(pn) is ast.ClassDef:
-            func_node = FunctionTreeNode(pn.name+'.'+node.name)
-        self.root.declared_Functions.add(func_node)
+            func_node = self.root.GetFunctionNode(func_name, pn.name, None)
+            if func_node is None:
+                func_node = FunctionTreeNode(func_name, pn.name, None)
+                self.root.declared_Functions.append(func_node)
+            else:
+                # Program shouldn't come to here, which means a function is defined twice
+                print("A function is defined twice.")
+                return
         self.generic_visit(node)
 
     # Analyze function calling relationships
@@ -57,8 +90,10 @@ class GenPyTreeVisitor(ast.NodeVisitor):
 
         # Get the function name
         func_name = None
+        id_name = None
         if type(node.func) is ast.Attribute:
-            func_name = node.func.value.id+'.'+node.func.attr
+            func_name = node.func.attr
+            id_name = node.func.value.id
         elif type(node.func) is ast.Name:
             func_name = node.func.id
 
@@ -68,11 +103,12 @@ class GenPyTreeVisitor(ast.NodeVisitor):
 
         # Called in global block
         if type(pn) is ast.Module:
-            call_node = self.root.GetFunctionNode(func_name)
+            call_node = self.root.GetFunctionNode(func_name, None, None)
             if call_node is None:
-                call_node = FunctionTreeNode(func_name)
-                self.root.declared_Functions.add(call_node)
+                call_node = FunctionTreeNode(func_name, None, id_name)
+                self.root.declared_Functions.append(call_node)
             self.root.called_Functions.add(call_node)
+
         # function calling in class
         # elif type(pn) is ast.ClassDef:
         #     func_name = pn.name + '->' + func_name
@@ -86,32 +122,46 @@ class GenPyTreeVisitor(ast.NodeVisitor):
                 pnn = pnn.parent
             # The calling function is declared in global block
             if type(pnn) is ast.Module:
-                p_node = self.root.GetFunctionNode(pn.name)
-                call_node = self.root.GetFunctionNode(func_name)
+                p_node = self.root.GetFunctionNode(pn.name, None, None)
+                call_node = self.root.GetFunctionNode(func_name, None, id_name)
                 if call_node is None:
-                    call_node = FunctionTreeNode(func_name)
-                    self.root.declared_Functions.add(call_node)
+                    call_node = FunctionTreeNode(func_name, None, id_name)
+                    self.root.declared_Functions.append(call_node)
                 p_node.called_Functions.add(call_node)
             # The calling function is declared in a class
             elif type(pnn) is ast.ClassDef:
-                p_node = self.root.GetFunctionNode(pnn.name+'.'+pn.name)
+                p_node = self.root.GetFunctionNode(pn.name, pnn.name, None)
                 # print(pnn.name+'.'+pn.name + '->' + func_name)
-                call_node = self.root.GetFunctionNode(func_name)
+                call_node = self.root.GetFunctionNode(func_name, None, id_name)
                 if call_node is None:
-                    call_node = FunctionTreeNode(func_name)
-                    self.root.declared_Functions.add(call_node)
+                    call_node = FunctionTreeNode(func_name, None, id_name)
+                    self.root.declared_Functions.append(call_node)
                 p_node.called_Functions.add(call_node)
         self.generic_visit(node)
+
+    # Mark all functions that needs to be allocated in the allocator
+    def MarkFunctionsByClassName(self, class_names):
+        for cln in class_names:
+            for cls_func in self.__root.declared_Functions:
+                if cls_func.c_name == cln:
+                    cls_func.RecursiveMark()
 
 
 # Find classes which will be allocated in the device memory. MARK THEM!
 class ScoutVisitor(ast.NodeVisitor):
     # Class names
     __classes = []
+    __gen_pyTree_visitor = GenPyTreeVisitor()
 
     @property
     def classes(self):
         return self.__classes
+
+    # When visit a file first visit it by the pyTree generator
+    def visit_Module(self, node):
+        self.__gen_pyTree_visitor.visit(node)
+        for x in node.body:
+            self.visit(x)
 
     # Find the new_() function, and mark the class used in that function to device class
     def visit_Call(self, node):
@@ -120,6 +170,10 @@ class ScoutVisitor(ast.NodeVisitor):
                 if node.args[0].id not in self.classes:
                     self.classes.append(node.args[0].id)
                     # print(node.args[0].id)
+
+    # Mark all functions that needs to be allocated in the allocator
+    def MarkFunctions(self):
+        self.__gen_pyTree_visitor.MarkFunctionsByClassName(self.__classes)
 
 
 # haven't support import yet
@@ -178,12 +232,13 @@ class GenCppVisitor(ast.NodeVisitor):
 
     # Just for debug purpose
     def print_classes(self):
-        print(self.__hv.classes)
+        print(self.__sv.classes)
 
 
 if __name__ == '__main__':
     # gcv = GenCppVisitor()
     # gcv.visit(tree)
     # gcv.print_classes()
-    pt = GenPyTreeVisitor()
-    pt.visit(tree)
+    sv = ScoutVisitor()
+    sv.visit(tree)
+    sv.MarkFunctions()
