@@ -13,14 +13,18 @@ for parent_node in ast.walk(tree):
 
 
 # function tree
-# haven't thought about nested functions
-# reserved for nested class 
+# does not support nested functions and nested class
 class FunctionTreeNode:
 
     def __init__(self, function_name, class_name, identifier_name):
-        self.f_name:str = function_name  # function name
-        self.c_name:str = class_name  # class name
-        self.i_name:str = identifier_name  # identifier name
+        self.f_name: str = function_name  # function name
+        self.c_name: str = class_name  # class name
+        self.i_name: str = identifier_name  # identifier name
+
+        # if the function is called in a class but not in any of the functions in that class,
+        # the class name will be added here for marking purpose
+        self.called_c_name: set[str] = set()
+
         self.declared_Functions: List[FunctionTreeNode] = []  # functions declared in this function (nested functions)
         self.called_Functions: Set[FunctionTreeNode] = set()  # functions called by this function
         self.is_Device_Func = False  # if it is an __device__ function
@@ -43,7 +47,7 @@ class FunctionTreeNode:
         while len(q) != 0:
             nd = q[0]
             self.is_Device_Func = True
-            print('Marking, function: {}, class: {}, identifier: {}'.format(nd.f_name, nd.c_name, nd.i_name))
+            # print('Marking, function: {}, class: {}, identifier: {}'.format(nd.f_name, nd.c_name, nd.i_name))
             for x in nd.called_Functions:
                 q.append(x)
             q.pop(0)
@@ -71,7 +75,7 @@ class GenPyTreeVisitor(ast.NodeVisitor):
                 self.root.declared_Functions.append(func_node)
             else:
                 # Program shouldn't come to here, which means a function is defined twice
-                print("A function is defined twice.")
+                print("The function {} is defined twice.".format(func_name))
                 return
         elif type(pn) is ast.ClassDef:
             func_node = self.root.GetFunctionNode(func_name, pn.name, None)
@@ -80,7 +84,7 @@ class GenPyTreeVisitor(ast.NodeVisitor):
                 self.root.declared_Functions.append(func_node)
             else:
                 # Program shouldn't come to here, which means a function is defined twice
-                print("A function is defined twice.")
+                print("The function {} is defined twice.".format(func_name))
                 return
         self.generic_visit(node)
 
@@ -103,16 +107,19 @@ class GenPyTreeVisitor(ast.NodeVisitor):
 
         # Called in global block
         if type(pn) is ast.Module:
-            call_node = self.root.GetFunctionNode(func_name, None, None)
+            call_node = self.root.GetFunctionNode(func_name, None, id_name)
             if call_node is None:
                 call_node = FunctionTreeNode(func_name, None, id_name)
                 self.root.declared_Functions.append(call_node)
             self.root.called_Functions.add(call_node)
 
-        # function calling in class
-        # elif type(pn) is ast.ClassDef:
-        #     func_name = pn.name + '->' + func_name
-        #     print(func_name)
+        # Called in the class
+        elif type(pn) is ast.ClassDef:
+            call_node = self.root.GetFunctionNode(func_name, None, id_name)
+            if call_node is None:
+                call_node = FunctionTreeNode(func_name, None, id_name)
+                self.root.declared_Functions.append(call_node)
+            call_node.called_c_name.add(pn.name)
 
         # Called by another function
         elif type(pn) is ast.FunctionDef:
@@ -142,9 +149,14 @@ class GenPyTreeVisitor(ast.NodeVisitor):
     # Mark all functions that needs to be allocated in the allocator
     def MarkFunctionsByClassName(self, class_names):
         for cln in class_names:
-            for cls_func in self.__root.declared_Functions:
-                if cls_func.c_name == cln:
-                    cls_func.RecursiveMark()
+            for func in self.__root.declared_Functions:
+                # Functions declared in device class
+                if func.c_name == cln:
+                    func.RecursiveMark()
+
+                # Functions called in device class
+                elif cln in func.called_c_name:
+                    func.RecursiveMark()
 
 
 # Find classes which will be allocated in the device memory. MARK THEM!
@@ -186,6 +198,7 @@ class GenCppVisitor(ast.NodeVisitor):
     # Find classes that needs to be allocated in device memory when visit a Module
     def visit_Module(self, node):
         self.__sv.visit(node)
+        self.__sv.MarkFunctions()
         for x in node.body:
             self.visit(x)
 
@@ -236,9 +249,5 @@ class GenCppVisitor(ast.NodeVisitor):
 
 
 if __name__ == '__main__':
-    # gcv = GenCppVisitor()
-    # gcv.visit(tree)
-    # gcv.print_classes()
-    sv = ScoutVisitor()
-    sv.visit(tree)
-    sv.MarkFunctions()
+    gcv = GenCppVisitor()
+    gcv.visit(tree)

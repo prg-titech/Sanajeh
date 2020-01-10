@@ -1,3 +1,6 @@
+クラスの中で適用された関数の扱い方（クラスの中の関数に適用される関数ではない）
+
+
 
 # Find all functions and variables they will be copied in device memory. HUNT THEM!
 class HunterVisitor(ast.NodeVisitor):
