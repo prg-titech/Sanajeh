@@ -1,15 +1,9 @@
+# -*- coding: utf-8 -*-
+# Mark all device functions
+
 import ast
 from typing import List
 from typing import Set
-
-source = open('./benchmarks/nbody.py', encoding="utf-8").read()
-source2 = open('./python2cpp_examples/Sample.py', encoding="utf-8").read()
-tree = ast.parse(source)
-
-'''Let declared_Functions nodes know their parents'''
-for parent_node in ast.walk(tree):
-    for child in ast.iter_child_nodes(parent_node):
-        child.parent = parent_node
 
 
 # function tree
@@ -23,11 +17,11 @@ class FunctionTreeNode:
 
         # if the function is called in a class but not in any of the functions in that class,
         # the class name will be added here for marking purpose
-        self.called_c_name: set[str] = set()
+        self.called_c_name = set()
 
         self.declared_Functions: List[FunctionTreeNode] = []  # functions declared in this function (nested functions)
         self.called_Functions: Set[FunctionTreeNode] = set()  # functions called by this function
-        self.is_Device_Func = False  # if it is an __device__ function
+        self.is_device_func = False  # if it is an __device__ function
 
     # Find the function 'function_name' by BFS
     def GetFunctionNode(self, function_name, class_name, identifier_name):
@@ -46,12 +40,24 @@ class FunctionTreeNode:
         q = [self]
         while len(q) != 0:
             nd = q[0]
-            self.is_Device_Func = True
+            self.is_device_func = True
             # print('Marking, function: {}, class: {}, identifier: {}'.format(nd.f_name, nd.c_name, nd.i_name))
             for x in nd.called_Functions:
                 q.append(x)
             q.pop(0)
         return None
+
+    # Query whether the function is a device function
+    def IsDeviceFunction(self, function_name, class_name, identifier_name):
+        q = [self]
+        while len(q) != 0:
+            nd = q[0]
+            for x in nd.declared_Functions:
+                if x.f_name == function_name and x.c_name == class_name and x.i_name == identifier_name:
+                    return x.is_device_func
+                q.append(x)
+            q.pop(0)
+        return False
 
 
 # Generate python function tree
@@ -159,6 +165,24 @@ class GenPyTreeVisitor(ast.NodeVisitor):
                     func.RecursiveMark()
 
 
+class MarkVisitor(ast.NodeVisitor):
+    def __init__(self, rt: FunctionTreeNode):
+        self.__root: FunctionTreeNode = rt
+
+    def visit_FunctionDef(self, node):
+        pn = node.parent
+        func_name = node.name
+        while (type(pn) is not ast.Module) and (type(pn) is not ast.ClassDef):
+            pn = pn.parent
+        cln = None
+        if hasattr(pn, "name"):
+            cln = pn.name
+        if self.__root.IsDeviceFunction(func_name, cln, None):
+            node.is_device_f = True
+        else:
+            node.is_device_f = False
+
+
 # Find classes which will be allocated in the device memory. MARK THEM!
 class ScoutVisitor(ast.NodeVisitor):
     # Class names
@@ -184,70 +208,19 @@ class ScoutVisitor(ast.NodeVisitor):
                     # print(node.args[0].id)
 
     # Mark all functions that needs to be allocated in the allocator
-    def MarkFunctions(self):
+    def MarkFunctions(self, t):
         self.__gen_pyTree_visitor.MarkFunctionsByClassName(self.__classes)
+        root = self.__gen_pyTree_visitor.root
+        mv = MarkVisitor(root)
+        mv.visit(t)
 
 
-# haven't support import yet
-class GenCppVisitor(ast.NodeVisitor):
-    __sv = ScoutVisitor()
-    __h_code = ''
-    __h_include = '#include "allocator_config.h"\n'
-    __h_class_pre_declare = 'class '
+def mark(tree):
+    # Let declared_Functions nodes know their parents
+    for parent_node in ast.walk(tree):
+        for child in ast.iter_child_nodes(parent_node):
+            child.parent = parent_node
 
-    # Find classes that needs to be allocated in device memory when visit a Module
-    def visit_Module(self, node):
-        self.__sv.visit(node)
-        self.__sv.MarkFunctions()
-        for x in node.body:
-            self.visit(x)
-
-    # def generic_visit(self, node):
-    #     return ast.NodeVisitor.generic_visit(self, node)
-
-    def visit_ClassDef(self, node):
-        pass
-        # for x in node.body:
-        #     self.generic_visit(x)
-
-    def visit_FunctionDef(self, node):
-        # print(type(node).__name__)
-        ast.NodeVisitor.generic_visit(self, node)
-
-    def visit_Assign(self, node):
-        # print(type(node).__name__)
-        ast.NodeVisitor.generic_visit(self, node)
-
-    # only support int and float
-    # def visit_AnnAssign(self, node):
-    #     ant = node.annotation.id
-    #     code = ""
-    #     if ant == "float":
-    #         code += "float "
-    #     elif ant == "int":
-    #         code += "int "
-    #     elif ant == "str":
-    #         pass
-    #     else:
-    #         pass
-    #     # value = node.value
-    #     # print(value)
-    #
-    #     # ast.NodeVisitor.generic_visit(self, node)
-
-    def visit_Name(self, node):
-        pass
-        # print(node.id)
-
-    def visit_Num(self, node):
-        # print(type(node).__name__)
-        ast.NodeVisitor.generic_visit(self, node)
-
-    # Just for debug purpose
-    def print_classes(self):
-        print(self.__sv.classes)
-
-
-if __name__ == '__main__':
-    gcv = GenCppVisitor()
-    gcv.visit(tree)
+    sv = ScoutVisitor()
+    sv.visit(tree)
+    sv.MarkFunctions(tree)
