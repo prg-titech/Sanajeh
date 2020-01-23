@@ -679,7 +679,7 @@ class CppTypeRegistry(TypeRegistry):
         # todo
         # Maybe name of the class
         if type is None or type not in type_registry:
-            return "void" if rettype else "TODO"
+            return "void" if rettype else type
         return type_registry.convert(type)
 
 
