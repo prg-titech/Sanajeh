@@ -289,4 +289,5 @@ if __name__ == '__main__':
     cpp_node = gcv.visit(tree)
     ctx = cpp.BuildContext.create()
     code = cpp_node.build(ctx)
-    print(code)
+    rt = marker.sv.gen_pyTree_visitor.root
+    pass

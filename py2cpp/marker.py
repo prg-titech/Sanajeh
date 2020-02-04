@@ -6,11 +6,12 @@ from typing import List
 from typing import Set
 
 
-# function tree
-# does not support nested functions and nested class
-class FunctionTreeNode:
+# Function tree
+class BlockTreeNode:
 
-    def __init__(self, function_name, class_name, identifier_name):
+    def __init__(self, class_or_function, function_name, class_name, identifier_name):
+        # whether this block is a function or a class, true for class and false for func, global is explained as class
+        self.c_or_f = class_or_function
         self.f_name: str = function_name  # function name
         self.c_name: str = class_name  # class name
         self.i_name: str = identifier_name  # identifier name
@@ -18,10 +19,14 @@ class FunctionTreeNode:
         # if the function is called in a class but not in any of the functions in that class,
         # the class name will be added here for marking purpose
         self.called_c_name = set()
-
-        self.declared_Functions: List[FunctionTreeNode] = []  # functions declared in this function (nested functions)
-        self.called_Functions: Set[FunctionTreeNode] = set()  # functions called by this function
-        self.is_device_func = False  # if it is an __device__ function
+        # classes declared in this block
+        self.declared_classes: List[BlockTreeNode] = []
+        # functions declared in this block
+        self.declared_Functions: List[BlockTreeNode] = []
+        # variables declared in this block
+        self.declared_variables: List[str] = []
+        self.called_Functions: Set[BlockTreeNode] = set()  # functions called in this block
+        self.is_device = False  # if it is an __device__ block
 
     # Find the function 'function_name' by BFS
     def GetFunctionNode(self, function_name, class_name, identifier_name):
@@ -40,7 +45,7 @@ class FunctionTreeNode:
         q = [self]
         while len(q) != 0:
             nd = q[0]
-            self.is_device_func = True
+            self.is_device = True
             # print('Marking, function: {}, class: {}, identifier: {}'.format(nd.f_name, nd.c_name, nd.i_name))
             for x in nd.called_Functions:
                 q.append(x)
@@ -54,30 +59,40 @@ class FunctionTreeNode:
             nd = q[0]
             for x in nd.declared_Functions:
                 if x.f_name == function_name and x.c_name == class_name and x.i_name == identifier_name:
-                    return x.is_device_func
+                    return x.is_device
                 q.append(x)
             q.pop(0)
         return False
 
 
-# Generate python function tree
+# Generate python function/variable tree
 class GenPyTreeVisitor(ast.NodeVisitor):
-    __root = FunctionTreeNode('global', None, None)
+    __root = BlockTreeNode(True, 'global', None, None)
 
     @property
     def root(self):
         return self.__root
+
+    # Create nodes for all classes declared
+    def visit_ClassDef(self, node):
+        pn = node.parent
+        while type(pn) is not ast.Module:
+            print("Error, doesn't support nested classes")
+            pn = pn.parent
+        
+        self.generic_visit(node)
 
     # Create nodes for all functions declared
     def visit_FunctionDef(self, node):
         pn = node.parent
         func_name = node.name
         while (type(pn) is not ast.Module) and (type(pn) is not ast.ClassDef):
+            print("Error, doesn't support nested functions")
             pn = pn.parent
         if type(pn) is ast.Module:
             func_node = self.root.GetFunctionNode(func_name, None, None)
             if func_node is None:
-                func_node = FunctionTreeNode(func_name, None, None)
+                func_node = BlockTreeNode(False, func_name, None, None)
                 self.root.declared_Functions.append(func_node)
             else:
                 # Program shouldn't come to here, which means a function is defined twice
@@ -86,7 +101,7 @@ class GenPyTreeVisitor(ast.NodeVisitor):
         elif type(pn) is ast.ClassDef:
             func_node = self.root.GetFunctionNode(func_name, pn.name, None)
             if func_node is None:
-                func_node = FunctionTreeNode(func_name, pn.name, None)
+                func_node = BlockTreeNode(False, func_name, pn.name, None)
                 self.root.declared_Functions.append(func_node)
             else:
                 # Program shouldn't come to here, which means a function is defined twice
@@ -115,15 +130,15 @@ class GenPyTreeVisitor(ast.NodeVisitor):
         if type(pn) is ast.Module:
             call_node = self.root.GetFunctionNode(func_name, None, id_name)
             if call_node is None:
-                call_node = FunctionTreeNode(func_name, None, id_name)
+                call_node = BlockTreeNode(False, func_name, None, id_name)
                 self.root.declared_Functions.append(call_node)
             self.root.called_Functions.add(call_node)
 
         # Called in the class
         elif type(pn) is ast.ClassDef:
-            call_node = self.root.GetFunctionNode(func_name, None, id_name)
+            call_node = self.root.GetFunctionNode(False, func_name, None, id_name)
             if call_node is None:
-                call_node = FunctionTreeNode(func_name, None, id_name)
+                call_node = BlockTreeNode(False, func_name, None, id_name)
                 self.root.declared_Functions.append(call_node)
             call_node.called_c_name.add(pn.name)
 
@@ -138,7 +153,7 @@ class GenPyTreeVisitor(ast.NodeVisitor):
                 p_node = self.root.GetFunctionNode(pn.name, None, None)
                 call_node = self.root.GetFunctionNode(func_name, None, id_name)
                 if call_node is None:
-                    call_node = FunctionTreeNode(func_name, None, id_name)
+                    call_node = BlockTreeNode(False, func_name, None, id_name)
                     self.root.declared_Functions.append(call_node)
                 p_node.called_Functions.add(call_node)
             # The calling function is declared in a class
@@ -147,7 +162,7 @@ class GenPyTreeVisitor(ast.NodeVisitor):
                 # print(pnn.name+'.'+pn.name + '->' + func_name)
                 call_node = self.root.GetFunctionNode(func_name, None, id_name)
                 if call_node is None:
-                    call_node = FunctionTreeNode(func_name, None, id_name)
+                    call_node = BlockTreeNode(False, func_name, None, id_name)
                     self.root.declared_Functions.append(call_node)
                 p_node.called_Functions.add(call_node)
         self.generic_visit(node)
@@ -166,8 +181,8 @@ class GenPyTreeVisitor(ast.NodeVisitor):
 
 
 class MarkVisitor(ast.NodeVisitor):
-    def __init__(self, rt: FunctionTreeNode):
-        self.__root: FunctionTreeNode = rt
+    def __init__(self, rt: BlockTreeNode):
+        self.__root: BlockTreeNode = rt
 
     def visit_FunctionDef(self, node):
         pn = node.parent
@@ -193,6 +208,11 @@ class ScoutVisitor(ast.NodeVisitor):
     def classes(self):
         return self.__classes
 
+    # Just for DEBUG propose
+    @property
+    def gen_pyTree_visitor(self):
+        return self.__gen_pyTree_visitor
+
     # When visit a file first visit it by the pyTree generator
     def visit_Module(self, node):
         self.__gen_pyTree_visitor.visit(node)
@@ -215,12 +235,13 @@ class ScoutVisitor(ast.NodeVisitor):
         mv.visit(t)
 
 
+sv = ScoutVisitor()  # Just for DEBUG propose
+
+
 def mark(tree):
     # Let declared_Functions nodes know their parents
     for parent_node in ast.walk(tree):
         for child in ast.iter_child_nodes(parent_node):
             child.parent = parent_node
-
-    sv = ScoutVisitor()
     sv.visit(tree)
     sv.MarkFunctions(tree)
