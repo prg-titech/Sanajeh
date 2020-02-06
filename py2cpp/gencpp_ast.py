@@ -283,11 +283,10 @@ class GenCppVisitor(ast.NodeVisitor):
 if __name__ == '__main__':
     source = open('../benchmarks/nbody.py', encoding="utf-8").read()
     source2 = open('../python2cpp_examples/Sample.py', encoding="utf-8").read()
-    tree = ast.parse(source2)
+    tree = ast.parse(source)
     gcv = GenCppVisitor()
-    marker.mark(tree)
-    cpp_node = gcv.visit(tree)
-    ctx = cpp.BuildContext.create()
-    code = cpp_node.build(ctx)
-    rt = marker.sv.gen_pyTree_visitor.root
+    rt = marker.mark(tree)
+    # cpp_node = gcv.visit(tree)
+    # ctx = cpp.BuildContext.create()
+    # code = cpp_node.build(ctx)
     pass
