@@ -1,3 +1,4 @@
 # todo
-import先の関数の扱い
-CPP AST
+1 import先の関数の扱い
+2 呼び出した関数は他のクラスの関数の場合(もしstatic?)
+

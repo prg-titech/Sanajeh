@@ -2,12 +2,12 @@
 # Mark all device functions
 
 import ast
-from blockTree import EnvironmentBlockTree, BlockTreeNode
+from blockTree import BlockTree, ClassTreeNode, FunctionTreeNode
 
 
 # Generate python function/variable tree
 class GenPyTreeVisitor(ast.NodeVisitor):
-    __root = BlockTreeNode(True, 'global', None, None)
+    __root = BlockTree()
 
     @property
     def root(self):
@@ -17,9 +17,11 @@ class GenPyTreeVisitor(ast.NodeVisitor):
     def visit_ClassDef(self, node):
         pn = node.parent
         while type(pn) is not ast.Module:
-            print("Error, doesn't support nested classes")
+            # todo
+            print("Nested classes")
             pn = pn.parent
-        
+        class_node = ClassTreeNode(node.name, None)
+        self.__root.declared_classes.add(class_node)
         self.generic_visit(node)
 
     # Create nodes for all functions declared
@@ -32,8 +34,8 @@ class GenPyTreeVisitor(ast.NodeVisitor):
         if type(pn) is ast.Module:
             func_node = self.root.GetFunctionNode(func_name, None, None)
             if func_node is None:
-                func_node = BlockTreeNode(1, func_name, None, None)
-                self.root.declared_functions.append(func_node)
+                func_node = FunctionTreeNode(func_name, None)
+                self.root.declared_functions.add(func_node)
             else:
                 # Program shouldn't come to here, which means a function is defined twice
                 print("The function {} is defined twice.".format(func_name))
@@ -41,12 +43,17 @@ class GenPyTreeVisitor(ast.NodeVisitor):
         elif type(pn) is ast.ClassDef:
             func_node = self.root.GetFunctionNode(func_name, pn.name, None)
             if func_node is None:
-                func_node = BlockTreeNode(1, func_name, pn.name, None)
-                self.root.declared_functions.append(func_node)
+                class_node = self.root.GetClassNode(pn.name, None)
+                if class_node is None:
+                    # Program shouldn't come to here, which means the parent class does not exist
+                    print("The class {} does not exist.".format(pn.name))
+                    assert False
+                func_node = FunctionTreeNode(func_name, None)
+                class_node.declared_functions.add(func_node)
             else:
                 # Program shouldn't come to here, which means a function is defined twice
                 print("The function {} is defined twice.".format(func_name))
-                return
+                assert False
         self.generic_visit(node)
 
     # Analyze function calling relationships
@@ -55,6 +62,7 @@ class GenPyTreeVisitor(ast.NodeVisitor):
 
         # Get the function name
         func_name = None
+        # todo id_name maybe class name
         id_name = None
         if type(node.func) is ast.Attribute:
             func_name = node.func.attr
@@ -70,17 +78,23 @@ class GenPyTreeVisitor(ast.NodeVisitor):
         if type(pn) is ast.Module:
             call_node = self.root.GetFunctionNode(func_name, None, id_name)
             if call_node is None:
-                call_node = BlockTreeNode(1, func_name, None, id_name)
-                self.root.declared_functions.append(call_node)
+                call_node = FunctionTreeNode(func_name, id_name)
+                self.root.declared_functions.add(call_node)
             self.root.called_functions.add(call_node)
 
         # Called in the class
         elif type(pn) is ast.ClassDef:
-            call_node = self.root.GetFunctionNode(False, func_name, None, id_name)
+            class_node = self.root.GetClassNode(pn.name, None)
+            if class_node is None:
+                # Program shouldn't come to here, which means the parent class does not exist
+                print("The class {} does not exist.".format(pn.name))
+                assert False
+            call_node = self.root.GetFunctionNode(func_name, None, id_name)
             if call_node is None:
-                call_node = BlockTreeNode(1, func_name, None, id_name)
-                self.root.declared_functions.append(call_node)
-            call_node.called_c_name.add(pn.name)
+                call_node = FunctionTreeNode(func_name, id_name)
+                # Maybe a functions from another package
+                self.root.declared_functions.add(call_node)
+            class_node.called_functions.add(call_node)
 
         # Called by another function
         elif type(pn) is ast.FunctionDef:
@@ -93,8 +107,8 @@ class GenPyTreeVisitor(ast.NodeVisitor):
                 p_node = self.root.GetFunctionNode(pn.name, None, None)
                 call_node = self.root.GetFunctionNode(func_name, None, id_name)
                 if call_node is None:
-                    call_node = BlockTreeNode(1, func_name, None, id_name)
-                    self.root.declared_functions.append(call_node)
+                    call_node = FunctionTreeNode(func_name, id_name)
+                    self.root.declared_functions.add(call_node)
                 p_node.called_functions.add(call_node)
             # The calling function is declared in a class
             elif type(pnn) is ast.ClassDef:
@@ -102,37 +116,29 @@ class GenPyTreeVisitor(ast.NodeVisitor):
                 # print(pnn.name+'.'+pn.name + '->' + func_name)
                 call_node = self.root.GetFunctionNode(func_name, None, id_name)
                 if call_node is None:
-                    call_node = BlockTreeNode(1, func_name, None, id_name)
-                    self.root.declared_functions.append(call_node)
+                    call_node = FunctionTreeNode(func_name, id_name)
+                    self.root.declared_functions.add(call_node)
                 p_node.called_functions.add(call_node)
         self.generic_visit(node)
 
     # Mark all functions that needs to be allocated in the allocator
     def MarkFunctionsByClassName(self, class_names):
-        for cln in class_names:
-            for func in self.__root.declared_functions:
-                # Functions declared in device class
-                if func.c_name == cln:
-                    func.RecursiveMark()
-
-                # Functions called in device class
-                elif cln in func.called_c_name:
-                    func.RecursiveMark()
+        self.__root.MarkFunctionsByClassName(class_names)
 
 
 class MarkVisitor(ast.NodeVisitor):
-    def __init__(self, rt: BlockTreeNode):
-        self.__root: BlockTreeNode = rt
+    def __init__(self, rt: BlockTree):
+        self.__root: BlockTree = rt
 
     def visit_FunctionDef(self, node):
         pn = node.parent
         func_name = node.name
         while (type(pn) is not ast.Module) and (type(pn) is not ast.ClassDef):
             pn = pn.parent
-        cln = None
+        class_name = None
         if hasattr(pn, "name"):
-            cln = pn.name
-        if self.__root.IsDeviceFunction(func_name, cln, None):
+            class_name = pn.name
+        if self.__root.IsDeviceFunction(func_name, class_name, None):
             node.is_device_f = True
         else:
             node.is_device_f = False
@@ -162,7 +168,6 @@ class ScoutVisitor(ast.NodeVisitor):
     # Find the new_() function, and mark the class used in that function to device class
     def visit_Call(self, node):
         if type(node.func) is ast.Attribute:
-            print(node.func.attr)
             if node.func.attr == 'new_':
                 if node.args[0].id not in self.classes:
                     self.classes.append(node.args[0].id)
@@ -176,7 +181,7 @@ class ScoutVisitor(ast.NodeVisitor):
         mv.visit(t)
 
 
-# mark the tree and return a marked BlockTreeNode
+# mark the tree and return a marked BlockTree
 def mark(tree):
     # Let declared_functions nodes know their parents
     for parent_node in ast.walk(tree):
@@ -184,6 +189,5 @@ def mark(tree):
             child.parent = parent_node
     sv = ScoutVisitor()  # Just for DEBUG propose
     sv.visit(tree)
-    print(sv.classes)
     sv.MarkFunctions(tree)
     return sv.gen_pyTree_visitor.root

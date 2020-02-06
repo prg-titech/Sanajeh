@@ -101,7 +101,6 @@ class Body:  # クラスをDynaSOArを使う必要があることを何らかの
         if self.pos_y < -1 or self.pos_y > 1:
             self.vel_y = -self.vel_y
 
-
 # __ global__ in cuda
 def kernel_initialize_bodies():
     for x in range(kNumBodies):
