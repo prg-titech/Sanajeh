@@ -69,7 +69,7 @@ class ClassTreeNode(BlockTreeNode):
             print(" '{}.{} {}'".format(class_name, function_name, x.name))
             if x.name == class_name:
                 result = x.IsDeviceFunction(function_name, class_name, identifier_name)
-                if result is not None:
+                if result is not None:  
                     return result
         for x in self.declared_functions:
             if x.name == function_name and x.i_name == identifier_name:
@@ -84,8 +84,8 @@ class FunctionTreeNode(BlockTreeNode):
 
 # Tree node for variable
 class VariableTreeNode(BlockTreeNode):
-    def __init__(self, function_name, class_name, identifier_name):
-        super(VariableTreeNode, self).__init__(function_name, class_name, identifier_name)
+    def __init__(self, node_name, identifier_name):
+        super(VariableTreeNode, self).__init__(node_name, identifier_name)
         self.v_type: str = ""
     # todo
     pass
