@@ -3,8 +3,10 @@
   <component name="ChangeListManager">
     <list default="true" id="d86895dc-251a-4e36-a9c1-6bb7fe2fb2f3" name="Default Changelist" comment="k">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/memo" beforeDir="false" afterPath="$PROJECT_DIR$/memo" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/py2cpp/blockTree.py" beforeDir="false" afterPath="$PROJECT_DIR$/py2cpp/blockTree.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/python2cpp_examples/Sample2.py" beforeDir="false" afterPath="$PROJECT_DIR$/python2cpp_examples/Sample2.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/py2cpp/gencpp_ast.py" beforeDir="false" afterPath="$PROJECT_DIR$/py2cpp/gencpp_ast.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/py2cpp/marker.py" beforeDir="false" afterPath="$PROJECT_DIR$/py2cpp/marker.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -50,7 +52,7 @@
       <recent name="$PROJECT_DIR$" />
     </key>
   </component>
-  <component name="RunManager" selected="Python.sampletest">
+  <component name="RunManager" selected="Python.gencpp_ast">
     <configuration name="gencpp_ast" type="PythonConfigurationType" factoryName="Python">
       <module name="Sanajeh" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -273,46 +275,46 @@
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="735" y="324" key="#com.intellij.fileTypes.FileTypeChooser/0.0.1920.1040@0.0.1920.1040" timestamp="1580975742358" />
-    <state x="618" y="115" key="CommitChangelistDialog2" timestamp="1580998749984">
+    <state x="618" y="115" key="CommitChangelistDialog2" timestamp="1581407394654">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state x="618" y="115" key="CommitChangelistDialog2/0.0.1920.1040@0.0.1920.1040" timestamp="1580998749984" />
+    <state x="618" y="115" key="CommitChangelistDialog2/0.0.1920.1040@0.0.1920.1040" timestamp="1581407394654" />
     <state x="740" y="276" key="FileChooserDialogImpl" timestamp="1580975845923">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
     <state x="740" y="276" key="FileChooserDialogImpl/0.0.1920.1040@0.0.1920.1040" timestamp="1580975845923" />
-    <state width="1899" height="212" key="GridCell.Tab.0.bottom" timestamp="1581258710758">
+    <state width="1899" height="201" key="GridCell.Tab.0.bottom" timestamp="1581422676958">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1899" height="212" key="GridCell.Tab.0.bottom/0.0.1920.1040@0.0.1920.1040" timestamp="1581258710758" />
-    <state width="1899" height="212" key="GridCell.Tab.0.center" timestamp="1581258710758">
+    <state width="1899" height="201" key="GridCell.Tab.0.bottom/0.0.1920.1040@0.0.1920.1040" timestamp="1581422676958" />
+    <state width="1899" height="201" key="GridCell.Tab.0.center" timestamp="1581422676958">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1899" height="212" key="GridCell.Tab.0.center/0.0.1920.1040@0.0.1920.1040" timestamp="1581258710758" />
-    <state width="1899" height="212" key="GridCell.Tab.0.left" timestamp="1581258710758">
+    <state width="1899" height="201" key="GridCell.Tab.0.center/0.0.1920.1040@0.0.1920.1040" timestamp="1581422676958" />
+    <state width="1899" height="201" key="GridCell.Tab.0.left" timestamp="1581422676958">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1899" height="212" key="GridCell.Tab.0.left/0.0.1920.1040@0.0.1920.1040" timestamp="1581258710758" />
-    <state width="1899" height="212" key="GridCell.Tab.0.right" timestamp="1581258710758">
+    <state width="1899" height="201" key="GridCell.Tab.0.left/0.0.1920.1040@0.0.1920.1040" timestamp="1581422676958" />
+    <state width="1899" height="201" key="GridCell.Tab.0.right" timestamp="1581422676958">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1899" height="212" key="GridCell.Tab.0.right/0.0.1920.1040@0.0.1920.1040" timestamp="1581258710758" />
-    <state width="1899" height="347" key="GridCell.Tab.1.bottom" timestamp="1581001004619">
+    <state width="1899" height="201" key="GridCell.Tab.0.right/0.0.1920.1040@0.0.1920.1040" timestamp="1581422676958" />
+    <state width="1899" height="201" key="GridCell.Tab.1.bottom" timestamp="1581422677654">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1899" height="347" key="GridCell.Tab.1.bottom/0.0.1920.1040@0.0.1920.1040" timestamp="1581001004619" />
-    <state width="1899" height="347" key="GridCell.Tab.1.center" timestamp="1581001004619">
+    <state width="1899" height="201" key="GridCell.Tab.1.bottom/0.0.1920.1040@0.0.1920.1040" timestamp="1581422677654" />
+    <state width="1899" height="201" key="GridCell.Tab.1.center" timestamp="1581422677654">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1899" height="347" key="GridCell.Tab.1.center/0.0.1920.1040@0.0.1920.1040" timestamp="1581001004619" />
-    <state width="1899" height="347" key="GridCell.Tab.1.left" timestamp="1581001004619">
+    <state width="1899" height="201" key="GridCell.Tab.1.center/0.0.1920.1040@0.0.1920.1040" timestamp="1581422677654" />
+    <state width="1899" height="201" key="GridCell.Tab.1.left" timestamp="1581422677654">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1899" height="347" key="GridCell.Tab.1.left/0.0.1920.1040@0.0.1920.1040" timestamp="1581001004619" />
-    <state width="1899" height="347" key="GridCell.Tab.1.right" timestamp="1581001004619">
+    <state width="1899" height="201" key="GridCell.Tab.1.left/0.0.1920.1040@0.0.1920.1040" timestamp="1581422677654" />
+    <state width="1899" height="201" key="GridCell.Tab.1.right" timestamp="1581422677654">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
-    <state width="1899" height="347" key="GridCell.Tab.1.right/0.0.1920.1040@0.0.1920.1040" timestamp="1581001004619" />
+    <state width="1899" height="201" key="GridCell.Tab.1.right/0.0.1920.1040@0.0.1920.1040" timestamp="1581422677654" />
     <state x="468" y="163" key="SettingsEditor" timestamp="1579419335994">
       <screen x="0" y="0" width="1920" height="1040" />
     </state>
@@ -324,14 +326,9 @@
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/py2cpp/gencpp_ast.py</url>
           <line>291</line>
-          <option name="timeStamp" value="1" />
+          <option name="timeStamp" value="2" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
-    <watches-manager>
-      <configuration name="PythonConfigurationType">
-        <watch expression="rt.declared_functions" />
-      </configuration>
-    </watches-manager>
   </component>
 </project>

@@ -2,7 +2,7 @@
 # Mark all device functions
 
 import ast
-from blockTree import BlockTree, ClassTreeNode, FunctionTreeNode
+from blockTree import BlockTree, ClassTreeNode, FunctionTreeNode, VariableTreeNode
 
 
 # Generate python function/variable tree
@@ -17,9 +17,9 @@ class GenPyTreeVisitor(ast.NodeVisitor):
     def visit_ClassDef(self, node):
         pn = node.parent
         while type(pn) is not ast.Module:
-            # todo
-            print("Nested classes")
+            print("Error, doesn't support nested classes")
             pn = pn.parent
+            assert False
         class_node = ClassTreeNode(node.name, None)
         self.__root.declared_classes.add(class_node)
         self.generic_visit(node)
@@ -31,23 +31,20 @@ class GenPyTreeVisitor(ast.NodeVisitor):
         while (type(pn) is not ast.Module) and (type(pn) is not ast.ClassDef):
             print("Error, doesn't support nested functions")
             pn = pn.parent
+            assert False
         if type(pn) is ast.Module:
-            func_node = self.root.GetFunctionNode(func_name, None, None)
+            func_node = self.__root.GetFunctionNode(func_name, None)
             if func_node is None:
                 func_node = FunctionTreeNode(func_name, None)
-                self.root.declared_functions.add(func_node)
+                self.__root.declared_functions.add(func_node)
             else:
                 # Program shouldn't come to here, which means a function is defined twice
                 print("The function {} is defined twice.".format(func_name))
-                return
+                assert False
         elif type(pn) is ast.ClassDef:
-            func_node = self.root.GetFunctionNode(func_name, pn.name, None)
+            class_node = self.__root.GetClassNode(pn.name, None)
+            func_node = class_node.GetFunctionNode(func_name, None)
             if func_node is None:
-                class_node = self.root.GetClassNode(pn.name, None)
-                if class_node is None:
-                    # Program shouldn't come to here, which means the parent class does not exist
-                    print("The class {} does not exist.".format(pn.name))
-                    assert False
                 func_node = FunctionTreeNode(func_name, None)
                 class_node.declared_functions.add(func_node)
             else:
@@ -56,10 +53,182 @@ class GenPyTreeVisitor(ast.NodeVisitor):
                 assert False
         self.generic_visit(node)
 
+    # Create node for variables without type annotation
+    def visit_Assign(self, node):
+        pn = node.parent
+        while (type(pn) is not ast.Module) and (type(pn) is not ast.ClassDef) and (type(pn) is not ast.FunctionDef):
+            pn = pn.parent
+
+        for var in node.targets:
+            var_name = None
+            # todo id_name
+            id_name = None
+
+            if type(var) is ast.Attribute:
+                var_name = var.attr
+                # print(var_name, var.value.id)
+                # todo Attribute variables(self should refer to the class not in the current block),
+                # todo haven't thought about other ocaasions
+                if var.value.id == 'self':
+                    pass
+            elif type(var) is ast.Name:
+                var_name = var.id
+                # global variable
+                if type(pn) is ast.Module:
+                    var_node = self.__root.GetVariableNode(var_name, id_name, None)
+                    if var_node is None:
+                        var_node = VariableTreeNode(var_name, id_name, None)
+                        self.__root.declared_variables.add(var_node)
+
+                # class variable
+                elif type(pn) is ast.ClassDef:
+                    p_node = self.__root.GetClassNode(pn.name, None)
+                    var_node = p_node.GetVariableNode(var_name, id_name, None)
+                    # if variable is not in a class it maybe a global one
+                    if var_node is None:
+                        var_node = self.__root.GetVariableNode(var_name, id_name, None)
+                        # if it is still None it means that it is a new variable
+                        if var_node is None:
+                            var_node = VariableTreeNode(var_name, id_name, None)
+                            p_node.declared_variables.add(var_node)
+
+                # local variable in function
+                elif type(pn) is ast.FunctionDef:
+                    pnn = pn.parent
+                    while (type(pnn) is not ast.Module) and (type(pnn) is not ast.ClassDef):
+                        pnn = pnn.parent
+                    # global function
+                    if type(pnn) is ast.Module:
+                        p_node = self.__root.GetFunctionNode(pn.name, None)
+                        var_node = p_node.GetVariableNode(var_name, id_name, None)
+                        # if variable is not in this function it maybe a global variable
+                        if var_node is None:
+                            var_node = self.__root.GetVariableNode(var_name, id_name, None)
+                            if var_node is None:
+                                var_node = VariableTreeNode(var_name, id_name, None)
+                                p_node.declared_variables.add(var_node)
+                    # class function
+                    elif type(pnn) is ast.ClassDef:
+                        pp_node = self.__root.GetClassNode(pnn.name, None)
+                        p_node = pp_node.GetFunctionNode(pn.name, None)
+                        var_node = p_node.GetVariableNode(var_name, id_name, None)
+                        # if variable is not in this function it maybe a class variable
+                        if var_node is None:
+                            var_node = pp_node.GetVariableNode(var_name, id_name, None)
+                            # if variable is not in this class it maybe a global variable
+                            if var_node is None:
+                                var_node = self.__root.GetVariableNode(var_name, id_name, None)
+                                if var_node is None:
+                                    var_node = VariableTreeNode(var_name, id_name, None)
+                                    p_node.declared_variables.add(var_node)
+        self.generic_visit(node)
+
+    # Create node for variables with type annotation
+    def visit_AnnAssign(self, node):
+        pn = node.parent
+        while (type(pn) is not ast.Module) and (type(pn) is not ast.ClassDef) and (type(pn) is not ast.FunctionDef):
+            pn = pn.parent
+        var = node.target
+        ann = node.annotation.id
+
+        var_name = None
+        # todo id_name
+        id_name = None
+
+        if type(var) is ast.Attribute:
+            var_name = var.attr
+            # print(var_name, var.value.id)
+            if var.value.id == 'self':
+                pass
+            # todo Attribute variables(self should refer to the class not in the current block),
+            # todo haven't thought about other ocaasions
+        elif type(var) is ast.Name:
+            var_name = var.id
+            # global variable
+            if type(pn) is ast.Module:
+                var_node = self.__root.GetVariableNode(var_name, id_name, ann)
+                if var_node is None:
+                    var_node = VariableTreeNode(var_name, id_name, ann)
+                    self.__root.declared_variables.add(var_node)
+
+            # class variable
+            elif type(pn) is ast.ClassDef:
+                p_node = self.__root.GetClassNode(pn.name, None)
+                var_node = p_node.GetVariableNode(var_name, id_name, ann)
+                # if variable is not in a class it maybe a global one
+                if var_node is None:
+                    var_node = self.__root.GetVariableNode(var_name, id_name, ann)
+                    # if it is still None it means that it is a new variable
+                    if var_node is None:
+                        var_node = VariableTreeNode(var_name, id_name, ann)
+                        p_node.declared_variables.add(var_node)
+
+            # local variable in function
+            elif type(pn) is ast.FunctionDef:
+                pnn = pn.parent
+                while (type(pnn) is not ast.Module) and (type(pnn) is not ast.ClassDef):
+                    pnn = pnn.parent
+                # global function
+                if type(pnn) is ast.Module:
+                    p_node = self.__root.GetFunctionNode(pn.name, None)
+                    var_node = p_node.GetVariableNode(var_name, id_name, ann)
+                    # if variable is not in this function it maybe a global variable
+                    if var_node is None:
+                        var_node = self.__root.GetVariableNode(var_name, id_name, ann)
+                        if var_node is None:
+                            var_node = VariableTreeNode(var_name, id_name, ann)
+                            p_node.declared_variables.add(var_node)
+                # class function
+                elif type(pnn) is ast.ClassDef:
+                    pp_node = self.__root.GetClassNode(pnn.name, None)
+                    p_node = pp_node.GetFunctionNode(pn.name, None)
+                    var_node = p_node.GetVariableNode(var_name, id_name, ann)
+                    # if variable is not in this function it maybe a class variable
+                    if var_node is None:
+                        var_node = pp_node.GetVariableNode(var_name, id_name, ann)
+                        # if variable is not in this class it maybe a global variable
+                        if var_node is None:
+                            var_node = self.__root.GetVariableNode(var_name, id_name, ann)
+                            if var_node is None:
+                                var_node = VariableTreeNode(var_name, id_name, ann)
+                                p_node.declared_variables.add(var_node)
+
+        self.generic_visit(node)
+
+    # Mark all device data in ast 'node'
+    def MarkDeviceData(self, node):
+        dds = DeviceDataSearcher(self.__root)
+        dds.visit(node)
+        # mark all device data in the BlockTree
+        self.__root.MarkDeviceDataByClassName(dds.classes)
+        # edit the abstract syntax tree
+        nm = NodeMarker(self.__root)
+        nm.visit(node)
+
+
+# Analyze function calling relationships and find all device data
+class DeviceDataSearcher(ast.NodeVisitor):
+    __root: BlockTree
+    __classes = []
+
+    def __init__(self, bt):
+        self.__root = bt
+
+    @property
+    def classes(self):
+        return self.__classes
+
     # Analyze function calling relationships
     def visit_Call(self, node):
-        pn = node.parent
 
+        # Find device classes
+        if type(node.func) is ast.Attribute:
+            if node.func.attr == 'new_':
+                if node.args[0].id not in self.classes:
+                    self.classes.append(node.args[0].id)
+                    # print(node.args[0].id)
+
+        pn = node.parent
         # Get the function name
         func_name = None
         # todo id_name maybe class name
@@ -67,6 +236,9 @@ class GenPyTreeVisitor(ast.NodeVisitor):
         if type(node.func) is ast.Attribute:
             func_name = node.func.attr
             id_name = node.func.value.id
+            if id_name == 'self':
+                self.generic_visit(node)
+                return
         elif type(node.func) is ast.Name:
             func_name = node.func.id
 
@@ -76,27 +248,27 @@ class GenPyTreeVisitor(ast.NodeVisitor):
 
         # Called in global block
         if type(pn) is ast.Module:
-            call_node = self.root.GetFunctionNode(func_name, None, id_name)
+            call_node = self.__root.GetFunctionNode(func_name, id_name)
             if call_node is None:
                 call_node = FunctionTreeNode(func_name, id_name)
-                self.root.declared_functions.add(call_node)
-            self.root.called_functions.add(call_node)
+                self.__root.declared_functions.add(call_node)
+            self.__root.called_functions.add(call_node)
 
         # Called in the class
         elif type(pn) is ast.ClassDef:
-            class_node = self.root.GetClassNode(pn.name, None)
-            if class_node is None:
-                # Program shouldn't come to here, which means the parent class does not exist
-                print("The class {} does not exist.".format(pn.name))
-                assert False
-            call_node = self.root.GetFunctionNode(func_name, None, id_name)
+            class_node = self.__root.GetClassNode(pn.name, None)
+            call_node = class_node.GetFunctionNode(func_name, id_name)
+            # only add the function for the first time called
             if call_node is None:
-                call_node = FunctionTreeNode(func_name, id_name)
-                # Maybe a functions from another package
-                self.root.declared_functions.add(call_node)
+                call_node = self.__root.GetFunctionNode(func_name, id_name)
+                if call_node is None:
+                    # Todo maybe functions from another package
+                    # print("Called in the class, {} {}".format(func_name, id_name))
+                    call_node = FunctionTreeNode(func_name, id_name)
+                    self.__root.declared_functions.add(call_node)
             class_node.called_functions.add(call_node)
 
-        # Called by another function
+        # Called in another function
         elif type(pn) is ast.FunctionDef:
             pnn = pn.parent
             # To figure out which the calling function is
@@ -104,29 +276,32 @@ class GenPyTreeVisitor(ast.NodeVisitor):
                 pnn = pnn.parent
             # The calling function is declared in global block
             if type(pnn) is ast.Module:
-                p_node = self.root.GetFunctionNode(pn.name, None, None)
-                call_node = self.root.GetFunctionNode(func_name, None, id_name)
+                p_node = self.__root.GetFunctionNode(pn.name, None)
+                # todo avoid calling class functions directly
+                call_node = self.__root.GetFunctionNode(func_name, id_name)
                 if call_node is None:
+                    # Todo maybe functions from another package
+                    # print("Called in the global function, {} {}".format(func_name, id_name))
                     call_node = FunctionTreeNode(func_name, id_name)
-                    self.root.declared_functions.add(call_node)
+                    self.__root.declared_functions.add(call_node)
                 p_node.called_functions.add(call_node)
             # The calling function is declared in a class
             elif type(pnn) is ast.ClassDef:
-                p_node = self.root.GetFunctionNode(pn.name, pnn.name, None)
-                # print(pnn.name+'.'+pn.name + '->' + func_name)
-                call_node = self.root.GetFunctionNode(func_name, None, id_name)
+                pp_node = self.__root.GetClassNode(pnn.name, None)
+                p_node = pp_node.GetFunctionNode(pn.name, None)
+                call_node = pp_node.GetFunctionNode(func_name, id_name)
                 if call_node is None:
-                    call_node = FunctionTreeNode(func_name, id_name)
-                    self.root.declared_functions.add(call_node)
+                    # Todo maybe functions from another package
+                    # print("Called in the class function, {} {}".format(func_name, id_name))
+                    call_node = self.__root.GetFunctionNode(func_name, id_name)
+                    if call_node is None:
+                        call_node = FunctionTreeNode(func_name, id_name)
+                        self.__root.declared_functions.add(call_node)
                 p_node.called_functions.add(call_node)
         self.generic_visit(node)
 
-    # Mark all functions that needs to be allocated in the allocator
-    def MarkFunctionsByClassName(self, class_names):
-        self.__root.MarkFunctionsByClassName(class_names)
 
-
-class MarkVisitor(ast.NodeVisitor):
+class NodeMarker(ast.NodeVisitor):
     def __init__(self, rt: BlockTree):
         self.__root: BlockTree = rt
 
@@ -144,50 +319,16 @@ class MarkVisitor(ast.NodeVisitor):
             node.is_device_f = False
 
 
-# Find classes which will be allocated in the device memory. MARK THEM!
-class ScoutVisitor(ast.NodeVisitor):
-    # Class names
-    __classes = []
-    __gen_pyTree_visitor = GenPyTreeVisitor()
+# Mark the tree and return a marked BlockTree
+class Marker:
 
-    @property
-    def classes(self):
-        return self.__classes
-
-    # Just for DEBUG propose
-    @property
-    def gen_pyTree_visitor(self):
-        return self.__gen_pyTree_visitor
-
-    # When visit a file first visit it by the pyTree generator
-    def visit_Module(self, node):
-        self.__gen_pyTree_visitor.visit(node)
-        for x in node.body:
-            self.visit(x)
-
-    # Find the new_() function, and mark the class used in that function to device class
-    def visit_Call(self, node):
-        if type(node.func) is ast.Attribute:
-            if node.func.attr == 'new_':
-                if node.args[0].id not in self.classes:
-                    self.classes.append(node.args[0].id)
-                    # print(node.args[0].id)
-
-    # Mark all functions that needs to be allocated in the allocator
-    def MarkFunctions(self, t):
-        self.__gen_pyTree_visitor.MarkFunctionsByClassName(self.__classes)
-        root = self.__gen_pyTree_visitor.root
-        mv = MarkVisitor(root)
-        mv.visit(t)
-
-
-# mark the tree and return a marked BlockTree
-def mark(tree):
-    # Let declared_functions nodes know their parents
-    for parent_node in ast.walk(tree):
-        for child in ast.iter_child_nodes(parent_node):
-            child.parent = parent_node
-    sv = ScoutVisitor()  # Just for DEBUG propose
-    sv.visit(tree)
-    sv.MarkFunctions(tree)
-    return sv.gen_pyTree_visitor.root
+    @staticmethod
+    def mark(tree):
+        # Let declared_functions nodes know their parents
+        for parent_node in ast.walk(tree):
+            for child in ast.iter_child_nodes(parent_node):
+                child.parent = parent_node
+        gptv = GenPyTreeVisitor()
+        gptv.visit(tree)
+        gptv.MarkDeviceData(tree)
+        return gptv.root

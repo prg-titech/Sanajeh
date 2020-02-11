@@ -2,7 +2,7 @@
 # Generate C/C++/CUDA AST from python code
 
 import ast
-import marker
+from marker import Marker
 import gencpp as cpp
 import six
 
@@ -285,7 +285,7 @@ if __name__ == '__main__':
     source2 = open('../python2cpp_examples/Sample.py', encoding="utf-8").read()
     tree = ast.parse(source)
     gcv = GenCppVisitor()
-    rt = marker.mark(tree)
+    rt = Marker.mark(tree)
     # cpp_node = gcv.visit(tree)
     # ctx = cpp.BuildContext.create()
     # code = cpp_node.build(ctx)

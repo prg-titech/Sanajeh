@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-# Mark all device functions
-
+# A tree which represents the calling and declaring relationships
+from abc import abstractmethod
 from typing import Set
 
 
@@ -9,18 +9,28 @@ class BlockTreeNode:
 
     def __init__(self, node_name, identifier_name):
         self.name: str = node_name  # node name
-        self.i_name: str = identifier_name  # identifier name
         self.declared_variables: Set[VariableTreeNode] = set()  # variables declared in this block
         self.called_functions: Set[FunctionTreeNode] = set()  # functions called in this block
         self.is_device = False  # if it is an __device__ node
+        self.i_name: str = identifier_name  # identifier name
 
-    # Mark this node and all functions called in this block to device function
-    def RecursiveMarkByCall(self):
+    # Mark this node
+    def MarkDeviceData(self):
         q = [self]
         while len(q) != 0:
             nd = q[0]
-            self.is_device = True
-            print('Marking {}, identifier: {}'.format(nd.name, nd.i_name))
+            nd.is_device = True
+
+            # todo print
+            if nd.i_name is None:
+                i_str = ""
+            else:
+                i_str = nd.i_name + "."
+            if type(self) is ClassTreeNode:
+                print('{}{}'.format(i_str, nd.name))
+            else:
+                print('\t{}{}'.format(i_str, nd.name))
+
             for x in nd.called_functions:
                 q.append(x)
             q.pop(0)
@@ -33,44 +43,31 @@ class ClassTreeNode(BlockTreeNode):
     def __init__(self, node_name, identifier_name):
         super(ClassTreeNode, self).__init__(node_name, identifier_name)
 
-        # classes declared in this class
-        self.declared_classes: Set[ClassTreeNode] = set()
         # functions declared in this class
         self.declared_functions: Set[FunctionTreeNode] = set()
 
-    # Find the class 'class_name' by BFS
-    def GetClassNode(self, class_name, identifier_name):
-        q = [self]
-        while len(q) != 0:
-            nd = q[0]
-            for x in nd.declared_classes:
-                if x.name == class_name and x.i_name == identifier_name:
-                    return x
-                q.append(x)
-            q.pop(0)
-        return None
-
     # Find the function 'function_name' by recursion
-    def GetFunctionNode(self, function_name, class_name, identifier_name):
-        # find the function in the classes defined in this block
-        # todo: when class_name is None, identifier_name maybe a class name
-        for x in self.declared_classes:
-            if x.name == class_name:
-                func_node = x.GetFunctionNode(function_name, class_name, identifier_name)
-                if func_node is not None:
-                    return func_node
-        # find the function in the functions defined in this block
+    def GetFunctionNode(self, function_name, identifier_name):
+        # todo identifier_name maybe a class name
         for x in self.declared_functions:
             if x.name == function_name and x.i_name == identifier_name:
                 return x
 
-    def IsDeviceFunction(self, function_name, class_name, identifier_name):
-        for x in self.declared_classes:
-            print(" '{}.{} {}'".format(class_name, function_name, x.name))
-            if x.name == class_name:
-                result = x.IsDeviceFunction(function_name, class_name, identifier_name)
-                if result is not None:  
-                    return result
+    def GetVariableNode(self, variable_name, identifier_name, variable_type):
+        # find the variable in the class block
+        for x in self.declared_variables:
+            if x.name == variable_name and x.i_name == identifier_name:
+                if x.v_type == variable_type:
+                    return x
+                else:
+                    print("Already has a same variable '{}' with the same type '{}', can't annotate it to '{}'".format(
+                        variable_name, x.v_type, variable_type
+                    ))
+                    assert False
+
+        return None
+
+    def IsDeviceFunction(self, function_name, identifier_name):
         for x in self.declared_functions:
             if x.name == function_name and x.i_name == identifier_name:
                 return x.is_device
@@ -79,19 +76,44 @@ class ClassTreeNode(BlockTreeNode):
 
 # Tree node for function
 class FunctionTreeNode(BlockTreeNode):
-    pass
+    def __init__(self, node_name, identifier_name):
+        super(FunctionTreeNode, self).__init__(node_name, identifier_name)
+
+    def GetVariableNode(self, variable_name, identifier_name, variable_type):
+        # find the variable in this function
+        for x in self.declared_variables:
+            if x.name == variable_name and x.i_name == identifier_name:
+                if x.v_type == variable_type:
+                    return x
+                else:
+                    print("Already has a same variable '{}' with the same type '{}', can't annotate it to '{}'".format(
+                        variable_name, x.v_type, variable_type
+                    ))
+                    assert False
+
+        return None
 
 
 # Tree node for variable
 class VariableTreeNode(BlockTreeNode):
-    def __init__(self, node_name, identifier_name):
+    def __init__(self, node_name, identifier_name, var_type):
         super(VariableTreeNode, self).__init__(node_name, identifier_name)
-        self.v_type: str = ""
-    # todo
-    pass
+        self.v_type: str = var_type  # type of the variable, "None" for untyped variables
+
+    def MarkDeviceData(self):
+        self.is_device = True
+
+        # todo print
+        if self.i_name is None:
+            i_str = ""
+        else:
+            i_str = self.i_name
+        print('\t{} {} {}'.format(self.v_type, self.name, i_str))
+
+        return None
 
 
-# A tree which represents the calling adn declaring relationships
+# A tree which represents the calling and declaring relationships
 class BlockTree:
     declared_classes: Set[ClassTreeNode] = set()    # global classes
     declared_functions: Set[FunctionTreeNode] = set()    # global functions
@@ -103,43 +125,49 @@ class BlockTree:
         for x in self.declared_classes:
             if x.name == class_name and x.i_name == identifier_name:
                 return x
-            # nested class
-            cln = x.GetClassNode(class_name, identifier_name)
-            if cln is not None:
-                return cln
         return None
 
     # Find the function 'function_name' by recursion
-    def GetFunctionNode(self, function_name, class_name, identifier_name):
-        # find the function in the classes defined in the global block
-        for x in self.declared_classes:
-            if x.name == class_name:
-                func_node = x.GetFunctionNode(function_name, class_name, identifier_name)
-                if func_node is not None:
-                    return func_node
+    def GetFunctionNode(self, function_name, identifier_name):
         # find the function in the functions defined in the global block
         for x in self.declared_functions:
             if x.name == function_name and x.i_name == identifier_name:
                 return x
         return None
 
+    def GetVariableNode(self, variable_name, identifier_name, variable_type):
+        # find the variable in the global block
+        for x in self.declared_variables:
+            if x.name == variable_name and x.i_name == identifier_name and x.v_type == variable_type:
+                return x
+
+        return None
+
     # Mark all functions that needs to be allocated in the allocator
-    def MarkFunctionsByClassName(self, class_names):
+    def MarkDeviceDataByClassName(self, class_names):
         for cln in class_names:
             # do not support just mark a child class which nest in another class
             for cls in self.declared_classes:
                 if cls.name == cln:
+                    print("----------------------------------------------------------")
+                    print("Class ", end="")
                     # Mark all called functions in that class cls (not in the functions of cls)
-                    cls.RecursiveMarkByCall()
+                    cls.MarkDeviceData()
                     # Mark all called functions in that class cls (in the functions of cls)
+                    print("Functions: ")
                     for func in cls.declared_functions:
-                        func.RecursiveMarkByCall()
+                        func.MarkDeviceData()
+                    # Mark all variables in that class cls (in the functions of cls)
+                    print("Variables: ")
+                    for var in cls.declared_variables:
+                        var.MarkDeviceData()
+                    print("----------------------------------------------------------")
 
     # Query whether the function is a device function
     def IsDeviceFunction(self, function_name, class_name, identifier_name):
         for x in self.declared_classes:
             if x.name == class_name:
-                result = x.IsDeviceFunction(function_name, class_name, identifier_name)
+                result = x.IsDeviceFunction(function_name, identifier_name)
                 if result is not None:
                     return result
         for x in self.declared_functions:
