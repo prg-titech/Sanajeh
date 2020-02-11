@@ -138,8 +138,14 @@ class BlockTree:
     def GetVariableNode(self, variable_name, identifier_name, variable_type):
         # find the variable in the global block
         for x in self.declared_variables:
-            if x.name == variable_name and x.i_name == identifier_name and x.v_type == variable_type:
-                return x
+            if x.name == variable_name and x.i_name == identifier_name:
+                if x.v_type == variable_type:
+                    return x
+                else:
+                    print("Already has a same variable '{}' with the same type '{}', can't annotate it to '{}'".format(
+                        variable_name, x.v_type, variable_type
+                    ))
+                    assert False
 
         return None
 
