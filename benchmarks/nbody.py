@@ -88,8 +88,6 @@ class Body:  # クラスをDynaSOArを使う必要があることを何らかの
         """
         test code
         """
-        dy: int = kNumBodies
-
         self.vel_x += self.force_x * kDt / self.mass
         self.vel_y += self.force_y * kDt / self.mass
         self.pos_x += self.vel_x * kDt
