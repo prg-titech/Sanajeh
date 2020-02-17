@@ -25,10 +25,9 @@ class BlockTreeNode:
         while len(q) != 0:
             nd = q[0]
             nd.is_device = True
-
-            if type(self) is ClassTreeNode:
+            if type(nd) is ClassTreeNode:
                 print("Class {}".format(nd.name))
-            if type(self) is FunctionTreeNode:
+            if type(nd) is FunctionTreeNode:
                 print("Function {}".format(nd.name))
             for x in nd.called_variables:
                 x.MarkDeviceData()

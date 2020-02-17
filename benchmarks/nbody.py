@@ -36,6 +36,7 @@ kDampeningFactor: float = 0.05
 
 # -------------------------------------------------------------------------------------------------------------------
 
+
 class Body:  # クラスをDynaSOArを使う必要があることを何らかのシンタックスで宣言すべき（DynaSOArだとAllocator::Baseの子クラスにする）
 
     # ここでAllocatorのFieldを呼び出す----------------------------------------------------------------------------------
@@ -54,6 +55,10 @@ class Body:  # クラスをDynaSOArを使う必要があることを何らかの
     force_x: float
     force_y: float
     mass: float
+
+    def B(self):
+        pass
+    B()
     # ---------------------------------------------------------------------------------------------------------------
 
     def __init__(self, px: float, py: float, vx: float, vy: float, m: float):
@@ -98,6 +103,7 @@ class Body:  # クラスをDynaSOArを使う必要があることを何らかの
 
         if self.pos_y < -1 or self.pos_y > 1:
             self.vel_y = -self.vel_y
+
 
 # __ global__ in cuda
 def kernel_initialize_bodies():
