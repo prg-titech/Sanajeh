@@ -24,6 +24,9 @@ class BlockTreeNode:
         q = [self]
         while len(q) != 0:
             nd = q[0]
+            if nd.is_device:
+                q.pop(0)
+                continue
             nd.is_device = True
             if type(nd) is ClassTreeNode:
                 print("Class {}".format(nd.name))
