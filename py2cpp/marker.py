@@ -72,13 +72,13 @@ class GenPyTreeVisitor(ast.NodeVisitor):
             print('Unexpected node "{}"'.format(current_node.name))
             assert False
         for arg in node.args:
-            self.__variable_environment.setdefault(current_node.name, []).append(arg.arg)
+            self.__variable_environment.setdefault(current_node.id, []).append(arg.arg)
 
     # Add global variables to the environment
     def visit_Global(self, node):
         current_node = self.__node_path[-1]
         for global_variable in node.names:
-            self.__variable_environment.setdefault(current_node.name, []).append(global_variable)
+            self.__variable_environment.setdefault(current_node.id, []).append(global_variable)
             var_node = self.__root.GetVariableNode(global_variable, None, None)
             if var_node is None:
                 print("The global variable {} is not existed.".format(global_variable))
@@ -102,12 +102,12 @@ class GenPyTreeVisitor(ast.NodeVisitor):
                     pass
             elif type(var) is ast.Name:
                 var_name = var.id
-                self.__variable_environment.setdefault(current_node.name, [])
+                self.__variable_environment.setdefault(current_node.id, [])
                 # print(self.__variable_environment)
-                if var_name not in self.__variable_environment[current_node.name]:
+                if var_name not in self.__variable_environment[current_node.id]:
                     var_node = VariableTreeNode(var_name, id_name, None)
                     current_node.declared_variables.add(var_node)
-                    self.__variable_environment[current_node.name].append(var_name)
+                    self.__variable_environment[current_node.id].append(var_name)
 
         self.generic_visit(node)
 
@@ -130,24 +130,24 @@ class GenPyTreeVisitor(ast.NodeVisitor):
             # todo haven't thought about other ocaasions
         elif type(var) is ast.Name:
             var_name = var.id
-            self.__variable_environment.setdefault(current_node.name, [])
+            self.__variable_environment.setdefault(current_node.id, [])
             # print(self.__variable_environment)
-            if var_name not in self.__variable_environment[current_node.name]:
+            if var_name not in self.__variable_environment[current_node.id]:
                 var_node = VariableTreeNode(var_name, id_name, ann)
                 current_node.declared_variables.add(var_node)
-                self.__variable_environment[current_node.name].append(var_name)
+                self.__variable_environment[current_node.id].append(var_name)
             else:
                 var_node = current_node.GetVariableNode(var_name, id_name, ann)
         self.generic_visit(node)
 
     def visit_Name(self, node):
         current_node = self.__node_path[-1]
-        self.__variable_environment.setdefault(current_node.name, [])
-        if node.id == 'self' and node.id in  self.__variable_environment[current_node.name]:
+        self.__variable_environment.setdefault(current_node.id, [])
+        if node.id == 'self' and node.id in  self.__variable_environment[current_node.id]:
             return
         for annotate_location_node in self.__node_path[-2::-1]:
-            self.__variable_environment.setdefault(annotate_location_node.name, [])
-            if node.id in self.__variable_environment[annotate_location_node.name]:
+            self.__variable_environment.setdefault(annotate_location_node.id, [])
+            if node.id in self.__variable_environment[annotate_location_node.id]:
                 var_node = annotate_location_node.GetVariableNode(node.id, None, None)
                 if var_node is None:
                     print('Unexpected error, can not find variable "{}"', node.id)

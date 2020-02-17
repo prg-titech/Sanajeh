@@ -7,6 +7,8 @@ from typing import Set
 # Block tree Node
 class BlockTreeNode:
 
+    node_count = 0
+
     def __init__(self, node_name, identifier_name):
         self.name: str = node_name  # node name
         self.declared_variables: Set[VariableTreeNode] = set()  # variables declared in this block
@@ -14,6 +16,8 @@ class BlockTreeNode:
         self.called_variables: Set[VariableTreeNode] = set()  # variables called in this block
         self.is_device = False  # if it is an __device__ node
         self.i_name: str = identifier_name  # identifier name
+        self.id = BlockTreeNode.node_count  # node id
+        BlockTreeNode.node_count += 1
 
     # Mark this node
     def MarkDeviceData(self):
@@ -112,6 +116,9 @@ class BlockTreeRoot(BlockTreeNode):
     library_functions: Set[FunctionTreeNode] = set()  # library functions
     called_functions: Set[FunctionTreeNode] = set()  # functions called globally(shouldn't be device function)
     called_variables: Set[VariableTreeNode] = set()  # variables called globally
+
+    def __init__(self, node_name, identifier_name):
+        super(BlockTreeRoot, self).__init__(node_name, identifier_name)
 
     # Find the class 'class_name'
     def GetClassNode(self, class_name, identifier_name):
