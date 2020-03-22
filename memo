@@ -3,3 +3,6 @@
 2 親関数のidentifier
 3 関数の呼び出し関係がループになった時エラー
 4 右辺のglobal変数の扱い
+
+# todo
+1 gencpp_astとmarker, blockTreeの統合, (deviceであればvisitし"__device__"キーワードをつける、でないと無視する)
