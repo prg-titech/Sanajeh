@@ -196,6 +196,28 @@ class Assign(CodeStatement):
         )
 
 
+class AnnAssign(CodeStatement):
+    _fields = ["target", "value", "annotation"]
+
+    def __init__(self, target, value, annotation):
+        self.target = target
+        self.value = value
+        self.annotation = annotation
+
+    def build(self, ctx):
+        if self.value:
+            return ctx.indent() + "{} {} = {};".format(
+                self.annotation.build(ctx),
+                self.target.build(ctx),
+                self.value.build(ctx)
+            )
+        else:
+            return ctx.indent() + "{} {};".format(
+                self.annotation.build(ctx),
+                self.target.build(ctx)
+            )
+
+
 class AugAssign(CodeStatement):
     _fields = ["target", "op", "value"]
 

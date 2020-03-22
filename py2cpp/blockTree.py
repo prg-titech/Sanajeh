@@ -28,10 +28,10 @@ class BlockTreeNode:
                 q.pop(0)
                 continue
             nd.is_device = True
-            if type(nd) is ClassTreeNode:
-                print("Class {}".format(nd.name))
-            if type(nd) is FunctionTreeNode:
-                print("Function {}".format(nd.name))
+            # if type(nd) is ClassTreeNode:
+            #     print("Class {}".format(nd.name))
+            # if type(nd) is FunctionTreeNode:
+            #     print("Function {}".format(nd.name))
             for x in nd.called_variables:
                 x.MarkDeviceData()
 
@@ -107,7 +107,7 @@ class VariableTreeNode(BlockTreeNode):
 
     def MarkDeviceData(self):
         self.is_device = True
-        print("Variable {}".format(self.name))
+        # print("Variable {}".format(self.name))
 
 
 # A tree which represents the calling and declaring relationships

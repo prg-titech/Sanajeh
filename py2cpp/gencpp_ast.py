@@ -114,6 +114,15 @@ class GenCppVisitor(ast.NodeVisitor):
         value = self.visit(node.value)
         return cpp.Assign(targets, value)
 
+    def visit_AnnAssign(self, node):
+        target = self.visit(node.target)
+        if node.value:
+            value = self.visit(node.value)
+        else:
+            value = None
+        annotation = self.visit(node.annotation)
+        return cpp.AnnAssign(target, value, annotation)
+
     def visit_AugAssign(self, node):
         assert node.op.__class__ not in [ast.Pow, ast.FloorDiv]
         target = self.visit(node.target)
@@ -238,9 +247,9 @@ class GenCppVisitor(ast.NodeVisitor):
         return cpp.Name(node.id)
         # TODO: node.ctx
 
-    def visit_Tuple(self, node):
-        elts = [self.visit(x) for x in node.elts]
-        return cpp.Tuple(elts=elts)
+    # def visit_Tuple(self, node):
+    #     elts = [self.visit(x) for x in node.elts]
+    #     return cpp.Tuple(elts=elts)
 
     # slice
 
@@ -286,7 +295,8 @@ if __name__ == '__main__':
     tree = ast.parse(source)
     gcv = GenCppVisitor()
     rt = Marker.mark(tree)
-    # cpp_node = gcv.visit(tree)
-    # ctx = cpp.BuildContext.create()
-    # code = cpp_node.build(ctx)
+    cpp_node = gcv.visit(tree)
+    ctx = cpp.BuildContext.create()
+    code = cpp_node.build(ctx)
+    print(code)
     pass
