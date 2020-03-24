@@ -2,6 +2,8 @@
 # Generate C/C++/CUDA AST from python code
 
 import ast
+
+from blockTree import BlockTreeRoot, ClassTreeNode, FunctionTreeNode, VariableTreeNode
 from marker import Marker
 import gencpp as cpp
 import six
@@ -54,10 +56,14 @@ CMPOP_MAP = {
 
 class GenCppVisitor(ast.NodeVisitor):
 
-    def __init__(self):
-        self.arguments = []
+    def __init__(self, root: BlockTreeRoot):
+        # self.arguments = []
+        self.__root: BlockTreeRoot = root
+        self.__node_path = [self.__root]
+        self.__current_node = None
 
     def visit(self, node):
+        self.__current_node = self.__node_path[-1]
         ret = super(GenCppVisitor, self).visit(node)
         if ret is None:
             return cpp.UnsupportedNode(node)
@@ -68,7 +74,12 @@ class GenCppVisitor(ast.NodeVisitor):
     #
 
     def visit_Module(self, node):
-        return cpp.Module(body=[self.visit(x) for x in node.body])
+        _body = []
+        for x in node.body:
+            # C++ doesn't support all kinds of python expressions in global scope
+            if type(x) in [ast.FunctionDef, ast.ClassDef, ast.AnnAssign]:
+                _body.append(self.visit(x))
+        return cpp.Module(body=_body)
 
     #
     # Statements
@@ -76,6 +87,15 @@ class GenCppVisitor(ast.NodeVisitor):
 
     def visit_FunctionDef(self, node):
         name = node.name
+        func_node = self.__current_node.GetFunctionNode(name, None)
+        if func_node is None:
+            # Program shouldn't come to here, which means the function is not analyzed by the marker yet
+            print("The function {} does not exist.".format(name))
+            assert False
+        # If it is not a device function just skip
+        if not func_node.is_device:
+            return cpp.IgnoredNode(node)
+        self.__node_path.append(func_node)
         args = self.visit(node.args)
         body = [self.visit(x) for x in node.body]
         docstring = ast.get_docstring(node)
@@ -87,16 +107,27 @@ class GenCppVisitor(ast.NodeVisitor):
             if node.returns is not None:
                 returns = self.visit(node.returns)
         # TODO: decorator_list
+        self.__node_path.pop()
         return cpp.FunctionDef(name=name, args=args, body=body, returns=returns)
 
     def visit_ClassDef(self, node):
         name = node.name
+        class_node = self.__current_node.GetClassNode(name, None)
+        if class_node is None:
+            # Program shouldn't come to here, which means the class is not analyzed by the marker yet
+            print("The class {} does not exist.".format(name))
+            assert False
+        # If it is not a device class just skip
+        if not class_node.is_device:
+            return cpp.IgnoredNode(node)
+        self.__node_path.append(class_node)
         bases = [self.visit(x) for x in node.bases]
         keywords = None
         if six.PY3:
             keywords = [self.visit(x) for x in node.keywords]
         body = [self.visit(x) for x in node.body]
         # TODO: decorator_list
+        self.__node_path.pop()
         if six.PY3:
             return cpp.ClassDef(name=name, bases=bases, keywords=keywords, body=body)
         else:
@@ -115,6 +146,17 @@ class GenCppVisitor(ast.NodeVisitor):
         return cpp.Assign(targets, value)
 
     def visit_AnnAssign(self, node):
+        var = node.target
+        anno = node.annotation
+        if type(var) is ast.Name:
+            var_node = self.__current_node.GetVariableNode(var.id, None, anno.id)
+            if var_node is None:
+                # Program shouldn't come to here, which means the variable is not analyzed by the marker yet
+                print("The variable {} does not exist.".format(var.id))
+                assert False
+            if not var_node.is_device:
+                return cpp.IgnoredNode(node)
+
         target = self.visit(node.target)
         if node.value:
             value = self.visit(node.value)
@@ -263,7 +305,7 @@ class GenCppVisitor(ast.NodeVisitor):
         kwarg = node.kwarg
         defaults = [self.visit(x) for x in node.defaults]
         ret = cpp.arguments(args=args, vararg=vararg, kwarg=kwarg, defaults=defaults)
-        self.arguments.append(ret)
+        # self.arguments.append(ret)
         return ret
 
     def visit_arg(self, node):
@@ -291,10 +333,9 @@ class GenCppVisitor(ast.NodeVisitor):
 
 if __name__ == '__main__':
     source = open('../benchmarks/nbody.py', encoding="utf-8").read()
-    source2 = open('../python2cpp_examples/Sample.py', encoding="utf-8").read()
     tree = ast.parse(source)
-    gcv = GenCppVisitor()
     rt = Marker.mark(tree)
+    gcv = GenCppVisitor(rt)
     cpp_node = gcv.visit(tree)
     ctx = cpp.BuildContext.create()
     code = cpp_node.build(ctx)

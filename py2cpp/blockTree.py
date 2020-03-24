@@ -35,6 +35,9 @@ class BlockTreeNode:
             for x in nd.called_variables:
                 x.MarkDeviceData()
 
+            for x in nd.declared_variables:
+                x.MarkDeviceData()
+
             for x in nd.called_functions:
                 if x.is_device:
                     return
@@ -65,7 +68,7 @@ class ClassTreeNode(BlockTreeNode):
                 if x.v_type == variable_type:
                     return x
                 else:
-                    print("Already has a same variable '{}' with the same type '{}', can't annotate it to '{}'".format(
+                    print("Variable '{}' has type '{}', not '{}'".format(
                         variable_name, x.v_type, variable_type
                     ))
                     assert False
@@ -91,7 +94,7 @@ class FunctionTreeNode(BlockTreeNode):
                 if x.v_type == variable_type:
                     return x
                 else:
-                    print("Already has a same variable '{}' with the same type '{}', can't annotate it to '{}'".format(
+                    print("Variable '{}' has type '{}', not '{}'".format(
                         variable_name, x.v_type, variable_type
                     ))
                     assert False
@@ -147,7 +150,7 @@ class BlockTreeRoot(BlockTreeNode):
                 if x.v_type == variable_type or variable_type is None:
                     return x
                 else:
-                    print("Already has a same variable '{}' with the same type '{}', can't annotate it to '{}'".format(
+                    print("Variable '{}' has type '{}', not '{}'".format(
                         variable_name, x.v_type, variable_type
                     ))
                     assert False
@@ -161,10 +164,10 @@ class BlockTreeRoot(BlockTreeNode):
             for cls in self.declared_classes:
                 if cls.name == cln:
 
-                    # Mark all called functions in that class cls (not in the functions of cls)
+                    # Mark all called functions in class cls
                     cls.MarkDeviceData()
 
-                    # Mark all called functions in that class cls (in the functions of cls)
+                    # Mark all called functions in the functions of cls
                     for func in cls.declared_functions:
                         func.MarkDeviceData()
 

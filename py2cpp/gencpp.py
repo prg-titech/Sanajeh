@@ -73,6 +73,16 @@ class Base(object):
 
 # AST = Base
 
+# Ignored nodes which are not run on the device
+class IgnoredNode(Base):
+    def __init__(self, node):
+        super(IgnoredNode, self).__init__(Type.Comment)
+        self.node = node
+
+    def build(self, ctx):
+        return ""
+        # return "// IGNORED AST NODE: {}".format(self.node.__class__.__name__)
+
 
 class UnsupportedNode(Base):
     def __init__(self, node):
@@ -80,7 +90,8 @@ class UnsupportedNode(Base):
         self.node = node
 
     def build(self, ctx):
-        return "// UNSUPPORTED AST NODE: {}".format(self.node.__class__.__name__)
+        return ""
+        # return "// UNSUPPORTED AST NODE: {}".format(self.node.__class__.__name__)
 
 
 class Module(Base):
@@ -91,7 +102,12 @@ class Module(Base):
         self.body = body
 
     def build(self, ctx):
-        return "\n\n".join([x.build(ctx) for x in self.body])
+        rstr = ""
+        for x in self.body:
+            xstr = x.build(ctx)
+            if not xstr == "":
+                rstr += xstr + "\n"
+        return rstr
 
 
 class CodeStatement(Base):
@@ -119,7 +135,7 @@ class FunctionDef(CodeStatement):
             # __init__ special case
             if self.name == "__init__" and ctx.in_class():
                 return "\n".join([
-                    "{}{}({}) {{".format(
+                    "\n{}{}({}) {{".format(
                         ctx.indent(),
                         ctx.stack[-1].name,
                         self.args.build(new_ctx),
@@ -128,7 +144,7 @@ class FunctionDef(CodeStatement):
                     ctx.indent() + "}",
                 ])
             return "\n".join([
-                "{}{} {}({}) {{".format(
+                "\n{}{} {}({}) {{".format(
                     ctx.indent(),
                     self.rtype(ctx),
                     self.name,
@@ -159,7 +175,7 @@ class ClassDef(CodeStatement):
         with BuildContext(ctx, self) as new_ctx:
             body = [x.build(new_ctx) for x in self.stmt]
             return "\n".join([
-                "{}class {}{} {{".format(
+                "\n{}class {}{} {{".format(
                     ctx.indent(),
                     self.name,
                     " : {}".format(", ".join(["public " + x.build(ctx) for x in self.bases])) if self.bases else "",
@@ -189,6 +205,7 @@ class Assign(CodeStatement):
         self.targets = targets
         self.value = value
 
+    # todo a, b, c = 1, 2, 3
     def build(self, ctx):
         return ctx.indent() + "{} = {};".format(
             " = ".join([x.build(ctx) for x in self.targets]),
