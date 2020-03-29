@@ -21,7 +21,6 @@ class BuildContext(object):
     def __init__(self, ctx, node):
         self.indent_level = ctx.indent_level + 1
         self.stack = ctx.stack + [node]
-        self.classes = []
 
     def __enter__(self):
         return self
@@ -99,11 +98,12 @@ class UnsupportedNode(Base):
 
 
 class Module(Base):
-    _fields = ["body"]
+    _fields = ["body", "classes"]
 
-    def __init__(self, body):
+    def __init__(self, body, classes):
         super(Module, self).__init__(Type.Block)
         self.body = body
+        self.classes = classes
 
     def buildCpp(self, ctx):
         rstr = ""
@@ -114,17 +114,19 @@ class Module(Base):
         return rstr
 
     def buildHpp(self, ctx):
-        precompile_expr = "#ifndef SANAJEH_H\n#define SANAJEH_H"
+        # todo num objects
+        precompile_expr = "#ifndef SANAJEH_H\n#define SANAJEH_H\n#define KNUMOBJECTS 64*64*64*64"
         include_expr = '\n\n#include <curand_kernel.h>\n#include "allocator_config.h"'
         rstr = ""
         for x in self.body:
             xstr = x.buildHpp(ctx)
             if not xstr == "":
                 rstr += xstr + "\n"
-        class_predefine = "\n\nclass " + ','.join(ctx.classes) + ';'
-        endif_expr = "\n\n#endif"
-
-        return precompile_expr + include_expr + class_predefine + rstr + endif_expr
+        class_str = ','.join(self.classes)
+        class_predefine = "\n\nclass " + class_str + ';'
+        endif_expr = "\n#endif"
+        temp_expr = "\n\nusing AllocatorT = SoaAllocator<" + "KNUMOBJECTS" + ", " + class_str + ">;\n"
+        return precompile_expr + include_expr + class_predefine + temp_expr + rstr + endif_expr
 
 
 class CodeStatement(Base):
@@ -149,6 +151,8 @@ class FunctionDef(CodeStatement):
     def buildCpp(self, ctx):
         with BuildContext(ctx, self) as new_ctx:
             body = [x.buildCpp(new_ctx) for x in self.stmt]
+            while '' in body:
+                body.remove('')
             # __init__ special case
             if self.name == "__init__" and ctx.in_class():
                 return "\n".join([
@@ -171,6 +175,29 @@ class FunctionDef(CodeStatement):
                 ctx.indent() + "}",
             ])
 
+    def buildHpp(self, ctx):
+        with BuildContext(ctx, self) as new_ctx:
+            body = [x.buildHpp(new_ctx) for x in self.stmt]
+            while '' in body:
+                body.remove('')
+            # __init__ special case
+            if self.name == "__init__" and ctx.in_class():
+                return "\n" + "\n".join([
+                    "{}__device__ {}({});".format(
+                        ctx.indent(),
+                        ctx.stack[-1].name,
+                        self.args.buildHpp(new_ctx),
+                    )
+                ])
+            return "\n".join([
+                "{}__device__ {} {}({});".format(
+                    ctx.indent(),
+                    self.rtype(ctx),
+                    self.name,
+                    self.args.buildHpp(new_ctx),
+                )
+            ])
+
     def rtype(self, ctx):
         if self.returns:
             rtype = self.returns.buildCpp(ctx)
@@ -180,17 +207,21 @@ class FunctionDef(CodeStatement):
 
 
 class ClassDef(CodeStatement):
-    _fields = ["name", "bases", "body"]
+    _fields = ["name", "bases", "body", "fields"]
 
-    def __init__(self, name, bases, body, **kwargs):
+    def __init__(self, name, bases, body, fields, **kwargs):
         super(ClassDef, self).__init__(body)
         self.name = name
         self.bases = bases
         self.keywords = kwargs.get("keywords", [])
+        self.fields = fields
 
+    # todo without class block
     def buildCpp(self, ctx):
         with BuildContext(ctx, self) as new_ctx:
             body = [x.buildCpp(new_ctx) for x in self.stmt]
+            while '' in body:
+                body.remove('')
             return "\n".join([
                 "\n{}class {}{} {{".format(
                     ctx.indent(),
@@ -202,9 +233,41 @@ class ClassDef(CodeStatement):
             ])
 
     def buildHpp(self, ctx):
-        ctx.classes.append(self.name)
-        return ""
+        with BuildContext(ctx, self) as new_ctx:
+            body = [x.buildHpp(new_ctx) for x in self.stmt]
+            while '' in body:
+                body.remove('')
+            field_types = []
+            field_templates = []
+            i = 0
+            for field in self.fields:
+                field_types.append(self.fields[field])
+                field_templates.append(ctx.indent()
+                                       + "\tField<{}, {}> {};".format(self.name,
+                                                                      i,
+                                                                      field)
+                                       )
+                i += 1
+            field_predeclaration = new_ctx.indent() \
+                                   + "public:\n" \
+                                   + new_ctx.indent() \
+                                   + "\tdeclare_field_types({}, {})\n".format(self.name, ", ".join(field_types)) \
+                                   + new_ctx.indent() \
+                                   + "private:\n\t" \
+                                   + "\n\t".join(field_templates)
+            return "\n".join([
+                "\n{}class {}{} {{".format(
+                    ctx.indent(),
+                    self.name,
+                    " : {}".format(", ".join(["public " + x.buildHpp(ctx) for x in self.bases])) if self.bases else "",
+                ),
+                field_predeclaration,
+                "\n".join(body),
+                ctx.indent() + "};",
+            ])
 
+
+# ctx.indent()+"\tField<{}, {}> {};".format(self.class_name, self.index, self.target.buildHpp(ctx))
 
 class Return(CodeStatement):
     _fields = ["value"]
@@ -587,6 +650,9 @@ class Name(CodeExpression):
             return "false"
         return self.id
 
+    def buildHpp(self, ctx):
+        return self.id
+
 
 class List(CodeExpression):
     _fields = ["elts"]
@@ -666,6 +732,9 @@ class arguments(Base):
         if ctx.is_class_method() and names[0] == "self":
             args = args[1:]
         return ", ".join(args)
+
+    def buildHpp(self, ctx):
+        return self.buildCpp(ctx)
 
 
 class arg(Base):
@@ -749,10 +818,10 @@ type_registry = CppTypeRegistry()
 type_registry.register("bool", "bool")
 type_registry.register("int", "int")
 type_registry.register("long", "long")
-type_registry.register("float", "double")
-type_registry.register("complex", "std::complex<double>")
-type_registry.register("str", "std::string")
-type_registry.register("bytearray", "std::string")
+type_registry.register("float", "float")
+# type_registry.register("complex", "std::complex<double>")
+# type_registry.register("str", "std::string")
+# type_registry.register("bytearray", "std::string")
 # type_registry.register("list", "std::vector")
-type_registry.register("List[int]", "std::vector<int>")
+# type_registry.register("List[int]", "std::vector<int>")
 # type_registry.register("tuple", "std::tuple")

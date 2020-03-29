@@ -61,6 +61,8 @@ class GenCppVisitor(ast.NodeVisitor):
         self.__root: BlockTreeRoot = root
         self.__node_path = [self.__root]
         self.__current_node = None
+        self.__classes = []
+        self.__field = []
 
     def visit(self, node):
         self.__current_node = self.__node_path[-1]
@@ -74,12 +76,13 @@ class GenCppVisitor(ast.NodeVisitor):
     #
 
     def visit_Module(self, node):
-        _body = []
+        body = []
+        self.__classes = []
         for x in node.body:
             # C++ doesn't support all kinds of python expressions in global scope
             if type(x) in [ast.FunctionDef, ast.ClassDef, ast.AnnAssign]:
-                _body.append(self.visit(x))
-        return cpp.Module(body=_body)
+                body.append(self.visit(x))
+        return cpp.Module(body=body, classes=self.__classes)
 
     #
     # Statements
@@ -111,6 +114,7 @@ class GenCppVisitor(ast.NodeVisitor):
         return cpp.FunctionDef(name=name, args=args, body=body, returns=returns)
 
     def visit_ClassDef(self, node):
+        self.__field = {}
         name = node.name
         class_node = self.__current_node.GetClassNode(name, None)
         if class_node is None:
@@ -120,6 +124,7 @@ class GenCppVisitor(ast.NodeVisitor):
         # If it is not a device class just skip
         if not class_node.is_device:
             return cpp.IgnoredNode(node)
+        self.__classes.append(name)
         self.__node_path.append(class_node)
         bases = [self.visit(x) for x in node.bases]
         keywords = None
@@ -129,9 +134,9 @@ class GenCppVisitor(ast.NodeVisitor):
         # TODO: decorator_list
         self.__node_path.pop()
         if six.PY3:
-            return cpp.ClassDef(name=name, bases=bases, keywords=keywords, body=body)
+            return cpp.ClassDef(name=name, bases=bases, keywords=keywords, body=body, fields=self.__field)
         else:
-            return cpp.ClassDef(name=name, bases=bases, body=body)
+            return cpp.ClassDef(name=name, bases=bases, body=body, fields=self.__field)
 
     def visit_Return(self, node):
         if node.value:
@@ -156,13 +161,14 @@ class GenCppVisitor(ast.NodeVisitor):
                 assert False
             if not var_node.is_device:
                 return cpp.IgnoredNode(node)
-
         target = self.visit(node.target)
         if node.value:
             value = self.visit(node.value)
         else:
             value = None
         annotation = self.visit(node.annotation)
+        if type(self.__current_node) is ClassTreeNode:
+            self.__field[var.id] = anno.id
         return cpp.AnnAssign(target, value, annotation)
 
     def visit_AugAssign(self, node):
@@ -340,7 +346,7 @@ if __name__ == '__main__':
     ctx = cpp.BuildContext.create()
     cpp_code = cpp_node.buildCpp(ctx)
     hpp_code = cpp_node.buildHpp(ctx)
-    print(cpp_code)
-    print("----------------------------------------------------")
+    # print(cpp_code)
+    # print("----------------------------------------------------")
     print(hpp_code)
     pass

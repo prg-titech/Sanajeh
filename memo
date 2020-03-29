@@ -2,3 +2,12 @@
 import先の関数の扱い
 親関数のidentifier
 a, b, c = 1, 2, 3 のような式の扱い方
+hpp num objects
+print空要素の除外
+
+
+# Sanajehの制限
+1 python3.7で書く
+    ->関数の返り値の型の宣言が必要
+    ->クラスのfieldとその型の宣言が必要
+2 deviceクラスの中の変数の型はint, float, boolしか使えない(double?)
