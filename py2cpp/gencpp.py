@@ -115,7 +115,9 @@ class Module(Base):
 
     def buildHpp(self, ctx):
         # todo num objects
-        precompile_expr = "#ifndef SANAJEH_H\n#define SANAJEH_H\n#define KNUMOBJECTS 64*64*64*64"
+        precompile_expr = "#ifndef SANAJEH_DEVICE_CODE_H" \
+                          "\n#define SANAJEH_DEVICE_CODE_H" \
+                          "\n#define KNUMOBJECTS 64*64*64*64"
         include_expr = '\n\n#include <curand_kernel.h>\n#include "allocator_config.h"'
         rstr = ""
         for x in self.body:
