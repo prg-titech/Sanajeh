@@ -338,6 +338,9 @@ if __name__ == '__main__':
     gcv = GenCppVisitor(rt)
     cpp_node = gcv.visit(tree)
     ctx = cpp.BuildContext.create()
-    code = cpp_node.build(ctx)
-    print(code)
+    cpp_code = cpp_node.buildCpp(ctx)
+    hpp_code = cpp_node.buildHpp(ctx)
+    print(cpp_code)
+    print("----------------------------------------------------")
+    print(hpp_code)
     pass

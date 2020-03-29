@@ -12,6 +12,7 @@ from matplotlib.animation import HTMLWriter
 
 kNumIterations: int = 3000
 kNumBodies: int = 30
+inx = 0
 
 kMaxMass: float = 1000.0
 kDt: float = 0.02 # device
@@ -113,6 +114,7 @@ def kernel_initialize_bodies():
 
 def _update(frame):
     start_time = time.time()
+    global inx
     # 現在のグラフを消去する
     plt.cla()
     __pyallocator__.parallel_do(Body, Body.compute_force)
@@ -122,6 +124,7 @@ def _update(frame):
         x = __pyallocator__.classDictionary["Body"][j].pos_x
         y = __pyallocator__.classDictionary["Body"][j].pos_y
         plt.scatter(x, y, color='k')
+    inx += 1
     end_time = time.time()
     print("ループ%-4d実行時間は%.3f秒 描画時間は%.3f秒" % (inx, end_time - start_time, end_time - start_time_r))
     plt.axis([-1, 1, -1, 1], frameon=False, aspect=1)

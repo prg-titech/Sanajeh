@@ -21,6 +21,7 @@ class BuildContext(object):
     def __init__(self, ctx, node):
         self.indent_level = ctx.indent_level + 1
         self.stack = ctx.stack + [node]
+        self.classes = []
 
     def __enter__(self):
         return self
@@ -64,11 +65,14 @@ class Base(object):
     def __init__(self, tp):
         self.type = tp
 
-    def build(self, ctx):
+    def buildCpp(self, ctx):
         """
         :type ctx: BuildContext
         """
         assert False
+
+    def buildHpp(self, ctx):
+        return ""
 
 
 # AST = Base
@@ -79,7 +83,7 @@ class IgnoredNode(Base):
         super(IgnoredNode, self).__init__(Type.Comment)
         self.node = node
 
-    def build(self, ctx):
+    def buildCpp(self, ctx):
         return ""
         # return "// IGNORED AST NODE: {}".format(self.node.__class__.__name__)
 
@@ -89,7 +93,7 @@ class UnsupportedNode(Base):
         super(UnsupportedNode, self).__init__(Type.Comment)
         self.node = node
 
-    def build(self, ctx):
+    def buildCpp(self, ctx):
         return ""
         # return "// UNSUPPORTED AST NODE: {}".format(self.node.__class__.__name__)
 
@@ -101,13 +105,26 @@ class Module(Base):
         super(Module, self).__init__(Type.Block)
         self.body = body
 
-    def build(self, ctx):
+    def buildCpp(self, ctx):
         rstr = ""
         for x in self.body:
-            xstr = x.build(ctx)
+            xstr = x.buildCpp(ctx)
             if not xstr == "":
                 rstr += xstr + "\n"
         return rstr
+
+    def buildHpp(self, ctx):
+        precompile_expr = "#ifndef SANAJEH_H\n#define SANAJEH_H"
+        include_expr = '\n\n#include <curand_kernel.h>\n#include "allocator_config.h"'
+        rstr = ""
+        for x in self.body:
+            xstr = x.buildHpp(ctx)
+            if not xstr == "":
+                rstr += xstr + "\n"
+        class_predefine = "\n\nclass " + ','.join(ctx.classes) + ';'
+        endif_expr = "\n\n#endif"
+
+        return precompile_expr + include_expr + class_predefine + rstr + endif_expr
 
 
 class CodeStatement(Base):
@@ -129,16 +146,16 @@ class FunctionDef(CodeStatement):
         self.body = self.stmt
 
     # todo : Add device keyword
-    def build(self, ctx):
+    def buildCpp(self, ctx):
         with BuildContext(ctx, self) as new_ctx:
-            body = [x.build(new_ctx) for x in self.stmt]
+            body = [x.buildCpp(new_ctx) for x in self.stmt]
             # __init__ special case
             if self.name == "__init__" and ctx.in_class():
                 return "\n".join([
                     "\n{}{}({}) {{".format(
                         ctx.indent(),
                         ctx.stack[-1].name,
-                        self.args.build(new_ctx),
+                        self.args.buildCpp(new_ctx),
                     ),
                     "\n".join(body),
                     ctx.indent() + "}",
@@ -148,7 +165,7 @@ class FunctionDef(CodeStatement):
                     ctx.indent(),
                     self.rtype(ctx),
                     self.name,
-                    self.args.build(new_ctx),
+                    self.args.buildCpp(new_ctx),
                 ),
                 "\n".join(body),
                 ctx.indent() + "}",
@@ -156,7 +173,7 @@ class FunctionDef(CodeStatement):
 
     def rtype(self, ctx):
         if self.returns:
-            rtype = self.returns.build(ctx)
+            rtype = self.returns.buildCpp(ctx)
             return CppTypeRegistry.detect(rtype, rettype=True)
         else:
             return "void"
@@ -171,18 +188,22 @@ class ClassDef(CodeStatement):
         self.bases = bases
         self.keywords = kwargs.get("keywords", [])
 
-    def build(self, ctx):
+    def buildCpp(self, ctx):
         with BuildContext(ctx, self) as new_ctx:
-            body = [x.build(new_ctx) for x in self.stmt]
+            body = [x.buildCpp(new_ctx) for x in self.stmt]
             return "\n".join([
                 "\n{}class {}{} {{".format(
                     ctx.indent(),
                     self.name,
-                    " : {}".format(", ".join(["public " + x.build(ctx) for x in self.bases])) if self.bases else "",
+                    " : {}".format(", ".join(["public " + x.buildCpp(ctx) for x in self.bases])) if self.bases else "",
                 ),
                 "\n".join(body),
                 ctx.indent() + "};",
             ])
+
+    def buildHpp(self, ctx):
+        ctx.classes.append(self.name)
+        return ""
 
 
 class Return(CodeStatement):
@@ -191,9 +212,9 @@ class Return(CodeStatement):
     def __init__(self, value):
         self.value = value
 
-    def build(self, ctx):
+    def buildCpp(self, ctx):
         if self.value:
-            return ctx.indent() + "return {};".format(self.value.build(ctx))
+            return ctx.indent() + "return {};".format(self.value.buildCpp(ctx))
         else:
             return ctx.indent() + "return;"
 
@@ -206,10 +227,10 @@ class Assign(CodeStatement):
         self.value = value
 
     # todo a, b, c = 1, 2, 3
-    def build(self, ctx):
+    def buildCpp(self, ctx):
         return ctx.indent() + "{} = {};".format(
-            " = ".join([x.build(ctx) for x in self.targets]),
-            self.value.build(ctx)
+            " = ".join([x.buildCpp(ctx) for x in self.targets]),
+            self.value.buildCpp(ctx)
         )
 
 
@@ -221,17 +242,17 @@ class AnnAssign(CodeStatement):
         self.value = value
         self.annotation = annotation
 
-    def build(self, ctx):
+    def buildCpp(self, ctx):
         if self.value:
             return ctx.indent() + "{} {} = {};".format(
-                self.annotation.build(ctx),
-                self.target.build(ctx),
-                self.value.build(ctx)
+                self.annotation.buildCpp(ctx),
+                self.target.buildCpp(ctx),
+                self.value.buildCpp(ctx)
             )
         else:
             return ctx.indent() + "{} {};".format(
-                self.annotation.build(ctx),
-                self.target.build(ctx)
+                self.annotation.buildCpp(ctx),
+                self.target.buildCpp(ctx)
             )
 
 
@@ -243,11 +264,11 @@ class AugAssign(CodeStatement):
         self.op = op
         self.value = value
 
-    def build(self, ctx):
+    def buildCpp(self, ctx):
         return ctx.indent() + "{} {}= {};".format(
-            self.target.build(ctx),
+            self.target.buildCpp(ctx),
             self.op,
-            self.value.build(ctx)
+            self.value.buildCpp(ctx)
         )
 
 
@@ -261,14 +282,14 @@ class For(CodeStatement):
         self.orelse = orelse
         self.body = self.stmt
 
-    def build(self, ctx):
+    def buildCpp(self, ctx):
         with BuildContext(ctx, self) as new_ctx:
-            body = [x.build(new_ctx) for x in self.stmt]
+            body = [x.buildCpp(new_ctx) for x in self.stmt]
             # TODO: orelse
             return "\n".join(["{}for (auto {} : {}) {{".format(
                 ctx.indent(),
-                self.target.build(ctx),
-                self.iter.build(ctx)
+                self.target.buildCpp(ctx),
+                self.iter.buildCpp(ctx)
             ),
                 "\n".join(body),
                 ctx.indent() + "}",
@@ -283,13 +304,13 @@ class While(CodeStatement):
         self.test = test
         self.orelse = orelse
 
-    def build(self, ctx):
+    def buildCpp(self, ctx):
         with BuildContext(ctx, self) as new_ctx:
-            body = [x.build(new_ctx) for x in self.stmt]
+            body = [x.buildCpp(new_ctx) for x in self.stmt]
             # TODO: orelse
             return "\n".join(["{}while ({}) {{".format(
                 ctx.indent(),
-                self.test.build(ctx)
+                self.test.buildCpp(ctx)
             ),
                 "\n".join(body),
                 ctx.indent() + "}",
@@ -304,27 +325,27 @@ class If(CodeStatement):
         self.test = test
         self.orelse = orelse
 
-    def build(self, ctx):
+    def buildCpp(self, ctx):
         with BuildContext(ctx, self) as new_ctx:
-            body = [x.build(new_ctx) for x in self.stmt]
+            body = [x.buildCpp(new_ctx) for x in self.stmt]
             # TODO: orelse
             result = [
                 "{}if ({}) {{".format(
                     ctx.indent(),
-                    self.test.build(ctx)
+                    self.test.buildCpp(ctx)
                 ),
                 "\n".join(body),
                 ctx.indent() + "}",
             ]
             if len(self.orelse) == 1 and self.orelse[0].__class__ == If:
-                lines = self.orelse[0].build(ctx).split("\n")
+                lines = self.orelse[0].buildCpp(ctx).split("\n")
                 assert len(lines) > 1
                 result[-1] = "}} else {}".format(lines[0])
                 result.extend(lines[1:])
             elif self.orelse:
                 result[-1] = "} else {"
                 result.extend([
-                              ] + [x.build(ctx) for x in self.orelse] + [
+                              ] + [x.buildCpp(ctx) for x in self.orelse] + [
                                   "}",
                               ])
             return "\n".join(result)
@@ -345,11 +366,11 @@ class Raise(CodeStatement):
             self.inst = kwargs.get("inst")
             self.tback = kwargs.get("tback")
 
-    def build(self, ctx):
+    def buildCpp(self, ctx):
         if six.PY3:
-            return ctx.indent() + "throw {}();".format(self.exc.build(ctx))
+            return ctx.indent() + "throw {}();".format(self.exc.buildCpp(ctx))
         elif six.PY2:
-            return ctx.indent() + "throw {}();".format(self.type.build(ctx))
+            return ctx.indent() + "throw {}();".format(self.type.buildCpp(ctx))
 
 
 class Expr(CodeStatement):
@@ -360,15 +381,15 @@ class Expr(CodeStatement):
         self.value = value
         del self.stmt
 
-    def build(self, ctx):
-        return ctx.indent() + "{};".format(self.value.build(ctx))
+    def buildCpp(self, ctx):
+        return ctx.indent() + "{};".format(self.value.buildCpp(ctx))
 
 
 class Pass(CodeStatement):
     def __init__(self):
         pass
 
-    def build(self, ctx):
+    def buildCpp(self, ctx):
         return ""
 
 
@@ -376,7 +397,7 @@ class Break(CodeStatement):
     def __init__(self):
         pass
 
-    def build(self, ctx):
+    def buildCpp(self, ctx):
         return ctx.indent() + "break;"
 
 
@@ -384,7 +405,7 @@ class Continue(CodeStatement):
     def __init__(self):
         pass
 
-    def build(self, ctx):
+    def buildCpp(self, ctx):
         return ctx.indent() + "continue;"
 
 
@@ -400,13 +421,13 @@ class BoolOp(CodeExpression):
         self.op = op
         self.values = values
 
-    def build(self, ctx):
+    def buildCpp(self, ctx):
         values = []
         for value in self.values:
             if isinstance(value, BoolOp):
-                values.append("({})".format(value.build(ctx)))
+                values.append("({})".format(value.buildCpp(ctx)))
             else:
-                values.append(value.build(ctx))
+                values.append(value.buildCpp(ctx))
         return " {} ".format(self.op).join(values)
 
 
@@ -419,8 +440,8 @@ class BinOp(CodeExpression):
         self.op = op
         self.right = right
 
-    def build(self, ctx):
-        return " ".join([self.left.build(ctx), self.op, self.right.build(ctx)])
+    def buildCpp(self, ctx):
+        return " ".join([self.left.buildCpp(ctx), self.op, self.right.buildCpp(ctx)])
 
 
 class UnaryOp(CodeExpression):
@@ -430,8 +451,8 @@ class UnaryOp(CodeExpression):
         self.op = op
         self.operand = operand
 
-    def build(self, ctx):
-        operand = self.operand.build(ctx)
+    def buildCpp(self, ctx):
+        operand = self.operand.buildCpp(ctx)
         if isinstance(self.operand, BoolOp):
             operand = "({})".format(operand)
         return "{}{}".format(self.op, operand)
@@ -444,9 +465,9 @@ class Lambda(CodeExpression):
         self.args = args
         self.body = body
 
-    def build(self, ctx):
-        args = self.args.build(ctx)
-        body = self.body.build(ctx)
+    def buildCpp(self, ctx):
+        args = self.args.buildCpp(ctx)
+        body = self.body.buildCpp(ctx)
         return "[&]({}) -> auto {{ return {}; }}".format(args, body)
 
 
@@ -458,10 +479,10 @@ class IfExp(CodeExpression):
         self.body = body
         self.orelse = orelse
 
-    def build(self, ctx):
-        test = self.test.build(ctx)
-        body = self.body.build(ctx)
-        orelse = self.orelse.build(ctx)
+    def buildCpp(self, ctx):
+        test = self.test.buildCpp(ctx)
+        body = self.body.buildCpp(ctx)
+        orelse = self.orelse.buildCpp(ctx)
         return "(({}) ? ({}) : ({}))".format(test, body, orelse)
 
 
@@ -471,10 +492,10 @@ class Compare(CodeExpression):
         self.ops = ops
         self.comparators = comparators
 
-    def build(self, ctx):
-        temp = [self.left.build(ctx)]
+    def buildCpp(self, ctx):
+        temp = [self.left.buildCpp(ctx)]
         for op, comp in zip(self.ops, self.comparators):
-            temp += [op, comp.build(ctx)]
+            temp += [op, comp.buildCpp(ctx)]
         return " ".join(temp)
 
 
@@ -488,9 +509,9 @@ class Call(CodeExpression):
         self.starargs = starargs
         self.kwargs = kwargs
 
-    def build(self, ctx):
-        args = ", ".join([x.build(ctx) for x in self.args])
-        return "{}({})".format(self.func.build(ctx), args)
+    def buildCpp(self, ctx):
+        args = ", ".join([x.buildCpp(ctx) for x in self.args])
+        return "{}({})".format(self.func.buildCpp(ctx), args)
 
 
 class Num(CodeExpression):
@@ -500,7 +521,7 @@ class Num(CodeExpression):
         super(Num, self).__init__()
         self.n = n
 
-    def build(self, ctx):
+    def buildCpp(self, ctx):
         return "{}".format(self.n)
 
 
@@ -510,7 +531,7 @@ class Str(CodeExpression):
     def __init__(self, s):
         self.s = s
 
-    def build(self, ctx):
+    def buildCpp(self, ctx):
         return "\"{}\"".format(self.s.replace('"', '\\"'))
 
 
@@ -520,7 +541,7 @@ class NameConstant(CodeExpression):
     def __init__(self, value):
         self.value = value
 
-    def build(self, ctx):
+    def buildCpp(self, ctx):
         # boolean special case
         if type(self.value) == bool:
             return "true" if self.value else "false"
@@ -535,8 +556,8 @@ class Attribute(CodeExpression):
         self.value = value
         self.attr = attr
 
-    def build(self, ctx):
-        return "{}.{}".format(self.value.build(ctx), self.attr)
+    def buildCpp(self, ctx):
+        return "{}.{}".format(self.value.buildCpp(ctx), self.attr)
 
 
 class Subscript(CodeExpression):
@@ -547,8 +568,8 @@ class Subscript(CodeExpression):
         self.value = value
         self.slice = slice
 
-    def build(self, ctx):
-        return "{}[{}]".format(self.value.build(ctx), self.slice.build(ctx))
+    def buildCpp(self, ctx):
+        return "{}[{}]".format(self.value.buildCpp(ctx), self.slice.buildCpp(ctx))
 
 
 class Name(CodeExpression):
@@ -558,7 +579,7 @@ class Name(CodeExpression):
         super(Name, self).__init__()
         self.id = id
 
-    def build(self, ctx):
+    def buildCpp(self, ctx):
         # boolean special case
         if self.id == "True":
             return "true"
@@ -573,7 +594,7 @@ class List(CodeExpression):
     def __init__(self, elts):
         assert False
 
-    def build(self, ctx):
+    def buildCpp(self, ctx):
         assert False
 
 
@@ -583,7 +604,7 @@ class Tuple(CodeExpression):
     def __init__(self, elts):
         assert False
 
-    def build(self, ctx):
+    def buildCpp(self, ctx):
         assert False
 
 
@@ -596,8 +617,8 @@ class Index(CodeExpression):
         super(Index, self).__init__()
         self.value = value
 
-    def build(self, ctx):
-        return self.value.build(ctx)
+    def buildCpp(self, ctx):
+        return self.value.buildCpp(ctx)
 
 
 class arguments(Base):
@@ -611,23 +632,23 @@ class arguments(Base):
         self.types = {}
 
     def get_arg_names(self, ctx):
-        return [x.build(ctx) for x in self.args]
+        return [x.buildCpp(ctx) for x in self.args]
 
     def get_arg_values(self, ctx):
-        return [x.build(ctx) for x in self.defaults]
+        return [x.buildCpp(ctx) for x in self.defaults]
 
     def set_arg_type(self, name, type):
         # assert name in self.get_arg_names(ctx)
         self.types[name] = type
 
-    def build(self, ctx):
+    def buildCpp(self, ctx):
         types = dict(self.types)
         names = self.get_arg_names(ctx)
         values = self.get_arg_values(ctx)
         for arg in self.args:
-            name = arg.build(ctx)
+            name = arg.buildCpp(ctx)
             if arg.annotation:
-                types[name] = arg.annotation.build(ctx)
+                types[name] = arg.annotation.buildCpp(ctx)
             if name not in types:
                 # not defined
                 # todo
@@ -635,13 +656,13 @@ class arguments(Base):
         start = len(names) - len(values)
         args = []
         for i, name in enumerate(names):
-            type = types[name]
-            type = CppTypeRegistry.detect(type)
+            tp = types[name]
+            tp = CppTypeRegistry.detect(tp)
             if i < start:
-                args.append("{} {}".format(type, name))
+                args.append("{} {}".format(tp, name))
             else:
                 value = values[i - start]
-                args.append("{} {}={}".format(type, name, value))
+                args.append("{} {}={}".format(tp, name, value))
         if ctx.is_class_method() and names[0] == "self":
             args = args[1:]
         return ", ".join(args)
@@ -654,7 +675,7 @@ class arg(Base):
         self.arg = arg
         self.annotation = annotation
 
-    def build(self, ctx):
+    def buildCpp(self, ctx):
         return self.arg
 
 
@@ -665,10 +686,10 @@ class keyword(Base):
         self.name = name
         self.value = value
 
-    def build(self, ctx):
+    def buildCpp(self, ctx):
         return "static const auto {} = {}".format(
             self.name,
-            self.value.build(ctx)
+            self.value.buildCpp(ctx)
         )
 
 
@@ -677,14 +698,14 @@ class keyword(Base):
 #
 
 class CppScope(Attribute):
-    def build(self, ctx):
-        return "{}::{}".format(self.value.build(ctx), self.attr)
+    def buildCpp(self, ctx):
+        return "{}::{}".format(self.value.buildCpp(ctx), self.attr)
 
 
 class StdCout(Expr):
-    def build(self, ctx):
+    def buildCpp(self, ctx):
         temp = ["std::cout"]
-        temp += [x.build(ctx) for x in self.value.args]
+        temp += [x.buildCpp(ctx) for x in self.value.args]
         temp += ["std::endl"]
         return ctx.indent() + " << ".join(temp) + ";"
 
