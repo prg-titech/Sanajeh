@@ -1,6 +1,7 @@
 # This is a python version prototype of the AllocatorHandle(host side API) and AllocatorT(device side API) in DynaSOAr
 from typing import Dict
 from typing import Callable
+FILE_NAME = "sanajeh_device_code"
 
 
 # class A:

@@ -3,6 +3,7 @@
 
 import enum
 import six
+from sanajeh import FILE_NAME
 
 
 class Type(enum.Enum):
@@ -106,12 +107,15 @@ class Module(Base):
         self.classes = classes
 
     def buildCpp(self, ctx):
+        include_expr = '#include "{}.h"\n\n'.format(FILE_NAME)
+        allocator_declaration = "AllocatorHandle<AllocatorT>* allocator_handle;\n" \
+                                "__device__ AllocatorT* device_allocator;\n\n"
         rstr = ""
         for x in self.body:
             xstr = x.buildCpp(ctx)
             if not xstr == "":
                 rstr += xstr + "\n"
-        return rstr
+        return include_expr + allocator_declaration + rstr
 
     def buildHpp(self, ctx):
         # todo num objects
@@ -149,33 +153,47 @@ class FunctionDef(CodeStatement):
         self.returns = returns
         self.body = self.stmt
 
-    # todo : Add device keyword
     def buildCpp(self, ctx):
         with BuildContext(ctx, self) as new_ctx:
             body = [x.buildCpp(new_ctx) for x in self.stmt]
             while '' in body:
                 body.remove('')
-            # __init__ special case
-            if self.name == "__init__" and ctx.in_class():
+            if ctx.in_class():
+                # __init__ special case
+                if self.name == "__init__":
+                    return "\n".join([
+                        "\n{}__device__ {}::{}({}) {{".format(
+                            ctx.indent(),
+                            ctx.stack[-1].name,
+                            ctx.stack[-1].name,
+                            self.args.buildCpp(new_ctx),
+                        ),
+                        "\n".join(body),
+                        ctx.indent() + "}",
+                    ])
                 return "\n".join([
-                    "\n{}{}({}) {{".format(
+                    "\n{}__device__ {} {}::{}({}) {{".format(
                         ctx.indent(),
+                        self.rtype(ctx),
                         ctx.stack[-1].name,
+                        self.name,
                         self.args.buildCpp(new_ctx),
                     ),
                     "\n".join(body),
                     ctx.indent() + "}",
                 ])
-            return "\n".join([
-                "\n{}{} {}({}) {{".format(
-                    ctx.indent(),
-                    self.rtype(ctx),
-                    self.name,
-                    self.args.buildCpp(new_ctx),
-                ),
-                "\n".join(body),
-                ctx.indent() + "}",
-            ])
+            else:
+                return "\n".join([
+                    # todo maybe global
+                    "\n{}__device__ {} {}({}) {{".format(
+                        ctx.indent(),
+                        self.rtype(ctx),
+                        self.name,
+                        self.args.buildCpp(new_ctx),
+                    ),
+                    "\n".join(body),
+                    ctx.indent() + "}",
+                ])
 
     def buildHpp(self, ctx):
         with BuildContext(ctx, self) as new_ctx:
@@ -221,18 +239,11 @@ class ClassDef(CodeStatement):
     # todo without class block
     def buildCpp(self, ctx):
         with BuildContext(ctx, self) as new_ctx:
-            body = [x.buildCpp(new_ctx) for x in self.stmt]
+            new_ctx.indent_level -= 1
+            body = [x.buildCpp(new_ctx) for x in self.stmt if type(x) is FunctionDef]
             while '' in body:
                 body.remove('')
-            return "\n".join([
-                "\n{}class {}{} {{".format(
-                    ctx.indent(),
-                    self.name,
-                    " : {}".format(", ".join(["public " + x.buildCpp(ctx) for x in self.bases])) if self.bases else "",
-                ),
-                "\n".join(body),
-                ctx.indent() + "};",
-            ])
+            return "\n".join(body)
 
     def buildHpp(self, ctx):
         with BuildContext(ctx, self) as new_ctx:

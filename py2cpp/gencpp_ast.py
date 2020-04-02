@@ -7,6 +7,7 @@ from blockTree import BlockTreeRoot, ClassTreeNode, FunctionTreeNode, VariableTr
 from marker import Marker
 import gencpp as cpp
 import six
+from sanajeh import FILE_NAME
 
 BOOLOP_MAP = {
     ast.And: "&&",
@@ -346,7 +347,7 @@ if __name__ == '__main__':
     ctx = cpp.BuildContext.create()
     cpp_code = cpp_node.buildCpp(ctx)
     hpp_code = cpp_node.buildHpp(ctx)
-    # print(cpp_code)
+    print(cpp_code)
     # print("----------------------------------------------------")
-    print(hpp_code)
+    # print(hpp_code)
     pass
