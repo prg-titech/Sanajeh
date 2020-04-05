@@ -3,7 +3,7 @@
 #define KNUMOBJECTS 64*64*64*64
 
 #include <curand_kernel.h>
-#include "allocator_config.h"
+#include "dynasoar.h"
 
 class Body;
 
@@ -23,7 +23,7 @@ class Body {
 
     __device__ Body(float px, float py, float vx, float vy, float m);
     __device__ void compute_force();
-    __device__ void apply_force(Body other);
+    __device__ void apply_force(Body* other);
     __device__ void body_update();
 };
 

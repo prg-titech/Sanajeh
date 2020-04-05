@@ -81,8 +81,8 @@ def initialize(path):
         cpp_file.write(cpp_code)
     with open(hpp_path, mode='w') as hpp_file:
         hpp_file.write(hpp_code)
-    # print(cpp_code)
-    # print("--------------------------------")
-    # print(hpp_code)
+    print(cpp_code)
+    print("--------------------------------")
+    print(hpp_code)
 
 

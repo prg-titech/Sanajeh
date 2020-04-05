@@ -124,7 +124,7 @@ class Module(Base):
         precompile_expr = "#ifndef SANAJEH_DEVICE_CODE_H" \
                           "\n#define SANAJEH_DEVICE_CODE_H" \
                           "\n#define KNUMOBJECTS 64*64*64*64"
-        include_expr = '\n\n#include <curand_kernel.h>\n#include "allocator_config.h"'
+        include_expr = '\n\n#include <curand_kernel.h>\n#include "dynasoar.h"'
         rstr = ""
         for x in self.body:
             xstr = x.buildHpp(ctx)
@@ -588,6 +588,9 @@ class Call(CodeExpression):
         self.kwargs = kwargs
 
     def buildCpp(self, ctx):
+        # TODO DEVICE_DO
+        # if self.func.buildCpp(ctx) == "device_allocator->device_do":
+        #     return "device_allocator->template device_do<{}, &{}::{}>({})"
         args = ", ".join([x.buildCpp(ctx) for x in self.args])
         return "{}({})".format(self.func.buildCpp(ctx), args)
 
@@ -635,7 +638,11 @@ class Attribute(CodeExpression):
         self.attr = attr
 
     def buildCpp(self, ctx):
-        return "{}.{}".format(self.value.buildCpp(ctx), self.attr)
+        if self.value.buildCpp(ctx) == "math":
+            return self.attr
+        if self.value.buildCpp(ctx) == "__pyallocator__":
+            return "{}->{}".format("device_allocator", self.attr)
+        return "{}->{}".format(self.value.buildCpp(ctx), self.attr)
 
 
 class Subscript(CodeExpression):
@@ -813,17 +820,15 @@ class TypeRegistry(object):
 
 class CppTypeRegistry(TypeRegistry):
     def convert(self, type):
-        if type in self:
-            return self.type_map[type]
-        # TODO
-        return "int"
+        return self.type_map[type]
 
     @staticmethod
     def detect(type, rettype=False):
-        # todo
-        # Maybe name of the class
-        if type is None or type not in type_registry:
-            return "void" if rettype else type
+        if type is None:
+            return "void"
+        elif type not in type_registry:
+            # todo
+            return type + "*"
         return type_registry.convert(type)
 
 

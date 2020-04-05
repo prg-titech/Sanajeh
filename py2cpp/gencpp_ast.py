@@ -57,7 +57,6 @@ CMPOP_MAP = {
 class GenCppVisitor(ast.NodeVisitor):
 
     def __init__(self, root: BlockTreeRoot):
-        # self.arguments = []
         self.__root: BlockTreeRoot = root
         self.__node_path = [self.__root]
         self.__current_node = None
@@ -311,7 +310,6 @@ class GenCppVisitor(ast.NodeVisitor):
         kwarg = node.kwarg
         defaults = [self.visit(x) for x in node.defaults]
         ret = cpp.arguments(args=args, vararg=vararg, kwarg=kwarg, defaults=defaults)
-        # self.arguments.append(ret)
         return ret
 
     def visit_arg(self, node):
