@@ -1,7 +1,12 @@
 # This is a python version prototype of the AllocatorHandle(host side API) and AllocatorT(device side API) in DynaSOAr
 from typing import Dict
 from typing import Callable
-FILE_NAME = "sanajeh_device_code"
+import ast
+
+# Sanajeh package
+from gencpp_ast import GenCppVisitor
+from marker import Marker
+import gencpp
 
 
 # class A:
@@ -54,33 +59,18 @@ class PyAllocator:
         pass
 
 
-# # Host side allocator
-# class PyAllocatorTHandle:
-#     __device_allocator__: PyAllocatorT
-#
-#     def __init__(self, pat: PyAllocatorT):
-#         self.__device_allocator__ = pat
-#
-#     def device_do(self,  class_name, func, *args):
-#         return self.__device_allocator__.device_do(class_name, func, *args)
-#
-#     def parallel_do(self,  class_name, func, *args):
-#         return self.__device_allocator__.parallel_do(class_name, func, *args)
-
-
 __pyallocator__ = PyAllocator()
 
 
+def initialize(path):
+    source = open(path, encoding="utf-8").read()
+    tree = ast.parse(source)
+    rt = Marker.mark(tree)
+    gcv = GenCppVisitor(rt)
+    cpp_node = gcv.visit(tree)
+    ctx = gencpp.BuildContext.create()
+    cpp_code = cpp_node.buildCpp(ctx)
+    hpp_code = cpp_node.buildHpp(ctx)
+    print(cpp_code)
 
-# if __name__ == '__main__':
-#     p = PyAllocatorT(5, A, B)
-#     print(p.classDictionary)
-#     p.new_(A, 1)
-#     p.new_(A, 2)
-#     p.new_(B)
-#     p.new_(A, 3)
-#     p.device_do(A, A.add3)
-#     print(p.classDictionary)
-#     print(p.classDictionary[A])
-#     print(p.classDictionary[A][0])
-#     # print(type(a.device_do))
+

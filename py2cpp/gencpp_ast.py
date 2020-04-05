@@ -4,10 +4,9 @@
 import ast
 
 from blockTree import BlockTreeRoot, ClassTreeNode, FunctionTreeNode, VariableTreeNode
-from marker import Marker
 import gencpp as cpp
 import six
-from sanajeh import FILE_NAME
+
 
 BOOLOP_MAP = {
     ast.And: "&&",
@@ -338,16 +337,3 @@ class GenCppVisitor(ast.NodeVisitor):
         return cpp.keyword(name=name, value=value)
 
 
-if __name__ == '__main__':
-    source = open('../benchmarks/nbody.py', encoding="utf-8").read()
-    tree = ast.parse(source)
-    rt = Marker.mark(tree)
-    gcv = GenCppVisitor(rt)
-    cpp_node = gcv.visit(tree)
-    ctx = cpp.BuildContext.create()
-    cpp_code = cpp_node.buildCpp(ctx)
-    hpp_code = cpp_node.buildHpp(ctx)
-    print(cpp_code)
-    # print("----------------------------------------------------")
-    # print(hpp_code)
-    pass

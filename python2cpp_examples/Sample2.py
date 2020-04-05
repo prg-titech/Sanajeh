@@ -1,4 +1,5 @@
 # 環境を見ながら新しい変数宣言を作る方法はいけない理由
+import sanajeh
 
 b = {}
 if True:

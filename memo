@@ -1,13 +1,17 @@
-# todo
+
 import先の関数の扱い
 親関数のidentifier
 a, b, c = 1, 2, 3 のような式の扱い方
-hpp num objects
-print空要素の除外
+# todo
+複数のコンストラクタ
 
 
 # Sanajehの制限
 1 python3.7で書く
-    ->関数の返り値の型の宣言が必要
+    ->関数の返り値の型の宣言が必要(ない時はvoidと認識される)
     ->クラスのfieldとその型の宣言が必要
 2 deviceクラスの中の変数の型はint, float, boolしか使えない(double?)
+
+# Sanajehの利用の流れ
+1 initialize (compile, cuda main関数の呼び出し)
+2 parallel_do, device_doを通じて処理を行う

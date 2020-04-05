@@ -168,6 +168,7 @@ class DeviceDataSearcher(ast.NodeVisitor):
     __root: BlockTreeRoot
     __classes = []
     __node_path = []
+    __has_device_data = False
 
     def __init__(self, rt: BlockTreeRoot):
         self.__root = rt
@@ -210,8 +211,8 @@ class DeviceDataSearcher(ast.NodeVisitor):
         # Find device classes
         if type(node.func) is ast.Attribute:
             if node.func.attr == 'new_':
-                if node.args[0].id not in self.classes:
-                    self.classes.append(node.args[0].id)
+                if node.args[0].id not in self.__classes:
+                    self.__classes.append(node.args[0].id)
 
         func_name = None
         # todo id_name maybe class name
@@ -246,11 +247,6 @@ class Marker:
 
     @staticmethod
     def mark(tree):
-        # todo maybe not needed
-        # Let declared_functions nodes know their parents
-        for parent_node in ast.walk(tree):
-            for child in ast.iter_child_nodes(parent_node):
-                child.parent = parent_node
         gptv = GenPyTreeVisitor()
         gptv.visit(tree)
         gptv.MarkDeviceData(tree)

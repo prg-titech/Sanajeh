@@ -3,7 +3,9 @@
 
 import enum
 import six
-from sanajeh import FILE_NAME
+
+
+FILE_NAME = "sanajeh_device_code"
 
 
 class Type(enum.Enum):
