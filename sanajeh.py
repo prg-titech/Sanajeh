@@ -64,13 +64,25 @@ __pyallocator__ = PyAllocator()
 
 def initialize(path):
     source = open(path, encoding="utf-8").read()
+    # Generate python ast
     tree = ast.parse(source)
+    # Mark device data on python ast
     rt = Marker.mark(tree)
+    # Generate cpp ast from python ast
     gcv = GenCppVisitor(rt)
     cpp_node = gcv.visit(tree)
+    # Generate cpp(hpp) code from cpp ast
     ctx = gencpp.BuildContext.create()
     cpp_code = cpp_node.buildCpp(ctx)
     hpp_code = cpp_node.buildHpp(ctx)
-    print(cpp_code)
+    cpp_path = './device_code/sanajeh_device_code.cu'
+    hpp_path = './device_code/sanajeh_device_code.h'
+    with open(cpp_path, mode='w') as cpp_file:
+        cpp_file.write(cpp_code)
+    with open(hpp_path, mode='w') as hpp_file:
+        hpp_file.write(hpp_code)
+    # print(cpp_code)
+    # print("--------------------------------")
+    # print(hpp_code)
 
 
