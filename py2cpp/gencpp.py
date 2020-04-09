@@ -406,7 +406,6 @@ class If(CodeStatement):
     def buildCpp(self, ctx):
         with BuildContext(ctx, self) as new_ctx:
             body = [x.buildCpp(new_ctx) for x in self.stmt]
-            # TODO: orelse
             result = [
                 "{}if ({}) {{".format(
                     ctx.indent(),
@@ -580,7 +579,11 @@ class Compare(CodeExpression):
 class Call(CodeExpression):
     _fields = ["func", "args", "keywords", "starargs", "kwargs"]
 
-    def __init__(self, func, args=[], keywords=[], starargs=None, kwargs=None):
+    def __init__(self, func, args=None, keywords=None, starargs=None, kwargs=None):
+        if keywords is None:
+            keywords = []
+        if args is None:
+            args = []
         self.func = func
         self.args = args
         self.keywords = keywords
@@ -837,7 +840,7 @@ type_registry = CppTypeRegistry()
 # built-in types
 type_registry.register("bool", "bool")
 type_registry.register("int", "int")
-type_registry.register("long", "long")
+# type_registry.register("long", "long")
 type_registry.register("float", "float")
 # type_registry.register("complex", "std::complex<double>")
 # type_registry.register("str", "std::string")

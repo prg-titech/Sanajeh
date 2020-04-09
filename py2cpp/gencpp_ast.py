@@ -292,7 +292,6 @@ class GenCppVisitor(ast.NodeVisitor):
         if node.id == "self":
             node.id = "this"
         return cpp.Name(node.id)
-        # TODO: node.ctx
 
     # def visit_Tuple(self, node):
     #     elts = [self.visit(x) for x in node.elts]
