@@ -203,7 +203,7 @@ class FunctionDef(CodeStatement):
                 body.remove('')
             # __init__ special case
             if self.name == "__init__" and ctx.in_class():
-                return "\n" + "\n".join([
+                return "\n".join([
                     "{}__device__ {}({});".format(
                         ctx.indent(),
                         ctx.stack[-1].name,
@@ -251,6 +251,8 @@ class ClassDef(CodeStatement):
             body = [x.buildHpp(new_ctx) for x in self.stmt]
             while '' in body:
                 body.remove('')
+            body.insert(0, new_ctx.indent()+"public:")
+            print(body)
             field_types = []
             field_templates = []
             i = 0
@@ -277,7 +279,7 @@ class ClassDef(CodeStatement):
                     " : {}".format(", ".join(["public " + x.buildHpp(ctx) for x in self.bases])) if self.bases else "",
                 ),
                 field_predeclaration,
-                "\n".join(body),
+                ("\n"+INDENT).join(body),
                 ctx.indent() + "};",
             ])
 
