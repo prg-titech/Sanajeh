@@ -119,7 +119,6 @@ class Module(Base):
         return include_expr + allocator_declaration + rstr
 
     def buildHpp(self, ctx):
-        # todo num objects
         precompile_expr = "#ifndef SANAJEH_DEVICE_CODE_H" \
                           "\n#define SANAJEH_DEVICE_CODE_H" \
                           "\n#define KNUMOBJECTS 64*64*64*64"
@@ -252,7 +251,6 @@ class ClassDef(CodeStatement):
             while '' in body:
                 body.remove('')
             body.insert(0, new_ctx.indent()+"public:")
-            print(body)
             field_types = []
             field_templates = []
             i = 0
