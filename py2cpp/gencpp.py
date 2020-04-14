@@ -4,7 +4,6 @@
 import enum
 import six
 
-
 FILE_NAME = "sanajeh_device_code"
 
 
@@ -257,15 +256,15 @@ class ClassDef(CodeStatement):
             i = 0
             for field in self.fields:
                 field_types.append(self.fields[field])
-                field_templates.append(ctx.indent()
-                                       + "\tField<{}, {}> {};".format(self.name,
-                                                                      i,
-                                                                      field)
+                field_templates.append(INDENT + "Field<{}, {}> {};".format(self.name,
+                                                                           i,
+                                                                           field)
                                        )
                 i += 1
             field_predeclaration = new_ctx.indent() \
                                    + "public:\n" \
-                                   + new_ctx.indent()*2 \
+                                   + new_ctx.indent() \
+                                   + INDENT \
                                    + "declare_field_types({}, {})\n".format(self.name, ", ".join(field_types)) \
                                    + new_ctx.indent() \
                                    + "private:\n" \
