@@ -16,7 +16,7 @@ class Type(enum.Enum):
     Comment = 9999
 
 
-INDENT = " " * 4
+INDENT = "\t"
 
 
 class BuildContext(object):
