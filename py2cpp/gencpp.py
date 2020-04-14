@@ -265,11 +265,12 @@ class ClassDef(CodeStatement):
                 i += 1
             field_predeclaration = new_ctx.indent() \
                                    + "public:\n" \
+                                   + new_ctx.indent()*2 \
+                                   + "declare_field_types({}, {})\n".format(self.name, ", ".join(field_types)) \
                                    + new_ctx.indent() \
-                                   + "\tdeclare_field_types({}, {})\n".format(self.name, ", ".join(field_types)) \
+                                   + "private:\n" \
                                    + new_ctx.indent() \
-                                   + "private:\n\t" \
-                                   + "\n\t".join(field_templates)
+                                   + ("\n" + new_ctx.indent()).join(field_templates)
             return "\n".join([
                 "\n{}class {}{} {{".format(
                     ctx.indent(),
@@ -281,8 +282,6 @@ class ClassDef(CodeStatement):
                 ctx.indent() + "};",
             ])
 
-
-# ctx.indent()+"\tField<{}, {}> {};".format(self.class_name, self.index, self.target.buildHpp(ctx))
 
 class Return(CodeStatement):
     _fields = ["value"]
