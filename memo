@@ -15,3 +15,6 @@ a, b, c = 1, 2, 3 のような式の扱い方
 # Sanajehの利用の流れ
 1 initialize (compile, cuda main関数の呼び出し)
 2 parallel_do, device_doを通じて処理を行う
+
+#報告内容
+parallel_do(A, B.F)のようにする理由は、AはBのサブクラスである可能性がるのでそのまま残した

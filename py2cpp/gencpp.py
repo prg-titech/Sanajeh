@@ -196,27 +196,23 @@ class FunctionDef(CodeStatement):
                 ])
 
     def buildHpp(self, ctx):
-        with BuildContext(ctx, self) as new_ctx:
-            body = [x.buildHpp(new_ctx) for x in self.stmt]
-            while '' in body:
-                body.remove('')
-            # __init__ special case
-            if self.name == "__init__" and ctx.in_class():
-                return "\n".join([
-                    "{}__device__ {}({});".format(
-                        ctx.indent(),
-                        ctx.stack[-1].name,
-                        self.args.buildHpp(new_ctx),
-                    )
-                ])
+        # __init__ special case
+        if self.name == "__init__" and ctx.in_class():
             return "\n".join([
-                "{}__device__ {} {}({});".format(
+                "{}__device__ {}({});".format(
                     ctx.indent(),
-                    self.rtype(ctx),
-                    self.name,
-                    self.args.buildHpp(new_ctx),
+                    ctx.stack[-1].name,
+                    self.args.buildHpp(ctx),
                 )
             ])
+        return "\n".join([
+            "{}__device__ {} {}({});".format(
+                ctx.indent(),
+                self.rtype(ctx),
+                self.name,
+                self.args.buildHpp(ctx),
+            )
+        ])
 
     def rtype(self, ctx):
         if self.returns:

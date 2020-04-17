@@ -60,9 +60,12 @@ class PyAllocator:
 
 
 __pyallocator__ = PyAllocator()
-
+cpp_code = None
+hpp_code = None
 
 def initialize(path):
+    global cpp_code
+    global hpp_code
     source = open(path, encoding="utf-8").read()
     # Generate python ast
     tree = ast.parse(source)
@@ -81,6 +84,10 @@ def initialize(path):
         cpp_file.write(cpp_code)
     with open(hpp_path, mode='w') as hpp_file:
         hpp_file.write(hpp_code)
+
+
+# DEBUG propose
+def printCppAndHpp():
     print(cpp_code)
     print("--------------------------------")
     print(hpp_code)

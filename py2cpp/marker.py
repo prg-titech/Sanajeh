@@ -10,7 +10,7 @@ class GenPyTreeVisitor(ast.NodeVisitor):
     __root = BlockTreeRoot('root', None)
     __node_path = [__root]
     __current_node = None
-    __variable_environment = {}
+    __variables = {}
 
     @property
     def root(self):
@@ -23,8 +23,8 @@ class GenPyTreeVisitor(ast.NodeVisitor):
 
     # JUST FOR DEBUG
     @property
-    def variable_environment(self):
-        return self.__variable_environment
+    def variables(self):
+        return self.__variables
 
     def visit(self, node):
         self.__current_node = self.__node_path[-1]
@@ -76,12 +76,12 @@ class GenPyTreeVisitor(ast.NodeVisitor):
         for arg in node.args:
             if arg.arg == "self":
                 continue
-            self.__variable_environment.setdefault(self.__current_node.id, []).append(arg.arg)
+            self.__variables.setdefault(self.__current_node.id, []).append(arg.arg)
 
     # Add global variables to the environment
     def visit_Global(self, node):
         for global_variable in node.names:
-            self.__variable_environment.setdefault(self.__current_node.id, []).append(global_variable)
+            self.__variables.setdefault(self.__current_node.id, []).append(global_variable)
             var_node = self.__root.GetVariableNode(global_variable, None, None)
             if var_node is None:
                 print("The global variable {} is not existed.".format(global_variable))
@@ -104,12 +104,12 @@ class GenPyTreeVisitor(ast.NodeVisitor):
                     pass
             elif type(var) is ast.Name:
                 var_name = var.id
-                self.__variable_environment.setdefault(self.__current_node.id, [])
-                # print(self.__variable_environment)
-                if var_name not in self.__variable_environment[self.__current_node.id]:
+                self.__variables.setdefault(self.__current_node.id, [])
+                # print(self.__variables)
+                if var_name not in self.__variables[self.__current_node.id]:
                     var_node = VariableTreeNode(var_name, id_name, None)
                     self.__current_node.declared_variables.add(var_node)
-                    self.__variable_environment[self.__current_node.id].append(var_name)
+                    self.__variables[self.__current_node.id].append(var_name)
 
         self.generic_visit(node)
 
@@ -131,23 +131,23 @@ class GenPyTreeVisitor(ast.NodeVisitor):
             # todo haven't thought about other occasions
         elif type(var) is ast.Name:
             var_name = var.id
-            self.__variable_environment.setdefault(self.__current_node.id, [])
-            # print(self.__variable_environment)
-            if var_name not in self.__variable_environment[self.__current_node.id]:
+            self.__variables.setdefault(self.__current_node.id, [])
+            # print(self.__variables)
+            if var_name not in self.__variables[self.__current_node.id]:
                 var_node = VariableTreeNode(var_name, id_name, ann)
                 self.__current_node.declared_variables.add(var_node)
-                self.__variable_environment[self.__current_node.id].append(var_name)
+                self.__variables[self.__current_node.id].append(var_name)
             else:
                 var_node = self.__current_node.GetVariableNode(var_name, id_name, ann)
         self.generic_visit(node)
 
     def visit_Name(self, node):
-        self.__variable_environment.setdefault(self.__current_node.id, [])
-        if node.id in self.__variable_environment[self.__current_node.id]:
+        self.__variables.setdefault(self.__current_node.id, [])
+        if node.id in self.__variables[self.__current_node.id]:
             return
         for annotate_location_node in self.__node_path[-2::-1]:
-            self.__variable_environment.setdefault(annotate_location_node.id, [])
-            if node.id in self.__variable_environment[annotate_location_node.id]:
+            self.__variables.setdefault(annotate_location_node.id, [])
+            if node.id in self.__variables[annotate_location_node.id]:
                 var_node = annotate_location_node.GetVariableNode(node.id, None, None)
                 if var_node is None:
                     print('Unexpected error, can not find variable "{}"', node.id)
@@ -169,6 +169,56 @@ class DeviceDataSearcher(ast.NodeVisitor):
     __classes = []
     __node_path = []
     __has_device_data = False
+    __is_root = True  # the flag of whether visiting the root node of python ast
+    __node_root = None  # the root node of python ast
+
+    # Collect information of those functions used in the parallel_do function, and build codes for that function in c++
+    class ParallelDoFunctionSearcher(ast.NodeVisitor):
+        def __init__(self, rt, class_name, func_class_name, func_name):
+            self.__root = rt
+            self.__node_path = [rt]
+            self.__current_node = None
+            self.__object_class_name = class_name  # The class of the object
+            self.__func_class_name = func_class_name  # The class of the function executed
+            self.__func_name = func_name
+            self.__args = {}
+
+        def visit(self, node):
+            self.__current_node = self.__node_path[-1]
+            super(DeviceDataSearcher.ParallelDoFunctionSearcher, self).visit(node)
+
+        def visit_ClassDef(self, node):
+            if node.name != self.__func_class_name:
+                return
+            class_name = node.name
+            class_node = self.__current_node.GetClassNode(class_name, None)
+            if class_node is None:
+                # Program shouldn't come to here, which means the class does not exist
+                print("The class {} is not exist.".format(class_name))
+                assert False
+            self.__node_path.append(class_node)
+            self.generic_visit(node)
+            self.__node_path.pop()
+
+        def visit_FunctionDef(self, node):
+            func_name = node.name
+            func_node = self.__current_node.GetFunctionNode(func_name, None)
+            if func_node is None:
+                # Program shouldn't come to here, which means the function does not exist
+                print("The function {} does not exist.".format(func_name))
+                assert False
+            if func_name != self.__func_name or self.__current_node.name != self.__func_class_name:
+                return
+            for arg_ in node.args.args:
+                if arg_.arg == 'self':
+                    continue
+                self.__args[arg_.arg] = arg_.annotation
+
+        def buildCpp(self):
+            pass
+
+        def buildHpp(self):
+            pass
 
     def __init__(self, rt: BlockTreeRoot):
         self.__root = rt
@@ -176,6 +226,9 @@ class DeviceDataSearcher(ast.NodeVisitor):
         self.__current_node = None
 
     def visit(self, node):
+        if self.__is_root:
+            self.__node_root = node
+            self.__is_root = False
         self.__current_node = self.__node_path[-1]
         super(DeviceDataSearcher, self).visit(node)
 
@@ -211,11 +264,12 @@ class DeviceDataSearcher(ast.NodeVisitor):
         # Find device classes
         if type(node.func) is ast.Attribute and node.func.value.id == "__pyallocator__":
             if node.func.attr == 'new_':
+                self.__has_device_data = True
                 if node.args[0].id not in self.__classes:
                     self.__classes.append(node.args[0].id)
             elif node.func.attr == 'parallel_do':
-                pass
-                # TODO how to deal with the this ast node?
+                pds = self.ParallelDoFunctionSearcher(self.__root, node.args[0].id, node.args[1].value.id, node.args[1].attr)
+                pds.visit(self.__node_root)
 
         func_name = None
         # todo id_name maybe class name
