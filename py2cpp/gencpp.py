@@ -106,21 +106,14 @@ class Module(Base):
         self.classes = classes
 
     def buildCpp(self, ctx):
-        include_expr = '#include "{}.h"\n\n'.format(FILE_NAME)
-        allocator_declaration = "AllocatorHandle<AllocatorT>* allocator_handle;\n" \
-                                "__device__ AllocatorT* device_allocator;\n\n"
         rstr = ""
         for x in self.body:
             xstr = x.buildCpp(ctx)
             if not xstr == "":
                 rstr += xstr + "\n"
-        return include_expr + allocator_declaration + rstr
+        return rstr
 
     def buildHpp(self, ctx):
-        precompile_expr = "#ifndef SANAJEH_DEVICE_CODE_H" \
-                          "\n#define SANAJEH_DEVICE_CODE_H" \
-                          "\n#define KNUMOBJECTS 64*64*64*64"
-        include_expr = '\n\n#include <curand_kernel.h>\n#include "dynasoar.h"'
         rstr = ""
         for x in self.body:
             xstr = x.buildHpp(ctx)
@@ -128,9 +121,8 @@ class Module(Base):
                 rstr += xstr + "\n"
         class_str = ','.join(self.classes)
         class_predefine = "\n\nclass " + class_str + ';'
-        endif_expr = "\n#endif"
         temp_expr = "\n\nusing AllocatorT = SoaAllocator<" + "KNUMOBJECTS" + ", " + class_str + ">;\n"
-        return precompile_expr + include_expr + class_predefine + temp_expr + rstr + endif_expr
+        return class_predefine + temp_expr + rstr
 
 
 class CodeStatement(Base):
@@ -585,9 +577,13 @@ class Call(CodeExpression):
         self.kwargs = kwargs
 
     def buildCpp(self, ctx):
-        # TODO DEVICE_DO
-        # if self.func.buildCpp(ctx) == "device_allocator->device_do":
-        #     return "device_allocator->template device_do<{}, &{}::{}>({})"
+        if self.func.buildCpp(ctx) == "device_allocator->device_do":
+            return "device_allocator->template device_do<{}>(&{}::{}, {})".format(
+                self.args[0].buildCpp(ctx),
+                self.args[1].value.buildCpp(ctx),
+                self.args[1].attr,
+                ", ".join([x.buildCpp(ctx) for x in self.args[2:]])
+            )
         args = ", ".join([x.buildCpp(ctx) for x in self.args])
         return "{}({})".format(self.func.buildCpp(ctx), args)
 

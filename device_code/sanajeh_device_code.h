@@ -27,4 +27,6 @@ class Body {
 		__device__ void body_update();
 };
 
+void Body_Body_compute_force();
+void Body_Body_body_update();
 #endif

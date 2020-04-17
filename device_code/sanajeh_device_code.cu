@@ -20,7 +20,7 @@ __device__ Body::Body(float px, float py, float vx, float vy, float m) {
 __device__ void Body::compute_force() {
 	this->force_x = 0.0;
 	this->force_y = 0.0;
-	device_allocator->device_do(Body, Body->apply_force, this);
+	device_allocator->template device_do<Body>(&Body::apply_force, this);
 }
 
 __device__ void Body::apply_force(Body* other) {
@@ -45,4 +45,12 @@ __device__ void Body::body_update() {
 	if (this->pos_y < -1 || this->pos_y > 1) {
 		this->vel_y = -this->vel_y;
 	}
+}
+
+void Body_Body_compute_force(){
+	allocator_handle->parallel_do<Body, &Body::compute_force>();
+}
+
+void Body_Body_body_update(){
+	allocator_handle->parallel_do<Body, &Body::body_update>();
 }

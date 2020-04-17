@@ -4,7 +4,7 @@
 import ast
 
 import type_converter
-from config import INDENT
+from config import INDENT, FILE_NAME
 from call_graph import CallGraph, ClassNode, FunctionNode, VariableNode
 from gencpp_ast import GenCppVisitor
 import gencpp
@@ -16,6 +16,9 @@ class GenPyCallGraphVistor(ast.NodeVisitor):
     __node_path = [__root]
     __current_node = None
     __variables = {}
+
+    def __init__(self):
+        self.__pp = Preprocessor(self.__root)
 
     @property
     def root(self):
@@ -161,10 +164,15 @@ class GenPyCallGraphVistor(ast.NodeVisitor):
                 break
 
     # mark all device data in the CallGraph
-    def MarkDeviceData(self, node):
-        pp = Preprocessor(self.__root)
-        pp.visit(node)
-        self.__root.MarkDeviceDataByClassName(pp.classes)
+    def mark_device_data(self, node):
+        self.__pp.visit(node)
+        self.__root.MarkDeviceDataByClassName(self.__pp.classes)
+
+    def build_parallel_do_cpp(self):
+        return '\n' + '\n\n'.join(self.__pp.cpp_parallel_do_codes)
+
+    def build_parallel_do_hpp(self):
+        return '\n' + '\n'.join(self.__pp.hpp_parallel_do_codes)
 
 
 # Find device class in python code and compile parallel_do expressions into c++ ones
@@ -175,6 +183,16 @@ class Preprocessor(ast.NodeVisitor):
     __has_device_data = False
     __is_root = True  # the flag of whether visiting the root node of python ast
     __node_root = None  # the root node of python ast
+    __cpp_parallel_do_codes = []
+    __hpp_parallel_do_codes = []
+
+    @property
+    def cpp_parallel_do_codes(self):
+        return self.__cpp_parallel_do_codes
+
+    @property
+    def hpp_parallel_do_codes(self):
+        return self.__hpp_parallel_do_codes
 
     # Collect information of those functions used in the parallel_do function, and build codes for that function in c++
     class ParallelDoAnalyzer(ast.NodeVisitor):
@@ -297,11 +315,13 @@ class Preprocessor(ast.NodeVisitor):
                 if node.args[0].id not in self.__classes:
                     self.__classes.append(node.args[0].id)
             elif node.func.attr == 'parallel_do':
-                pds = self.ParallelDoAnalyzer(self.__root,
+                pda = self.ParallelDoAnalyzer(self.__root,
                                               node.args[0].id,
                                               node.args[1].value.id,
                                               node.args[1].attr)
-                pds.visit(self.__node_root)
+                pda.visit(self.__node_root)
+                self.__cpp_parallel_do_codes.append(pda.buildCpp())
+                self.__hpp_parallel_do_codes.append(pda.buildHpp())
 
         func_name = None
         # todo id_name maybe class name
@@ -344,14 +364,25 @@ def compile(source_code, cpp_path, hpp_path):
     gpcgv = GenPyCallGraphVistor()
     gpcgv.visit(py_ast)
     # Mark all device data on the call graph
-    gpcgv.MarkDeviceData(py_ast)
+    gpcgv.mark_device_data(py_ast)
     # Generate cpp ast from python ast
     gcv = GenCppVisitor(gpcgv.root)
     cpp_node = gcv.visit(py_ast)
     # Generate cpp(hpp) code from cpp ast
     ctx = gencpp.BuildContext.create()
-    cpp_code = cpp_node.buildCpp(ctx)
-    hpp_code = cpp_node.buildHpp(ctx)
+    # Expression needed for DynaSOAr API
+    cpp_include_expr = '#include "{}.h"\n\n'.format(FILE_NAME)
+    allocator_declaration = "AllocatorHandle<AllocatorT>* allocator_handle;\n" \
+                            "__device__ AllocatorT* device_allocator;\n\n"
+    precompile_expr = "#ifndef SANAJEH_DEVICE_CODE_H" \
+                      "\n#define SANAJEH_DEVICE_CODE_H" \
+                      "\n#define KNUMOBJECTS 64*64*64*64"
+    hpp_include_expr = '\n\n#include <curand_kernel.h>\n#include "dynasoar.h"'
+    endif_expr = "\n#endif"
+    # Source code
+    cpp_code = cpp_include_expr + allocator_declaration + cpp_node.buildCpp(ctx) + gpcgv.build_parallel_do_cpp()
+    # Header code
+    hpp_code = precompile_expr + hpp_include_expr + cpp_node.buildHpp(ctx) + gpcgv.build_parallel_do_hpp() + endif_expr
     with open(cpp_path, mode='w') as cpp_file:
         cpp_file.write(cpp_code)
     with open(hpp_path, mode='w') as hpp_file:
