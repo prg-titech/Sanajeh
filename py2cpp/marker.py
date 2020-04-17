@@ -4,6 +4,8 @@
 import ast
 from blockTree import BlockTreeRoot, ClassTreeNode, FunctionTreeNode, VariableTreeNode
 
+import typeConverter
+
 
 # Generate python function/variable tree
 class GenPyTreeVisitor(ast.NodeVisitor):
@@ -212,13 +214,22 @@ class DeviceDataSearcher(ast.NodeVisitor):
             for arg_ in node.args.args:
                 if arg_.arg == 'self':
                     continue
-                self.__args[arg_.arg] = arg_.annotation
+                self.__args[arg_.arg] = arg_.annotation.id
 
         def buildCpp(self):
             pass
 
         def buildHpp(self):
-            pass
+            arg_strs = []
+            for arg_ in self.__args:
+                arg_strs.append("{} {}".format(typeConverter.convert(self.__args[arg_]), arg_))
+
+            return "void __{}_{}_{}({});".format(
+                self.__object_class_name,
+                self.__func_class_name,
+                self.__func_name,
+                ",".join(arg_strs)
+            )
 
     def __init__(self, rt: BlockTreeRoot):
         self.__root = rt
@@ -268,8 +279,12 @@ class DeviceDataSearcher(ast.NodeVisitor):
                 if node.args[0].id not in self.__classes:
                     self.__classes.append(node.args[0].id)
             elif node.func.attr == 'parallel_do':
-                pds = self.ParallelDoFunctionSearcher(self.__root, node.args[0].id, node.args[1].value.id, node.args[1].attr)
+                pds = self.ParallelDoFunctionSearcher(self.__root,
+                                                      node.args[0].id,
+                                                      node.args[1].value.id,
+                                                      node.args[1].attr)
                 pds.visit(self.__node_root)
+                print(pds.buildHpp())
 
         func_name = None
         # todo id_name maybe class name

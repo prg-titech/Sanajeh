@@ -67,7 +67,7 @@ class Body:  # クラスをDynaSOArを使う必要があることを何らかの
         self.force_x = 0.0
         self.force_y = 0.0
 
-    def compute_force(self):
+    def compute_force(self,):
         self.force_x = 0.0
         self.force_y = 0.0
         # ここでdevice_doを呼び出す-------------------------------------------------------------------------------------

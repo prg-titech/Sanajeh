@@ -4,6 +4,8 @@
 import enum
 import six
 
+import typeConverter
+
 FILE_NAME = "sanajeh_device_code"
 
 
@@ -746,7 +748,7 @@ class arguments(Base):
             if ctx.is_class_method() and name == "self":
                 continue
             tp = types[name]
-            tp = CppTypeRegistry.detect(tp)
+            tp = typeConverter.convert(tp)
             if i < start:
                 args.append("{} {}".format(tp, name))
             else:
@@ -800,47 +802,4 @@ class StdCout(Expr):
         return ctx.indent() + " << ".join(temp) + ";"
 
 
-#
-# type registry
-#
-class TypeRegistry(object):
-    def __init__(self):
-        self.type_map = {}
 
-    def __contains__(self, v):
-        return v in self.type_map
-
-    def convert(self, type_str):
-        raise NotImplementedError
-
-    def register(self, pytype, cpptype):
-        self.type_map[pytype] = cpptype
-
-
-class CppTypeRegistry(TypeRegistry):
-    def convert(self, type):
-        return self.type_map[type]
-
-    @staticmethod
-    def detect(type, rettype=False):
-        if type is None:
-            # todo not sure if auto is fine
-            return "auto"
-        elif type not in type_registry:
-            return type + "*"
-        return type_registry.convert(type)
-
-
-type_registry = CppTypeRegistry()
-
-# built-in types
-type_registry.register("bool", "bool")
-type_registry.register("int", "int")
-# type_registry.register("long", "long")
-type_registry.register("float", "float")
-# type_registry.register("complex", "std::complex<double>")
-# type_registry.register("str", "std::string")
-# type_registry.register("bytearray", "std::string")
-# type_registry.register("list", "std::vector")
-# type_registry.register("List[int]", "std::vector<int>")
-# type_registry.register("tuple", "std::tuple")
