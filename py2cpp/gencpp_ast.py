@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
-# Generate C/C++/CUDA AST from python code
+# Generate C/C++/CUDA AST from python source code
 
 import ast
 
-from blockTree import BlockTreeRoot, ClassTreeNode, FunctionTreeNode, VariableTreeNode
+from call_graph import CallGraph, ClassNode, FunctionNode, VariableNode
 import gencpp as cpp
 import six
 
@@ -56,8 +56,8 @@ CMPOP_MAP = {
 
 class GenCppVisitor(ast.NodeVisitor):
 
-    def __init__(self, root: BlockTreeRoot):
-        self.__root: BlockTreeRoot = root
+    def __init__(self, root: CallGraph):
+        self.__root: CallGraph = root
         self.__node_path = [self.__root]
         self.__current_node = None
         self.__classes = []
@@ -166,7 +166,7 @@ class GenCppVisitor(ast.NodeVisitor):
         else:
             value = None
         annotation = self.visit(node.annotation)
-        if type(self.__current_node) is ClassTreeNode:
+        if type(self.__current_node) is ClassNode:
             self.__field[var.id] = anno.id
         return cpp.AnnAssign(target, value, annotation)
 

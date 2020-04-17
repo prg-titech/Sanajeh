@@ -1,23 +1,23 @@
 # -*- coding: utf-8 -*-
-# A tree which represents the calling and declaring relationships
-from abc import abstractmethod
+# Define Python call graph nodes' data structure
+
 from typing import Set
 
 
 # Block tree Node
-class BlockTreeNode:
+class CallGraphNode:
 
     node_count = 0
 
     def __init__(self, node_name, identifier_name):
         self.name: str = node_name  # node name
-        self.declared_variables: Set[VariableTreeNode] = set()  # variables declared in this block
-        self.called_functions: Set[FunctionTreeNode] = set()  # functions called in this block
-        self.called_variables: Set[VariableTreeNode] = set()  # variables called in this block
+        self.declared_variables: Set[VariableNode] = set()  # variables declared in this block
+        self.called_functions: Set[FunctionNode] = set()  # functions called in this block
+        self.called_variables: Set[VariableNode] = set()  # variables called in this block
         self.is_device = False  # if it is an __device__ node
         self.i_name: str = identifier_name  # identifier name
-        self.id = BlockTreeNode.node_count  # node id
-        BlockTreeNode.node_count += 1
+        self.id = CallGraphNode.node_count  # node id
+        CallGraphNode.node_count += 1
 
     # Mark this node
     def MarkDeviceData(self):
@@ -28,9 +28,9 @@ class BlockTreeNode:
                 q.pop(0)
                 continue
             nd.is_device = True
-            # if type(nd) is ClassTreeNode:
+            # if type(nd) is ClassNode:
             #     print("Class {}".format(nd.name))
-            # if type(nd) is FunctionTreeNode:
+            # if type(nd) is FunctionNode:
             #     print("Function {}".format(nd.name))
             for x in nd.called_variables:
                 x.MarkDeviceData()
@@ -46,13 +46,13 @@ class BlockTreeNode:
 
 
 # Tree node for class
-class ClassTreeNode(BlockTreeNode):
+class ClassNode(CallGraphNode):
 
     def __init__(self, node_name, identifier_name):
-        super(ClassTreeNode, self).__init__(node_name, identifier_name)
+        super(ClassNode, self).__init__(node_name, identifier_name)
 
         # functions declared in this class
-        self.declared_functions: Set[FunctionTreeNode] = set()
+        self.declared_functions: Set[FunctionNode] = set()
 
     # Find the function 'function_name' by recursion
     def GetFunctionNode(self, function_name, identifier_name):
@@ -83,9 +83,9 @@ class ClassTreeNode(BlockTreeNode):
 
 
 # Tree node for function
-class FunctionTreeNode(BlockTreeNode):
+class FunctionNode(CallGraphNode):
     def __init__(self, node_name, identifier_name):
-        super(FunctionTreeNode, self).__init__(node_name, identifier_name)
+        super(FunctionNode, self).__init__(node_name, identifier_name)
 
     def GetVariableNode(self, variable_name, identifier_name, variable_type):
         # find the variable in this function
@@ -103,9 +103,9 @@ class FunctionTreeNode(BlockTreeNode):
 
 
 # Tree node for variable
-class VariableTreeNode(BlockTreeNode):
+class VariableNode(CallGraphNode):
     def __init__(self, node_name, identifier_name, var_type):
-        super(VariableTreeNode, self).__init__(node_name, identifier_name)
+        super(VariableNode, self).__init__(node_name, identifier_name)
         self.v_type: str = var_type  # type of the variable, "None" for untyped variables
 
     def MarkDeviceData(self):
@@ -114,16 +114,16 @@ class VariableTreeNode(BlockTreeNode):
 
 
 # A tree which represents the calling and declaring relationships
-class BlockTreeRoot(BlockTreeNode):
-    declared_classes: Set[ClassTreeNode] = set()  # global classes
-    declared_functions: Set[FunctionTreeNode] = set()  # global functions
-    declared_variables: Set[VariableTreeNode] = set()  # global variables
-    library_functions: Set[FunctionTreeNode] = set()  # library functions
-    called_functions: Set[FunctionTreeNode] = set()  # functions called globally(shouldn't be device function)
-    called_variables: Set[VariableTreeNode] = set()  # variables called globally
+class CallGraph(CallGraphNode):
+    declared_classes: Set[ClassNode] = set()  # global classes
+    declared_functions: Set[FunctionNode] = set()  # global functions
+    declared_variables: Set[VariableNode] = set()  # global variables
+    library_functions: Set[FunctionNode] = set()  # library functions
+    called_functions: Set[FunctionNode] = set()  # functions called globally(shouldn't be device function)
+    called_variables: Set[VariableNode] = set()  # variables called globally
 
     def __init__(self, node_name, identifier_name):
-        super(BlockTreeRoot, self).__init__(node_name, identifier_name)
+        super(CallGraph, self).__init__(node_name, identifier_name)
 
     # Find the class 'class_name'
     def GetClassNode(self, class_name, identifier_name):

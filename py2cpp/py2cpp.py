@@ -2,14 +2,17 @@
 # Mark all device functions
 
 import ast
-from blockTree import BlockTreeRoot, ClassTreeNode, FunctionTreeNode, VariableTreeNode
 
-import typeConverter
+import type_converter
+from config import INDENT
+from call_graph import CallGraph, ClassNode, FunctionNode, VariableNode
+from gencpp_ast import GenCppVisitor
+import gencpp
 
 
-# Generate python function/variable tree
-class GenPyTreeVisitor(ast.NodeVisitor):
-    __root = BlockTreeRoot('root', None)
+# Generate python call graph
+class GenPyCallGraphVistor(ast.NodeVisitor):
+    __root = CallGraph('root', None)
     __node_path = [__root]
     __current_node = None
     __variables = {}
@@ -30,7 +33,7 @@ class GenPyTreeVisitor(ast.NodeVisitor):
 
     def visit(self, node):
         self.__current_node = self.__node_path[-1]
-        super(GenPyTreeVisitor, self).visit(node)
+        super(GenPyCallGraphVistor, self).visit(node)
 
     # todo other py files
     # def visit_Module(self, node):
@@ -38,7 +41,7 @@ class GenPyTreeVisitor(ast.NodeVisitor):
 
     # Create nodes for all classes declared
     def visit_ClassDef(self, node):
-        if type(self.__current_node) is not BlockTreeRoot:
+        if type(self.__current_node) is not CallGraph:
             print("Error, doesn't support nested classes")
             assert False
         class_name = node.name
@@ -47,7 +50,7 @@ class GenPyTreeVisitor(ast.NodeVisitor):
             # Program shouldn't come to here, which means a class is defined twice
             print("The class {} is defined twice.".format(class_name))
             assert False
-        class_node = ClassTreeNode(node.name, None)
+        class_node = ClassNode(node.name, None)
         self.__current_node.declared_classes.add(class_node)
         self.__node_path.append(class_node)
         self.generic_visit(node)
@@ -56,7 +59,7 @@ class GenPyTreeVisitor(ast.NodeVisitor):
     # Create nodes for all functions declared
     def visit_FunctionDef(self, node):
         func_name = node.name
-        if type(self.__current_node) is not BlockTreeRoot and type(self.__current_node) is not ClassTreeNode:
+        if type(self.__current_node) is not CallGraph and type(self.__current_node) is not ClassNode:
             print("Error, doesn't support nested functions")
             assert False
         func_node = self.__current_node.GetFunctionNode(func_name, None)
@@ -64,7 +67,7 @@ class GenPyTreeVisitor(ast.NodeVisitor):
             # Program shouldn't come to here, which means a function is defined twice
             print("The function {} is defined twice.".format(func_name))
             assert False
-        func_node = FunctionTreeNode(func_name, None)
+        func_node = FunctionNode(func_name, None)
         self.__current_node.declared_functions.add(func_node)
         self.__node_path.append(func_node)
         self.generic_visit(node)
@@ -72,7 +75,7 @@ class GenPyTreeVisitor(ast.NodeVisitor):
 
     # Add arguments to the environment
     def visit_arguments(self, node):
-        if type(self.__current_node) is not FunctionTreeNode:
+        if type(self.__current_node) is not FunctionNode:
             print('Unexpected node "{}"'.format(self.__current_node.name))
             assert False
         for arg in node.args:
@@ -90,7 +93,7 @@ class GenPyTreeVisitor(ast.NodeVisitor):
                 assert False
             self.__current_node.called_variables.add(var_node)
 
-    # Create node for variables without type annotation
+    # Create nodes for variables without type annotation
     def visit_Assign(self, node):
         for var in node.targets:
             var_name = None
@@ -109,13 +112,13 @@ class GenPyTreeVisitor(ast.NodeVisitor):
                 self.__variables.setdefault(self.__current_node.id, [])
                 # print(self.__variables)
                 if var_name not in self.__variables[self.__current_node.id]:
-                    var_node = VariableTreeNode(var_name, id_name, None)
+                    var_node = VariableNode(var_name, id_name, None)
                     self.__current_node.declared_variables.add(var_node)
                     self.__variables[self.__current_node.id].append(var_name)
 
         self.generic_visit(node)
 
-    # Create node for variables with type annotation
+    # Create nodes for variables with type annotation
     def visit_AnnAssign(self, node):
         var = node.target
         ann = node.annotation.id
@@ -136,7 +139,7 @@ class GenPyTreeVisitor(ast.NodeVisitor):
             self.__variables.setdefault(self.__current_node.id, [])
             # print(self.__variables)
             if var_name not in self.__variables[self.__current_node.id]:
-                var_node = VariableTreeNode(var_name, id_name, ann)
+                var_node = VariableNode(var_name, id_name, ann)
                 self.__current_node.declared_variables.add(var_node)
                 self.__variables[self.__current_node.id].append(var_name)
             else:
@@ -157,17 +160,16 @@ class GenPyTreeVisitor(ast.NodeVisitor):
                 self.__current_node.called_variables.add(var_node)
                 break
 
-    # Mark all device data in ast 'node'
+    # mark all device data in the CallGraph
     def MarkDeviceData(self, node):
-        dds = DeviceDataSearcher(self.__root)
-        dds.visit(node)
-        # mark all device data in the BlockTreeRoot
-        self.__root.MarkDeviceDataByClassName(dds.classes)
+        pp = Preprocessor(self.__root)
+        pp.visit(node)
+        self.__root.MarkDeviceDataByClassName(pp.classes)
 
 
-# Analyze function calling relationships and find the device classes
-class DeviceDataSearcher(ast.NodeVisitor):
-    __root: BlockTreeRoot
+# Find device class in python code and compile parallel_do expressions into c++ ones
+class Preprocessor(ast.NodeVisitor):
+    __root: CallGraph
     __classes = []
     __node_path = []
     __has_device_data = False
@@ -175,7 +177,7 @@ class DeviceDataSearcher(ast.NodeVisitor):
     __node_root = None  # the root node of python ast
 
     # Collect information of those functions used in the parallel_do function, and build codes for that function in c++
-    class ParallelDoFunctionSearcher(ast.NodeVisitor):
+    class ParallelDoAnalyzer(ast.NodeVisitor):
         def __init__(self, rt, class_name, func_class_name, func_name):
             self.__root = rt
             self.__node_path = [rt]
@@ -187,7 +189,7 @@ class DeviceDataSearcher(ast.NodeVisitor):
 
         def visit(self, node):
             self.__current_node = self.__node_path[-1]
-            super(DeviceDataSearcher.ParallelDoFunctionSearcher, self).visit(node)
+            super(Preprocessor.ParallelDoAnalyzer, self).visit(node)
 
         def visit_ClassDef(self, node):
             if node.name != self.__func_class_name:
@@ -217,21 +219,37 @@ class DeviceDataSearcher(ast.NodeVisitor):
                 self.__args[arg_.arg] = arg_.annotation.id
 
         def buildCpp(self):
-            pass
+            arg_strs = []
+            for arg_ in self.__args:
+                arg_strs.append("{} {}".format(type_converter.convert(self.__args[arg_]), arg_))
+            parallel_do_expr = INDENT + "allocator_handle->parallel_do<{}, &{}::{}>({});".format(
+                self.__object_class_name,
+                self.__func_class_name,
+                self.__func_name,
+                ", ".join(self.__args)
+            )
+
+            return "void {}_{}_{}({}){{\n".format(
+                self.__object_class_name,
+                self.__func_class_name,
+                self.__func_name,
+                ", ".join(arg_strs)) \
+                   + parallel_do_expr \
+                   + "\n}"
 
         def buildHpp(self):
             arg_strs = []
             for arg_ in self.__args:
-                arg_strs.append("{} {}".format(typeConverter.convert(self.__args[arg_]), arg_))
+                arg_strs.append("{} {}".format(type_converter.convert(self.__args[arg_]), arg_))
 
-            return "void __{}_{}_{}({});".format(
+            return "void {}_{}_{}({});".format(
                 self.__object_class_name,
                 self.__func_class_name,
                 self.__func_name,
                 ",".join(arg_strs)
             )
 
-    def __init__(self, rt: BlockTreeRoot):
+    def __init__(self, rt: CallGraph):
         self.__root = rt
         self.__node_path.append(rt)
         self.__current_node = None
@@ -241,7 +259,7 @@ class DeviceDataSearcher(ast.NodeVisitor):
             self.__node_root = node
             self.__is_root = False
         self.__current_node = self.__node_path[-1]
-        super(DeviceDataSearcher, self).visit(node)
+        super(Preprocessor, self).visit(node)
 
     @property
     def classes(self):
@@ -279,12 +297,11 @@ class DeviceDataSearcher(ast.NodeVisitor):
                 if node.args[0].id not in self.__classes:
                     self.__classes.append(node.args[0].id)
             elif node.func.attr == 'parallel_do':
-                pds = self.ParallelDoFunctionSearcher(self.__root,
-                                                      node.args[0].id,
-                                                      node.args[1].value.id,
-                                                      node.args[1].attr)
+                pds = self.ParallelDoAnalyzer(self.__root,
+                                              node.args[0].id,
+                                              node.args[1].value.id,
+                                              node.args[1].attr)
                 pds.visit(self.__node_root)
-                print(pds.buildHpp())
 
         func_name = None
         # todo id_name maybe class name
@@ -302,24 +319,41 @@ class DeviceDataSearcher(ast.NodeVisitor):
 
         for parent_node in self.__node_path[::-1]:
             # todo id_name
-            if type(parent_node) is FunctionTreeNode:
+            if type(parent_node) is FunctionNode:
                 continue
             call_node = parent_node.GetFunctionNode(func_name, id_name)
             if call_node is not None:
                 break
         if call_node is None:
-            call_node = FunctionTreeNode(func_name, id_name)
+            call_node = FunctionNode(func_name, id_name)
             self.__root.library_functions.add(call_node)
         self.__current_node.called_functions.add(call_node)
         self.generic_visit(node)
 
 
-# Mark the tree and return a marked BlockTreeRoot
-class Marker:
-
-    @staticmethod
-    def mark(tree):
-        gptv = GenPyTreeVisitor()
-        gptv.visit(tree)
-        gptv.MarkDeviceData(tree)
-        return gptv.root
+def compile(source_code, cpp_path, hpp_path):
+    """
+    Compile python source_code into c++ source file and header file
+        source_code:    codes written in python
+        cpp_path:       path for the compiled c++ source file
+        hpp_path:       path for the compiled c++ header file
+    """
+    # Generate python ast
+    py_ast = ast.parse(source_code)
+    # Generate python call graph
+    gpcgv = GenPyCallGraphVistor()
+    gpcgv.visit(py_ast)
+    # Mark all device data on the call graph
+    gpcgv.MarkDeviceData(py_ast)
+    # Generate cpp ast from python ast
+    gcv = GenCppVisitor(gpcgv.root)
+    cpp_node = gcv.visit(py_ast)
+    # Generate cpp(hpp) code from cpp ast
+    ctx = gencpp.BuildContext.create()
+    cpp_code = cpp_node.buildCpp(ctx)
+    hpp_code = cpp_node.buildHpp(ctx)
+    with open(cpp_path, mode='w') as cpp_file:
+        cpp_file.write(cpp_code)
+    with open(hpp_path, mode='w') as hpp_file:
+        hpp_file.write(hpp_code)
+    return cpp_code, hpp_code

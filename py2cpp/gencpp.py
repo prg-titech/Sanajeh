@@ -4,9 +4,8 @@
 import enum
 import six
 
-import typeConverter
-
-FILE_NAME = "sanajeh_device_code"
+import type_converter
+from config import FILE_NAME, INDENT
 
 
 class Type(enum.Enum):
@@ -16,9 +15,6 @@ class Type(enum.Enum):
     Stmt = 4
     arguments = 2048
     Comment = 9999
-
-
-INDENT = "\t"
 
 
 class BuildContext(object):
@@ -220,7 +216,7 @@ class FunctionDef(CodeStatement):
     def rtype(self, ctx):
         if self.returns:
             rtype = self.returns.buildCpp(ctx)
-            return CppTypeRegistry.detect(rtype, rettype=True)
+            return type_converter.convert(rtype, rettype=True)
         else:
             return "void"
 
@@ -249,7 +245,7 @@ class ClassDef(CodeStatement):
             body = [x.buildHpp(new_ctx) for x in self.stmt]
             while '' in body:
                 body.remove('')
-            body.insert(0, new_ctx.indent()+"public:")
+            body.insert(0, new_ctx.indent() + "public:")
             field_types = []
             field_templates = []
             i = 0
@@ -276,7 +272,7 @@ class ClassDef(CodeStatement):
                     " : {}".format(", ".join(["public " + x.buildHpp(ctx) for x in self.bases])) if self.bases else "",
                 ),
                 field_predeclaration,
-                ("\n"+INDENT).join(body),
+                ("\n" + INDENT).join(body),
                 ctx.indent() + "};",
             ])
 
@@ -748,7 +744,7 @@ class arguments(Base):
             if ctx.is_class_method() and name == "self":
                 continue
             tp = types[name]
-            tp = typeConverter.convert(tp)
+            tp = type_converter.convert(tp)
             if i < start:
                 args.append("{} {}".format(tp, name))
             else:
@@ -800,6 +796,3 @@ class StdCout(Expr):
         temp += [x.buildCpp(ctx) for x in self.value.args]
         temp += ["std::endl"]
         return ctx.indent() + " << ".join(temp) + ";"
-
-
-
