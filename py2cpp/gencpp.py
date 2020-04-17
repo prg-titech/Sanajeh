@@ -196,23 +196,24 @@ class FunctionDef(CodeStatement):
                 ])
 
     def buildHpp(self, ctx):
-        # __init__ special case
-        if self.name == "__init__" and ctx.in_class():
+        with BuildContext(ctx, self) as new_ctx:
+            # __init__ special case
+            if self.name == "__init__" and ctx.in_class():
+                return "\n".join([
+                    "{}__device__ {}({});".format(
+                        ctx.indent(),
+                        ctx.stack[-1].name,
+                        self.args.buildHpp(new_ctx),
+                    )
+                ])
             return "\n".join([
-                "{}__device__ {}({});".format(
+                "{}__device__ {} {}({});".format(
                     ctx.indent(),
-                    ctx.stack[-1].name,
-                    self.args.buildHpp(ctx),
+                    self.rtype(ctx),
+                    self.name,
+                    self.args.buildHpp(new_ctx),
                 )
             ])
-        return "\n".join([
-            "{}__device__ {} {}({});".format(
-                ctx.indent(),
-                self.rtype(ctx),
-                self.name,
-                self.args.buildHpp(ctx),
-            )
-        ])
 
     def rtype(self, ctx):
         if self.returns:
@@ -539,6 +540,7 @@ class Lambda(CodeExpression):
     def buildCpp(self, ctx):
         args = self.args.buildCpp(ctx)
         body = self.body.buildCpp(ctx)
+        # todo
         return "[&]({}) -> auto {{ return {}; }}".format(args, body)
 
 
@@ -734,13 +736,17 @@ class arguments(Base):
             name = arg.buildCpp(ctx)
             if arg.annotation:
                 types[name] = arg.annotation.buildCpp(ctx)
+                continue
+            if name == 'self':
+                continue
+            # When the variable has no annotation
             if name not in types:
-                # not defined
-                # todo
-                types[name] = "int"
+                types[name] = None
         start = len(names) - len(values)
         args = []
         for i, name in enumerate(names):
+            if name == 'self':
+                continue
             tp = types[name]
             tp = CppTypeRegistry.detect(tp)
             if i < start:
@@ -822,9 +828,9 @@ class CppTypeRegistry(TypeRegistry):
     @staticmethod
     def detect(type, rettype=False):
         if type is None:
-            return "void"
+            # todo not sure if auto is fine
+            return "auto"
         elif type not in type_registry:
-            # todo
             return type + "*"
         return type_registry.convert(type)
 

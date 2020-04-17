@@ -63,6 +63,7 @@ __pyallocator__ = PyAllocator()
 cpp_code = None
 hpp_code = None
 
+
 def initialize(path):
     global cpp_code
     global hpp_code

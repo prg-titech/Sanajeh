@@ -21,10 +21,10 @@ class Body {
 		Field<Body, 5> force_y;
 		Field<Body, 6> mass;
 	public:
-		__device__ Body(int self, float px, float py, float vx, float vy, float m);
-		__device__ void compute_force(int self);
-		__device__ void apply_force(int self, Body* other);
-		__device__ void body_update(int self);
+		__device__ Body(float py, float vx, float vy, float m);
+		__device__ void compute_force();
+		__device__ void apply_force();
+		__device__ void body_update();
 };
 
 #endif
