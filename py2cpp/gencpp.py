@@ -737,15 +737,13 @@ class arguments(Base):
             if arg.annotation:
                 types[name] = arg.annotation.buildCpp(ctx)
                 continue
-            if name == 'self':
-                continue
             # When the variable has no annotation
             if name not in types:
                 types[name] = None
         start = len(names) - len(values)
         args = []
         for i, name in enumerate(names):
-            if name == 'self':
+            if ctx.is_class_method() and name == "self":
                 continue
             tp = types[name]
             tp = CppTypeRegistry.detect(tp)
@@ -754,8 +752,6 @@ class arguments(Base):
             else:
                 value = values[i - start]
                 args.append("{} {}={}".format(tp, name, value))
-        if ctx.is_class_method() and names[0] == "self":
-            args = args[1:]
         return ", ".join(args)
 
     def buildHpp(self, ctx):

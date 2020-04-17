@@ -7,7 +7,7 @@ float kDt = 0.02;
 float kGravityConstant = 6.673e-05;
 float kDampeningFactor = 0.05;
 
-__device__ Body::Body(float py, float vx, float vy, float m) {
+__device__ Body::Body(float px, float py, float vx, float vy, float m) {
 	this->pos_x = px;
 	this->pos_y = py;
 	this->vel_x = vx;
@@ -23,7 +23,7 @@ __device__ void Body::compute_force() {
 	device_allocator->device_do(Body, Body->apply_force, this);
 }
 
-__device__ void Body::apply_force() {
+__device__ void Body::apply_force(Body* other) {
 	if (other != this) {
 		float dx = this->pos_x - other->pos_x;
 		float dy = this->pos_x - other->pos_y;
