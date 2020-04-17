@@ -577,7 +577,7 @@ class Call(CodeExpression):
         self.kwargs = kwargs
 
     def buildCpp(self, ctx):
-        if self.func.buildCpp(ctx) == "device_allocator->device_do":
+        if self.func.attr == "device_do" and self.func.value.id == "__pyallocator__":
             return "device_allocator->template device_do<{}>(&{}::{}, {})".format(
                 self.args[0].buildCpp(ctx),
                 self.args[1].value.buildCpp(ctx),
@@ -631,10 +631,8 @@ class Attribute(CodeExpression):
         self.attr = attr
 
     def buildCpp(self, ctx):
-        if self.value.buildCpp(ctx) == "math":
+        if self.value.id == "math":
             return self.attr
-        if self.value.buildCpp(ctx) == "__pyallocator__":
-            return "{}->{}".format("device_allocator", self.attr)
         return "{}->{}".format(self.value.buildCpp(ctx), self.attr)
 
 
