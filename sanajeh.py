@@ -20,11 +20,11 @@ class PyAllocator:
         # for i in class_names:
         #     self.classDictionary.setdefault(i, [])
 
-    def new_(self, class_name, *args):
-        # ffiでnew(device_allocator)を呼び出す
-        ob = class_name(*args)
-        self.classDictionary.setdefault(class_name.__name__, []).append(ob)
-        return ob
+    # def parallel_new(self, class_name, *args):
+    #     # ffiでnew(device_allocator)を呼び出す
+    #     ob = class_name(*args)
+    #     self.classDictionary.setdefault(class_name.__name__, []).append(ob)
+    #     return ob
 
     # can only be used in device code
     def device_do(self, class_name, func: Callable, *args):
@@ -37,8 +37,16 @@ class PyAllocator:
         for i in self.classDictionary[class_name.__name__]:
             func(i, *args)
 
-    def parallel_new(self, class_name, func: Callable, *args):
+    def parallel_new(self, class_name, object_num):
         # ffiでparallel_newを呼び出す
+        pass
+
+    def rand_init(self, seed, sequence, offset):
+        pass
+
+    # (0,1]
+    def rand_uniform(self):
+        # curand_uniform
         pass
 
 

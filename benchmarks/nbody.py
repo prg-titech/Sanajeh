@@ -16,7 +16,8 @@ kNumIterations: int = 3000
 kNumBodies: int = 30
 inx = 0
 
-kMaxMass: float = 1000.0
+kSeed: int = 3000
+kMaxMass: float = 1000.0 #device
 kDt: float = 0.02 # device
 kGravityConstant: float = 6.673e-5  # device
 kDampeningFactor: float = 0.05  # device
@@ -60,12 +61,22 @@ class Body:  # クラスをDynaSOArを使う必要があることを何らかの
 
     # ---------------------------------------------------------------------------------------------------------------
 
-    def __init__(self, px: float, py: float, vx: float, vy: float, m: float):
-        self.pos_x = px
-        self.pos_y = py
-        self.vel_x = vx
-        self.vel_y = vy
-        self.mass = m
+    # def __init__(self, px: float, py: float, vx: float, vy: float, m: float):
+    #     self.pos_x = px
+    #     self.pos_y = py
+    #     self.vel_x = vx
+    #     self.vel_y = vy
+    #     self.mass = m
+    #     self.force_x = 0.0
+    #     self.force_y = 0.0
+
+    def __init__(self, idx: int):
+        __pyallocator__.rand_init(kSeed, idx, 0)
+        self.pos_x = 2.0 * __pyallocator__.rand_uniform() - 1.0
+        self.pos_y = 2.0 * __pyallocator__.rand_uniform() - 1.0
+        self.vel_x = (__pyallocator__.rand_uniform() - 0.5) / 1000.0
+        self.vel_y = (__pyallocator__.rand_uniform() - 0.5) / 1000.0
+        self.mass = (__pyallocator__.rand_uniform() / 2.0 + 0.5) * kMaxMass
         self.force_x = 0.0
         self.force_y = 0.0
 
@@ -105,13 +116,7 @@ class Body:  # クラスをDynaSOArを使う必要があることを何らかの
 
 # __ global__ in cuda
 def kernel_initialize_bodies():
-    for x in range(kNumBodies):
-        px_ = 2.0 * random.random() - 1.0
-        py_ = 2.0 * random.random() - 1.0
-        vx_ = (random.random() - 0.5) / 1000.0
-        vy_ = (random.random() - 0.5) / 1000.0
-        ms_ = (random.random() / 2.0 + 0.5) * kMaxMass
-        __pyallocator__.new_(Body, px_, py_, vx_, vy_, ms_)
+    __pyallocator__.parallel_new(Body, kNumBodies)
 
 
 def _update(frame):

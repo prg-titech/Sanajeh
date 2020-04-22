@@ -577,13 +577,23 @@ class Call(CodeExpression):
         self.kwargs = kwargs
 
     def buildCpp(self, ctx):
-        if self.func.attr == "device_do" and self.func.value.id == "__pyallocator__":
-            return "device_allocator->template device_do<{}>(&{}::{}, {})".format(
-                self.args[0].buildCpp(ctx),
-                self.args[1].value.buildCpp(ctx),
-                self.args[1].attr,
-                ", ".join([x.buildCpp(ctx) for x in self.args[2:]])
-            )
+        if self.func.value.id == "__pyallocator__":
+            if self.func.attr == "device_do":
+                return "device_allocator->template device_do<{}>(&{}::{}, {})".format(
+                    self.args[0].buildCpp(ctx),
+                    self.args[1].value.buildCpp(ctx),
+                    self.args[1].attr,
+                    ", ".join([x.buildCpp(ctx) for x in self.args[2:]]))
+            elif self.func.attr == "rand_uniform":
+                return "curand_uniform(&rand_state)"
+            elif self.func.attr == "rand_init":
+                args = ", ".join([x.buildCpp(ctx) for x in self.args])
+                return "curandState rand_state;\n" + \
+                       ctx.indent() + \
+                       "curand_init({}, &rand_state)".format(args)
+            else:
+                # todo: unprovided sanajeh API
+                assert False
         args = ", ".join([x.buildCpp(ctx) for x in self.args])
         return "{}({})".format(self.func.buildCpp(ctx), args)
 

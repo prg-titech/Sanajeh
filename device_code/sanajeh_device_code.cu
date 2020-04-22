@@ -3,16 +3,20 @@
 AllocatorHandle<AllocatorT>* allocator_handle;
 __device__ AllocatorT* device_allocator;
 
+int kSeed = 3000;
+float kMaxMass = 1000.0;
 float kDt = 0.02;
 float kGravityConstant = 6.673e-05;
 float kDampeningFactor = 0.05;
 
-__device__ Body::Body(float px, float py, float vx, float vy, float m) {
-	this->pos_x = px;
-	this->pos_y = py;
-	this->vel_x = vx;
-	this->vel_y = vy;
-	this->mass = m;
+__device__ Body::Body(int idx) {
+	curandState rand_state;
+	curand_init(kSeed, idx, 0, &rand_state);
+	this->pos_x = 2.0 * curand_uniform(&rand_state) - 1.0;
+	this->pos_y = 2.0 * curand_uniform(&rand_state) - 1.0;
+	this->vel_x = curand_uniform(&rand_state) - 0.5 / 1000.0;
+	this->vel_y = curand_uniform(&rand_state) - 0.5 / 1000.0;
+	this->mass = curand_uniform(&rand_state) / 2.0 + 0.5 * kMaxMass;
 	this->force_x = 0.0;
 	this->force_y = 0.0;
 }

@@ -310,7 +310,7 @@ class Preprocessor(ast.NodeVisitor):
     def visit_Call(self, node):
         # Find device classes
         if type(node.func) is ast.Attribute and node.func.value.id == "__pyallocator__":
-            if node.func.attr == 'new_':
+            if node.func.attr == 'parallel_new':
                 self.__has_device_data = True
                 if node.args[0].id not in self.__classes:
                     self.__classes.append(node.args[0].id)
