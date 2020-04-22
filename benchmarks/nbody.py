@@ -12,16 +12,13 @@ from matplotlib import pyplot as plt
 from matplotlib import animation
 from matplotlib.animation import HTMLWriter
 
-a = (100 + 2) * 2
-b = 100 + 2 * 2
-
 kNumIterations: int = 3000
 kNumBodies: int = 30
 inx = 0
 
-kSeed: int = 3000
-kMaxMass: float = 1000.0 #device
-kDt: float = 0.02 # device
+kSeed: int = 3000  # device
+kMaxMass: float = 1000.0  # device
+kDt: float = 0.02  # device
 kGravityConstant: float = 6.673e-5  # device
 kDampeningFactor: float = 0.05  # device
 
@@ -119,7 +116,7 @@ class Body:  # クラスをDynaSOArを使う必要があることを何らかの
 
 # __ global__ in cuda
 def kernel_initialize_bodies():
-    __pyallocator__.parallel_new(Body, kNumBodies)
+    __pyallocator__.parallel_new(Body, 3000)
 
 
 def _update(frame):

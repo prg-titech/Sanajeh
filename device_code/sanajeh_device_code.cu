@@ -58,3 +58,9 @@ void Body_Body_compute_force(){
 void Body_Body_body_update(){
 	allocator_handle->parallel_do<Body, &Body::body_update>();
 }
+
+void AllocatorInitialize(){
+	allocator_handle = newAllocatorHandle <AllocatorT> (/ * unified_memory= * / true);
+	AllocatorT* dev_ptr = allocator_handle->device_pointer();
+	cudaMemcpyToSymbol(device_allocator, &dev_ptr, sizeof(AllocatorT*), 0, cudaMemcpyHostToDevice);
+}

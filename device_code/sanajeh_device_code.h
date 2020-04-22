@@ -29,4 +29,6 @@ class Body {
 
 void Body_Body_compute_force();
 void Body_Body_body_update();
+void AllocatorInitialize()
+
 #endif
