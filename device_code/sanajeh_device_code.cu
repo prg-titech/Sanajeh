@@ -12,11 +12,11 @@ float kDampeningFactor = 0.05;
 __device__ Body::Body(int idx) {
 	curandState rand_state;
 	curand_init(kSeed, idx, 0, &rand_state);
-	this->pos_x = 2.0 * curand_uniform(&rand_state) - 1.0;
-	this->pos_y = 2.0 * curand_uniform(&rand_state) - 1.0;
-	this->vel_x = curand_uniform(&rand_state) - 0.5 / 1000.0;
-	this->vel_y = curand_uniform(&rand_state) - 0.5 / 1000.0;
-	this->mass = curand_uniform(&rand_state) / 2.0 + 0.5 * kMaxMass;
+	this->pos_x = (2.0 * curand_uniform(&rand_state)) - 1.0;
+	this->pos_y = (2.0 * curand_uniform(&rand_state)) - 1.0;
+	this->vel_x = (curand_uniform(&rand_state) - 0.5) / 1000.0;
+	this->vel_y = (curand_uniform(&rand_state) - 0.5) / 1000.0;
+	this->mass = ((curand_uniform(&rand_state) / 2.0) + 0.5) * kMaxMass;
 	this->force_x = 0.0;
 	this->force_y = 0.0;
 }
@@ -31,16 +31,16 @@ __device__ void Body::apply_force(Body* other) {
 	if (other != this) {
 		float dx = this->pos_x - other->pos_x;
 		float dy = this->pos_x - other->pos_y;
-		float dist = sqrt(dx * dx + dy * dy);
-		float f = kGravityConstant * this->mass * other->mass / dist * dist + kDampeningFactor;
-		other->force_x += f * dx / dist;
-		other->force_y += f * dy / dist;
+		float dist = sqrt((dx * dx) + (dy * dy));
+		float f = ((kGravityConstant * this->mass) * other->mass) / ((dist * dist) + kDampeningFactor);
+		other->force_x += (f * dx) / dist;
+		other->force_y += (f * dy) / dist;
 	}
 }
 
 __device__ void Body::body_update() {
-	this->vel_x += this->force_x * kDt / this->mass;
-	this->vel_y += this->force_y * kDt / this->mass;
+	this->vel_x += (this->force_x * kDt) / this->mass;
+	this->vel_y += (this->force_y * kDt) / this->mass;
 	this->pos_x += this->vel_x * kDt;
 	this->pos_y += this->vel_y * kDt;
 	if (this->pos_x < -1 || this->pos_x > 1) {

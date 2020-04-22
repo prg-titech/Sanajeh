@@ -503,7 +503,15 @@ class BinOp(CodeExpression):
         self.right = right
 
     def buildCpp(self, ctx):
-        return " ".join([self.left.buildCpp(ctx), self.op, self.right.buildCpp(ctx)])
+        if (type(self.left)) == BinOp:
+            left_exp = "({})".format(self.left.buildCpp(ctx))
+        else:
+            left_exp = self.left.buildCpp(ctx)
+        if (type(self.right)) == BinOp:
+            right_exp = "({})".format(self.right.buildCpp(ctx))
+        else:
+            right_exp = self.right.buildCpp(ctx)
+        return " ".join([left_exp, self.op, right_exp])
 
 
 class UnaryOp(CodeExpression):

@@ -12,6 +12,9 @@ from matplotlib import pyplot as plt
 from matplotlib import animation
 from matplotlib.animation import HTMLWriter
 
+a = (100 + 2) * 2
+b = 100 + 2 * 2
+
 kNumIterations: int = 3000
 kNumBodies: int = 30
 inx = 0
