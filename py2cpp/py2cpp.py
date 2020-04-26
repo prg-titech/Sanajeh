@@ -177,6 +177,12 @@ class GenPyCallGraphVistor(ast.NodeVisitor):
     def build_parallel_do_hpp(self):
         return '\n' + '\n'.join(self.__pp.hpp_parallel_do_codes)
 
+    def build_parallel_new_cpp(self):
+        return '\n' + '\n\n'.join(self.__pp.cpp_parallel_new_codes)
+
+    def build_parallel_new_hpp(self):
+        return '\n' + '\n'.join(self.__pp.hpp_parallel_new_codes)
+
 
 # Find device class in python code and compile parallel_do expressions into c++ ones
 class Preprocessor(ast.NodeVisitor):
@@ -206,6 +212,20 @@ class Preprocessor(ast.NodeVisitor):
     @property
     def hpp_parallel_new_codes(self):
         return self.__hpp_parallel_new_codes
+
+    # Collect information of parallel_new and build codes for that function in c++
+    class ParallelNewAnalyzer:
+        def __init__(self, class_name):
+            self.__class_name = class_name  # The class of the object
+
+        def buildCpp(self):
+            parallel_new_expr = INDENT + "allocator_handle->parallel_new<{}>(object_num);".format(self.__class_name)
+            return "void parallel_new_{}(int object_num){{\n".format(self.__class_name) \
+                   + parallel_new_expr \
+                   + "\n}"
+
+        def buildHpp(self):
+            return "void parallel_new_{}(int object_num);".format(self.__class_name)
 
     # Collect information of those functions used in the parallel_do function, and build codes for that function in c++
     class ParallelDoAnalyzer(ast.NodeVisitor):
@@ -327,7 +347,9 @@ class Preprocessor(ast.NodeVisitor):
                 self.has_device_data = True
                 if node.args[0].id not in self.__classes:
                     self.__classes.append(node.args[0].id)
-                # todo how to pass kNumObject
+                pna = self.ParallelNewAnalyzer(node.args[0].id)
+                self.__cpp_parallel_new_codes.append(pna.buildCpp())
+                self.__hpp_parallel_new_codes.append(pna.buildHpp())
             elif node.func.attr == 'parallel_do':
                 pda = self.ParallelDoAnalyzer(self.__root,
                                               node.args[0].id,
@@ -403,7 +425,7 @@ def compile(source_code, cpp_path, hpp_path):
                 "cudaMemcpyToSymbol(device_allocator, &dev_ptr, sizeof(AllocatorT*), 0, cudaMemcpyHostToDevice);\n",
                 "}"
                 ]
-    init_hpp = "\nvoid AllocatorInitialize()\n"
+    init_hpp = "\nvoid AllocatorInitialize();\n"
     endif_expr = "\n#endif"
 
     # Source code
@@ -411,12 +433,14 @@ def compile(source_code, cpp_path, hpp_path):
                + allocator_declaration \
                + cpp_node.buildCpp(ctx) \
                + gpcgv.build_parallel_do_cpp() \
+               + gpcgv.build_parallel_new_cpp()\
                + "".join(init_cpp)
     # Header code
     hpp_code = precompile_expr \
                + hpp_include_expr \
                + cpp_node.buildHpp(ctx) \
                + gpcgv.build_parallel_do_hpp() \
+               + gpcgv.build_parallel_new_hpp() \
                + init_hpp \
                + endif_expr
     with open(cpp_path, mode='w') as cpp_file:

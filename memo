@@ -4,7 +4,6 @@ import先の関数の扱い
 a, b, c = 1, 2, 3 のような式の扱い方
 # todo
 複数のコンストラクタ
-乱数ライブラリ
 
 # Sanajehの制限
 1 python3.7で書く
@@ -16,7 +15,3 @@ a, b, c = 1, 2, 3 のような式の扱い方
 # Sanajehの利用の流れ
 1 initialize (compile, cuda main関数の呼び出し)
 2 parallel_do, device_doを通じて処理を行う
-
-# todo
-kNumBodyの渡し方
-sanajeh計算式の括弧

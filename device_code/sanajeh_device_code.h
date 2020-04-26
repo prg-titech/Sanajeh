@@ -29,6 +29,7 @@ class Body {
 
 void Body_Body_compute_force();
 void Body_Body_body_update();
-void AllocatorInitialize()
+void parallel_new_Body(int object_num);
+void AllocatorInitialize();
 
 #endif

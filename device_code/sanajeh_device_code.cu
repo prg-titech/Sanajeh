@@ -58,6 +58,9 @@ void Body_Body_compute_force(){
 void Body_Body_body_update(){
 	allocator_handle->parallel_do<Body, &Body::body_update>();
 }
+void parallel_new_Body(int object_num){
+	allocator_handle->parallel_new<Body>(object_num);
+}
 
 void AllocatorInitialize(){
 	allocator_handle = newAllocatorHandle <AllocatorT> (/ * unified_memory= * / true);
