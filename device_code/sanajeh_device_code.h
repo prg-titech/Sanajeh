@@ -3,7 +3,7 @@
 #define KNUMOBJECTS 64*64*64*64
 
 #include <curand_kernel.h>
-#include "dynasoar.h"
+#include "../dynasoar/dynasoar.h"
 
 class Body;
 

@@ -415,7 +415,7 @@ def compile(source_code, cpp_path, hpp_path):
     precompile_expr = "#ifndef SANAJEH_DEVICE_CODE_H" \
                       "\n#define SANAJEH_DEVICE_CODE_H" \
                       "\n#define KNUMOBJECTS 64*64*64*64"
-    hpp_include_expr = '\n\n#include <curand_kernel.h>\n#include "dynasoar.h"'
+    hpp_include_expr = '\n\n#include <curand_kernel.h>\n#include "../dynasoar/dynasoar.h"'
     init_cpp = ["\n\nvoid AllocatorInitialize(){\n",
                 INDENT +
                 "allocator_handle = new AllocatorHandle <AllocatorT> (/ * unified_memory= * / true);\n",
