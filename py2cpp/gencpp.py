@@ -299,25 +299,36 @@ class Assign(CodeStatement):
 
 
 class AnnAssign(CodeStatement):
-    _fields = ["target", "value", "annotation"]
+    _fields = ["target", "value", "annotation", "is_global"]
 
-    def __init__(self, target, value, annotation):
+    def __init__(self, target, value, annotation, is_global):
         self.target = target
         self.value = value
         self.annotation = annotation
+        self.is_global = is_global
 
     def buildCpp(self, ctx):
-        if self.value:
-            return ctx.indent() + "{} {} = {};".format(
-                self.annotation.buildCpp(ctx),
-                self.target.buildCpp(ctx),
-                self.value.buildCpp(ctx)
-            )
+        if self.is_global:
+            if self.value:
+                return ctx.indent() + "static const {} {} = {};".format(
+                    self.annotation.buildCpp(ctx),
+                    self.target.buildCpp(ctx),
+                    self.value.buildCpp(ctx)
+                )
+            else:
+                assert False
         else:
-            return ctx.indent() + "{} {};".format(
-                self.annotation.buildCpp(ctx),
-                self.target.buildCpp(ctx)
-            )
+            if self.value:
+                return ctx.indent() + "{} {} = {};".format(
+                    self.annotation.buildCpp(ctx),
+                    self.target.buildCpp(ctx),
+                    self.value.buildCpp(ctx)
+                )
+            else:
+                return ctx.indent() + "{} {};".format(
+                    self.annotation.buildCpp(ctx),
+                    self.target.buildCpp(ctx)
+                )
 
 
 class AugAssign(CodeStatement):

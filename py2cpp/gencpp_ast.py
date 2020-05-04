@@ -152,6 +152,7 @@ class GenCppVisitor(ast.NodeVisitor):
     def visit_AnnAssign(self, node):
         var = node.target
         anno = node.annotation
+        is_global = False
         if type(var) is ast.Name:
             var_node = self.__current_node.GetVariableNode(var.id, None, anno.id)
             if var_node is None:
@@ -168,7 +169,9 @@ class GenCppVisitor(ast.NodeVisitor):
         annotation = self.visit(node.annotation)
         if type(self.__current_node) is ClassNode:
             self.__field[var.id] = anno.id
-        return cpp.AnnAssign(target, value, annotation)
+        if type(self.__current_node) is CallGraph:
+            is_global = True
+        return cpp.AnnAssign(target, value, annotation, is_global)
 
     def visit_AugAssign(self, node):
         assert node.op.__class__ not in [ast.Pow, ast.FloorDiv]
