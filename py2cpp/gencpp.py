@@ -261,7 +261,8 @@ class ClassDef(CodeStatement):
                 "\n{}class {}{} {{".format(
                     ctx.indent(),
                     self.name,
-                    " : {}".format(", ".join(["public " + x.buildHpp(ctx) for x in self.bases])) if self.bases else "",
+                    " : {}".format(", ".join(["public " + x.buildHpp(ctx) for x in self.bases])) if self.bases
+                    else " : public AllocatorT::Base",
                 ),
                 field_predeclaration,
                 ("\n" + INDENT).join(body),

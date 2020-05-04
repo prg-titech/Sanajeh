@@ -9,7 +9,7 @@ class Body;
 
 using AllocatorT = SoaAllocator<KNUMOBJECTS, Body>;
 
-class Body {
+class Body : public AllocatorT::Base {
 	public:
 		declare_field_types(Body, float, float, float, float, float, float, float)
 	private:
