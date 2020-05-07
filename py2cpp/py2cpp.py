@@ -418,7 +418,7 @@ def compile(source_code, cpp_path, hpp_path):
     hpp_include_expr = '\n\n#include <curand_kernel.h>\n#include "dynasoar.h"'
     init_cpp = ["\n\nvoid AllocatorInitialize(){\n",
                 INDENT +
-                "allocator_handle = new AllocatorHandle <AllocatorT> (/ * unified_memory= * / true);\n",
+                "allocator_handle = new AllocatorHandle<AllocatorT>(/ * unified_memory= * / true);\n",
                 INDENT +
                 "AllocatorT* dev_ptr = allocator_handle->device_pointer();\n",
                 INDENT +
