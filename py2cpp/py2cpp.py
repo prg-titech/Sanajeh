@@ -411,7 +411,7 @@ def compile(source_code, cpp_path, hpp_path):
     # Expression needed for DynaSOAr API
     cpp_include_expr = '#include "{}.h"\n\n'.format(FILE_NAME)
     allocator_declaration = "AllocatorHandle<AllocatorT>* allocator_handle;\n" \
-                            "__device__ AllocatorT* device_allocator;\n\n"
+                            "__device__ AllocatorT* device_allocator;\n"
     precompile_expr = "#ifndef SANAJEH_DEVICE_CODE_H" \
                       "\n#define SANAJEH_DEVICE_CODE_H" \
                       "\n#define KNUMOBJECTS 64*64*64*64"

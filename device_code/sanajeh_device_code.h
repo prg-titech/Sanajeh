@@ -9,6 +9,12 @@ class Body;
 
 using AllocatorT = SoaAllocator<KNUMOBJECTS, Body>;
 
+static const int kSeed = 3000;
+static const float kMaxMass = 1000.0;
+static const float kDt = 0.02;
+static const float kGravityConstant = 6.673e-05;
+static const float kDampeningFactor = 0.05;
+
 class Body : public AllocatorT::Base {
 	public:
 		declare_field_types(Body, float, float, float, float, float, float, float)

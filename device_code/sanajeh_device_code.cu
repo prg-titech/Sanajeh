@@ -3,12 +3,6 @@
 AllocatorHandle<AllocatorT>* allocator_handle;
 __device__ AllocatorT* device_allocator;
 
-static const int kSeed = 3000;
-static const float kMaxMass = 1000.0;
-static const float kDt = 0.02;
-static const float kGravityConstant = 6.673e-05;
-static const float kDampeningFactor = 0.05;
-
 __device__ Body::Body(int idx) {
 	curandState rand_state;
 	curand_init(kSeed, idx, 0, &rand_state);

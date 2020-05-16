@@ -121,7 +121,7 @@ class Module(Base):
                 rstr += xstr + "\n"
         class_str = ','.join(self.classes)
         class_predefine = "\n\nclass " + class_str + ';'
-        temp_expr = "\n\nusing AllocatorT = SoaAllocator<" + "KNUMOBJECTS" + ", " + class_str + ">;\n"
+        temp_expr = "\n\nusing AllocatorT = SoaAllocator<" + "KNUMOBJECTS" + ", " + class_str + ">;\n\n"
         return class_predefine + temp_expr + rstr
 
 
@@ -309,14 +309,7 @@ class AnnAssign(CodeStatement):
 
     def buildCpp(self, ctx):
         if self.is_global:
-            if self.value:
-                return ctx.indent() + "static const {} {} = {};".format(
-                    self.annotation.buildCpp(ctx),
-                    self.target.buildCpp(ctx),
-                    self.value.buildCpp(ctx)
-                )
-            else:
-                assert False
+            return ""
         else:
             if self.value:
                 return ctx.indent() + "{} {} = {};".format(
@@ -329,6 +322,16 @@ class AnnAssign(CodeStatement):
                     self.annotation.buildCpp(ctx),
                     self.target.buildCpp(ctx)
                 )
+
+    def buildHpp(self, ctx):
+        if self.is_global and self.value:
+            return ctx.indent() + "static const {} {} = {};".format(
+                self.annotation.buildCpp(ctx),
+                self.target.buildCpp(ctx),
+                self.value.buildCpp(ctx)
+            )
+        else:
+            return ""
 
 
 class AugAssign(CodeStatement):
