@@ -17,18 +17,6 @@ class PyAllocator:
     cdef_code: str
     lib = None
 
-    def __init__(self):
-        # self.numObjects = object_num
-        self.classDictionary = {}
-        # for i in class_names:
-        #     self.classDictionary.setdefault(i, [])
-
-    # def parallel_new(self, class_name, *args):
-    #     # ffiでnew(device_allocator)を呼び出す
-    #     ob = class_name(*args)
-    #     self.classDictionary.setdefault(class_name.__name__, []).append(ob)
-    #     return ob
-
     def initialize(self, path):
         source = open(path, encoding="utf-8").read()
         codes = py2cpp.compile(source, CPP_FILE_PATH, HPP_FILE_PATH)
