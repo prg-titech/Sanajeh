@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import sanajeh
+from sanajeh import __pyallocator__
 
-sanajeh.initialize(path='./benchmarks/nbody.py')
-sanajeh.printCppAndHpp()
+__pyallocator__.initialize(path='./benchmarks/nbody.py')
+__pyallocator__.printCppAndHpp()

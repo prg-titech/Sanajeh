@@ -443,8 +443,12 @@ def compile(source_code, cpp_path, hpp_path):
                + gpcgv.build_parallel_new_hpp() \
                + init_hpp \
                + endif_expr
+
+    # Codes for cffi cdef() function
+    cdef_code = gpcgv.build_parallel_do_hpp() + gpcgv.build_parallel_new_hpp() + init_hpp
+
     with open(cpp_path, mode='w') as cpp_file:
         cpp_file.write(cpp_code)
     with open(hpp_path, mode='w') as hpp_file:
         hpp_file.write(hpp_code)
-    return cpp_code, hpp_code
+    return cpp_code, hpp_code, cdef_code

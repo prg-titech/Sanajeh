@@ -5,7 +5,7 @@ import enum
 import six
 
 import type_converter
-from config import FILE_NAME, INDENT
+from config import INDENT
 
 
 class Type(enum.Enum):
