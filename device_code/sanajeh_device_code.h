@@ -36,6 +36,6 @@ class Body : public AllocatorT::Base {
 void Body_Body_compute_force();
 void Body_Body_body_update();
 void parallel_new_Body(int object_num);
-void AllocatorInitialize();
+int AllocatorInitialize();
 
 #endif

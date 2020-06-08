@@ -427,7 +427,7 @@ def compile(source_code, cpp_path, hpp_path):
                 "return 0;\n"
                 "}"
                 ]
-    init_hpp = "\nvoid AllocatorInitialize();\n"
+    init_hpp = "\nint AllocatorInitialize();\n"
     endif_expr = "\n#endif"
 
     # Source code
