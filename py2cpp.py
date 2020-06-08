@@ -416,13 +416,15 @@ def compile(source_code, cpp_path, hpp_path):
                       "\n#define SANAJEH_DEVICE_CODE_H" \
                       "\n#define KNUMOBJECTS 64*64*64*64"
     hpp_include_expr = '\n\n#include <curand_kernel.h>\n#include "dynasoar.h"'
-    init_cpp = ["\n\nvoid AllocatorInitialize(){\n",
+    init_cpp = ["\n\nint AllocatorInitialize(){\n",
                 INDENT +
                 "allocator_handle = new AllocatorHandle<AllocatorT>(/* unified_memory= */ true);\n",
                 INDENT +
                 "AllocatorT* dev_ptr = allocator_handle->device_pointer();\n",
                 INDENT +
                 "cudaMemcpyToSymbol(device_allocator, &dev_ptr, sizeof(AllocatorT*), 0, cudaMemcpyHostToDevice);\n",
+                INDENT +
+                "return 0;\n"
                 "}"
                 ]
     init_hpp = "\nvoid AllocatorInitialize();\n"

@@ -56,8 +56,9 @@ void parallel_new_Body(int object_num){
 	allocator_handle->parallel_new<Body>(object_num);
 }
 
-void AllocatorInitialize(){
+int AllocatorInitialize(){
 	allocator_handle = new AllocatorHandle<AllocatorT>(/* unified_memory= */ true);
 	AllocatorT* dev_ptr = allocator_handle->device_pointer();
 	cudaMemcpyToSymbol(device_allocator, &dev_ptr, sizeof(AllocatorT*), 0, cudaMemcpyHostToDevice);
+	return 0;
 }

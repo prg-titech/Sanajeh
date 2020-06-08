@@ -29,6 +29,7 @@ class PyAllocator:
         ffi = cffi.FFI()
         ffi.cdef(self.cdef_code)
         self.lib = ffi.dlopen(SO_FILE_PATH)
+        print(self.lib.AllocatorInitialize())
 
     # DEBUG propose
     def printCppAndHpp(self):
