@@ -45,18 +45,18 @@ __device__ void Body::body_update() {
 	}
 }
 
-void Body_Body_compute_force(){
+extern "C" void Body_Body_compute_force(){
 	allocator_handle->parallel_do<Body, &Body::compute_force>();
 }
 
-void Body_Body_body_update(){
+extern "C" void Body_Body_body_update(){
 	allocator_handle->parallel_do<Body, &Body::body_update>();
 }
-void parallel_new_Body(int object_num){
+extern "C" void parallel_new_Body(int object_num){
 	allocator_handle->parallel_new<Body>(object_num);
 }
 
-int AllocatorInitialize(){
+extern "C" int AllocatorInitialize(){
 	allocator_handle = new AllocatorHandle<AllocatorT>(/* unified_memory= */ true);
 	AllocatorT* dev_ptr = allocator_handle->device_pointer();
 	cudaMemcpyToSymbol(device_allocator, &dev_ptr, sizeof(AllocatorT*), 0, cudaMemcpyHostToDevice);

@@ -177,11 +177,17 @@ class GenPyCallGraphVistor(ast.NodeVisitor):
     def build_parallel_do_hpp(self):
         return '\n' + '\n'.join(self.__pp.hpp_parallel_do_codes)
 
+    def build_parallel_do_cdef(self):
+        return '\n' + '\n'.join(self.__pp.cdef_parallel_do_codes)
+
     def build_parallel_new_cpp(self):
         return '\n' + '\n\n'.join(self.__pp.cpp_parallel_new_codes)
 
     def build_parallel_new_hpp(self):
         return '\n' + '\n'.join(self.__pp.hpp_parallel_new_codes)
+
+    def build_parallel_new_cdef(self):
+        return '\n' + '\n'.join(self.__pp.cdef_parallel_new_codes)
 
 
 # Find device class in python code and compile parallel_do expressions into c++ ones
@@ -194,8 +200,10 @@ class Preprocessor(ast.NodeVisitor):
     __node_root = None  # the root node of python ast
     __cpp_parallel_do_codes = []
     __hpp_parallel_do_codes = []
+    __cdef_parallel_do_codes = []
     __cpp_parallel_new_codes = []
     __hpp_parallel_new_codes = []
+    __cdef_parallel_new_codes = []
 
     @property
     def cpp_parallel_do_codes(self):
@@ -206,12 +214,20 @@ class Preprocessor(ast.NodeVisitor):
         return self.__hpp_parallel_do_codes
 
     @property
+    def cdef_parallel_do_codes(self):
+        return self.__cdef_parallel_do_codes
+
+    @property
     def cpp_parallel_new_codes(self):
         return self.__cpp_parallel_new_codes
 
     @property
     def hpp_parallel_new_codes(self):
         return self.__hpp_parallel_new_codes
+
+    @property
+    def cdef_parallel_new_codes(self):
+        return self.__cdef_parallel_new_codes
 
     # Collect information of parallel_new and build codes for that function in c++
     class ParallelNewAnalyzer:
@@ -220,12 +236,15 @@ class Preprocessor(ast.NodeVisitor):
 
         def buildCpp(self):
             parallel_new_expr = INDENT + "allocator_handle->parallel_new<{}>(object_num);".format(self.__class_name)
-            return "void parallel_new_{}(int object_num){{\n".format(self.__class_name) \
+            return 'extern "C" void parallel_new_{}(int object_num){{\n'.format(self.__class_name) \
                    + parallel_new_expr \
                    + "\n}"
 
         def buildHpp(self):
-            return "void parallel_new_{}(int object_num);".format(self.__class_name)
+            return 'extern "C" void parallel_new_{}(int object_num);'.format(self.__class_name)
+
+        def buildCdef(self):
+            return 'void parallel_new_{}(int object_num);'.format(self.__class_name)
 
     # Collect information of those functions used in the parallel_do function, and build codes for that function in c++
     class ParallelDoAnalyzer(ast.NodeVisitor):
@@ -280,7 +299,7 @@ class Preprocessor(ast.NodeVisitor):
                 ", ".join(self.__args)
             )
 
-            return "void {}_{}_{}({}){{\n".format(
+            return 'extern "C" void {}_{}_{}({}){{\n'.format(
                 self.__object_class_name,
                 self.__func_class_name,
                 self.__func_name,
@@ -293,7 +312,19 @@ class Preprocessor(ast.NodeVisitor):
             for arg_ in self.__args:
                 arg_strs.append("{} {}".format(type_converter.convert(self.__args[arg_]), arg_))
 
-            return "void {}_{}_{}({});".format(
+            return 'extern "C" void {}_{}_{}({});'.format(
+                self.__object_class_name,
+                self.__func_class_name,
+                self.__func_name,
+                ",".join(arg_strs)
+            )
+
+        def buildCdef(self):
+            arg_strs = []
+            for arg_ in self.__args:
+                arg_strs.append("{} {}".format(type_converter.convert(self.__args[arg_]), arg_))
+
+            return 'void {}_{}_{}({});'.format(
                 self.__object_class_name,
                 self.__func_class_name,
                 self.__func_name,
@@ -350,6 +381,7 @@ class Preprocessor(ast.NodeVisitor):
                 pna = self.ParallelNewAnalyzer(node.args[0].id)
                 self.__cpp_parallel_new_codes.append(pna.buildCpp())
                 self.__hpp_parallel_new_codes.append(pna.buildHpp())
+                self.__cdef_parallel_new_codes.append(pna.buildCdef())
             elif node.func.attr == 'parallel_do':
                 pda = self.ParallelDoAnalyzer(self.__root,
                                               node.args[0].id,
@@ -358,6 +390,7 @@ class Preprocessor(ast.NodeVisitor):
                 pda.visit(self.__node_root)
                 self.__cpp_parallel_do_codes.append(pda.buildCpp())
                 self.__hpp_parallel_do_codes.append(pda.buildHpp())
+                self.__cdef_parallel_do_codes.append(pda.buildCdef())
 
         func_name = None
         # todo id_name maybe class name
@@ -416,7 +449,7 @@ def compile(source_code, cpp_path, hpp_path):
                       "\n#define SANAJEH_DEVICE_CODE_H" \
                       "\n#define KNUMOBJECTS 64*64*64*64"
     hpp_include_expr = '\n\n#include <curand_kernel.h>\n#include "dynasoar.h"'
-    init_cpp = ["\n\nint AllocatorInitialize(){\n",
+    init_cpp = ['\n\nextern "C" int AllocatorInitialize(){\n',
                 INDENT +
                 "allocator_handle = new AllocatorHandle<AllocatorT>(/* unified_memory= */ true);\n",
                 INDENT +
@@ -427,7 +460,8 @@ def compile(source_code, cpp_path, hpp_path):
                 "return 0;\n"
                 "}"
                 ]
-    init_hpp = "\nint AllocatorInitialize();\n"
+    init_hpp = '\nextern "C" int AllocatorInitialize();\n'
+    init_cdef = '\nint AllocatorInitialize();\n'
     endif_expr = "\n#endif"
 
     # Source code
@@ -447,7 +481,7 @@ def compile(source_code, cpp_path, hpp_path):
                + endif_expr
 
     # Codes for cffi cdef() function
-    cdef_code = gpcgv.build_parallel_do_hpp() + gpcgv.build_parallel_new_hpp() + init_hpp
+    cdef_code = gpcgv.build_parallel_do_cdef() + gpcgv.build_parallel_new_cdef() + init_cdef
 
     with open(cpp_path, mode='w') as cpp_file:
         cpp_file.write(cpp_code)
