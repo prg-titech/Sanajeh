@@ -11,66 +11,99 @@ from config import CPP_FILE_PATH, HPP_FILE_PATH, SO_FILE_PATH
 
 
 # Device side allocator
+class DeviceAllocator:
+    """
+    Includes no implementations. The only purpose of this class is to provide special syntax for python device codes
+    """
+
+    # dummy device_do
+    @staticmethod
+    def device_do(cls, func, *args):
+        pass
+
+    # dummy for recognizing device classes
+    @staticmethod
+    def device_class(*cls):
+        pass
+
+    # dummy for recognizing parallel_do
+    @staticmethod
+    def parallel_do(cls, func, *args):
+        pass
+
+    # dummy rand_init
+    @staticmethod
+    def rand_init(seed, sequence, offset):
+        pass
+
+    # dummy rand_uniform
+    # (0,1]
+    @staticmethod
+    def rand_uniform():
+        pass
+
+
+
+
+
+# Host side allocator
 class PyAllocator:
-    cpp_code: str
-    hpp_code: str
-    cdef_code: str
+    cpp_code: str = None
+    hpp_code: str = None
+    cpp_path: str = None
+    hpp_path: str = None
+    so_path: str = None
+    cdef_code: str = None
     lib = None
 
     # compile python code to cpp code and .so file
-    def compile(self, py_path):
+    @staticmethod
+    def compile(py_path, cpp_path=CPP_FILE_PATH, hpp_path=HPP_FILE_PATH):
         source = open(py_path, encoding="utf-8").read()
-        codes = py2cpp.compile(source, CPP_FILE_PATH, HPP_FILE_PATH)
-        self.cpp_code = codes[0]
-        self.hpp_code = codes[1]
-        self.cdef_code = codes[2]
-        # Compile cpp source file to .so file
-        build.run()
+        PyAllocator.cpp_path = cpp_path
+        PyAllocator.hpp_path = cpp_path
+        codes = py2cpp.compile(source, cpp_path, hpp_path)
+        PyAllocator.cpp_code = codes[0]
+        PyAllocator.hpp_code = codes[1]
+        PyAllocator.cdef_code = codes[2]
+
+    # Compile cpp source file to .so file
+    @staticmethod
+    def build(so_path=SO_FILE_PATH):
+        PyAllocator.so_path = so_path
+        build.run(PyAllocator.cpp_path, so_path)
 
     # load the shared library and initialize the allocator on GPU
-    def initialize(self, so_path=SO_FILE_PATH):
+    @staticmethod
+    def initialize():
         # Initialize ffi module
         ffi = cffi.FFI()
-        ffi.cdef(self.cdef_code)
-        self.lib = ffi.dlopen(so_path)
-        if self.lib.AllocatorInitialize() == 0:
+        ffi.cdef(PyAllocator.cdef_code)
+        PyAllocator.lib = ffi.dlopen(PyAllocator.so_path)
+        if PyAllocator.lib.AllocatorInitialize() == 0:
             print("Successfully initialized the allocator through FFI.")
 
     # DEBUG propose
-    def printCppAndHpp(self):
-        print(self.cpp_code)
+    @staticmethod
+    def printCppAndHpp():
+        print(PyAllocator.cpp_code)
         print("--------------------------------")
-        print(self.hpp_code)
+        print(PyAllocator.hpp_code)
 
-    # dummy device_do
-    def device_do(self, cls, func, *args):
-        pass
-
-    def parallel_do(self, cls, func, *args):
+    @staticmethod
+    def parallel_do(cls, func, *args):
         object_class_name = cls.__name__
         func_str = func.__qualname__.split(".")
         # todo nested class exception
         func_class_name = func_str[0]
         func_name = func_str[1]
         # todo args
-        if eval("self.lib.{}_{}_{}".format(object_class_name, func_class_name, func_name))() == 0:
+        if eval("PyAllocator.lib.{}_{}_{}".format(object_class_name, func_class_name, func_name))() == 0:
             print("Successfully called parallel_do {} {} {}".format(object_class_name, func_class_name, func_name))
 
-    def parallel_new(self, cls, object_num):
+    @staticmethod
+    def parallel_new(cls, object_num):
         object_class_name = cls.__name__
-        if eval("self.lib.parallel_new_{}".format(object_class_name))(object_num) == 0:
+        if eval("PyAllocator.lib.parallel_new_{}".format(object_class_name))(object_num) == 0:
             print("Successfully called parallel_new {} {}".format(object_class_name, object_num))
 
-    # dummy rand_init
-    def rand_init(self, seed, sequence, offset):
-        pass
-
-    # dummy rand_uniform
-    # (0,1]
-    def rand_uniform(self):
-        # curand_uniform
-        pass
-
-
-# identifier used in users' python code
-__pyallocator__ = PyAllocator()

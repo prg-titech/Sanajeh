@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import math
-from sanajeh import __pyallocator__
+from sanajeh import DeviceAllocator
 
 kNumIterations: int = 3000
 kNumBodies: int = 30
@@ -34,19 +34,19 @@ class Body:
     #     self.force_y = 0.0
 
     def __init__(self, idx: int):
-        __pyallocator__.rand_init(kSeed, idx, 0)
-        self.pos_x = 2.0 * __pyallocator__.rand_uniform() - 1.0
-        self.pos_y = 2.0 * __pyallocator__.rand_uniform() - 1.0
-        self.vel_x = (__pyallocator__.rand_uniform() - 0.5) / 1000.0
-        self.vel_y = (__pyallocator__.rand_uniform() - 0.5) / 1000.0
-        self.mass = (__pyallocator__.rand_uniform() / 2.0 + 0.5) * kMaxMass
+        DeviceAllocator.rand_init(kSeed, idx, 0)
+        self.pos_x = 2.0 * DeviceAllocator.rand_uniform() - 1.0
+        self.pos_y = 2.0 * DeviceAllocator.rand_uniform() - 1.0
+        self.vel_x = (DeviceAllocator.rand_uniform() - 0.5) / 1000.0
+        self.vel_y = (DeviceAllocator.rand_uniform() - 0.5) / 1000.0
+        self.mass = (DeviceAllocator.rand_uniform() / 2.0 + 0.5) * kMaxMass
         self.force_x = 0.0
         self.force_y = 0.0
 
     def compute_force(self):
         self.force_x = 0.0
         self.force_y = 0.0
-        __pyallocator__.device_do(Body, Body.apply_force, self)
+        DeviceAllocator.device_do(Body, Body.apply_force, self)
 
     def apply_force(self, other: Body):
         if other is not self:
@@ -75,11 +75,11 @@ class Body:
 
 
 def kernel_initialize_bodies():
-    __pyallocator__.parallel_new(Body, 3000)
+    DeviceAllocator.device_class(Body)
 
 
 def _update():
-    __pyallocator__.parallel_do(Body, Body.compute_force)
-    __pyallocator__.parallel_do(Body, Body.body_update)
+    DeviceAllocator.parallel_do(Body, Body.compute_force)
+    DeviceAllocator.parallel_do(Body, Body.body_update)
 
 

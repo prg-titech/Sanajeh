@@ -600,7 +600,7 @@ class Call(CodeExpression):
         self.kwargs = kwargs
 
     def buildCpp(self, ctx):
-        if self.func.value.id == "__pyallocator__":
+        if self.func.value.id == "DeviceAllocator":
             if self.func.attr == "device_do":
                 return "device_allocator->template device_do<{}>(&{}::{}, {})".format(
                     self.args[0].buildCpp(ctx),

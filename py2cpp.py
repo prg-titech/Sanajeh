@@ -2,6 +2,7 @@
 # Mark all device functions
 
 import ast
+import hashlib
 
 import type_converter
 from config import INDENT, FILE_NAME
@@ -204,6 +205,7 @@ class Preprocessor(ast.NodeVisitor):
     __cpp_parallel_new_codes = []
     __hpp_parallel_new_codes = []
     __cdef_parallel_new_codes = []
+    __parallel_do_hashtable = []
 
     @property
     def cpp_parallel_do_codes(self):
@@ -351,6 +353,16 @@ class Preprocessor(ast.NodeVisitor):
     def classes(self):
         return self.__classes
 
+    def __gen_Hash(self, lst):
+        """
+        Helper function, generate same hash value for tuple with same strings
+            Used to prevent generate mutiple code for a same parallel_do function
+        """
+        m = hashlib.md5()
+        for elem in lst:
+            m.update(elem.encode('utf-8'))
+        return m.hexdigest()
+
     def visit_ClassDef(self, node):
         class_name = node.name
         class_node = self.__current_node.GetClassNode(class_name, None)
@@ -376,8 +388,32 @@ class Preprocessor(ast.NodeVisitor):
 
     # Analyze function calling relationships
     def visit_Call(self, node):
-        # Find device classes
-        if type(node.func) is ast.Attribute and node.func.value.id == "__pyallocator__":
+        # Find device classes through device code
+        if type(node.func) is ast.Attribute and node.func.value.id == "DeviceAllocator":
+            if node.func.attr == 'device_class':
+                self.has_device_data = True
+                for cls in node.args:
+                    if cls.id not in self.__classes:
+                        self.__classes.append(cls.id)
+                        pna = self.ParallelNewAnalyzer(cls.id)
+                        self.__cpp_parallel_new_codes.append(pna.buildCpp())
+                        self.__hpp_parallel_new_codes.append(pna.buildHpp())
+                        self.__cdef_parallel_new_codes.append(pna.buildCdef())
+            elif node.func.attr == 'parallel_do':
+                hval = self.__gen_Hash([node.args[0].id, node.args[1].value.id, node.args[1].attr])
+                if hval not in self.__parallel_do_hashtable:
+                    self.__parallel_do_hashtable.append(hval)
+                    pda = self.ParallelDoAnalyzer(self.__root,
+                                                  node.args[0].id,
+                                                  node.args[1].value.id,
+                                                  node.args[1].attr)
+                    pda.visit(self.__node_root)
+                    self.__cpp_parallel_do_codes.append(pda.buildCpp())
+                    self.__hpp_parallel_do_codes.append(pda.buildHpp())
+                    self.__cdef_parallel_do_codes.append(pda.buildCdef())
+
+        # Find device classes through host code
+        if type(node.func) is ast.Attribute and node.func.value.id == "PyAllocator":
             if node.func.attr == 'parallel_new':
                 self.has_device_data = True
                 if node.args[0].id not in self.__classes:
@@ -387,14 +423,17 @@ class Preprocessor(ast.NodeVisitor):
                 self.__hpp_parallel_new_codes.append(pna.buildHpp())
                 self.__cdef_parallel_new_codes.append(pna.buildCdef())
             elif node.func.attr == 'parallel_do':
-                pda = self.ParallelDoAnalyzer(self.__root,
-                                              node.args[0].id,
-                                              node.args[1].value.id,
-                                              node.args[1].attr)
-                pda.visit(self.__node_root)
-                self.__cpp_parallel_do_codes.append(pda.buildCpp())
-                self.__hpp_parallel_do_codes.append(pda.buildHpp())
-                self.__cdef_parallel_do_codes.append(pda.buildCdef())
+                hval = self.__gen_Hash([node.args[0].id, node.args[1].value.id, node.args[1].attr])
+                if hval not in self.__parallel_do_hashtable:
+                    self.__parallel_do_hashtable.append(hval)
+                    pda = self.ParallelDoAnalyzer(self.__root,
+                                                  node.args[0].id,
+                                                  node.args[1].value.id,
+                                                  node.args[1].attr)
+                    pda.visit(self.__node_root)
+                    self.__cpp_parallel_do_codes.append(pda.buildCpp())
+                    self.__hpp_parallel_do_codes.append(pda.buildHpp())
+                    self.__cdef_parallel_do_codes.append(pda.buildCdef())
 
         func_name = None
         # todo id_name maybe class name
@@ -473,7 +512,7 @@ def compile(source_code, cpp_path, hpp_path):
                + allocator_declaration \
                + cpp_node.buildCpp(ctx) \
                + gpcgv.build_parallel_do_cpp() \
-               + gpcgv.build_parallel_new_cpp()\
+               + gpcgv.build_parallel_new_cpp() \
                + "".join(init_cpp)
     # Header code
     hpp_code = precompile_expr \
