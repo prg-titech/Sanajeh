@@ -1,6 +1,15 @@
 from __future__ import annotations
+<<<<<<< HEAD
 from sanajeh import __pyallocator__
 import math
+=======
+import math
+from sanajeh import __pyallocator__
+
+kNumIterations: int = 3000
+kNumBodies: int = 30
+inx = 0
+>>>>>>> new-branch
 
 kSeed: int = 3000  # device
 kMaxMass: float = 1000.0  # device
@@ -66,4 +75,19 @@ class Body:
             self.vel_x = -self.vel_x
 
         if self.pos_y < -1 or self.pos_y > 1:
+<<<<<<< HEAD
             self.vel_y = -self.vel_y
+=======
+            self.vel_y = -self.vel_y
+
+
+def kernel_initialize_bodies():
+    __pyallocator__.parallel_new(Body, 3000)
+
+
+def _update():
+    __pyallocator__.parallel_do(Body, Body.compute_force)
+    __pyallocator__.parallel_do(Body, Body.body_update)
+
+
+>>>>>>> new-branch
