@@ -1,17 +1,12 @@
 # -*- coding: utf-8 -*-
 
 from sanajeh import __pyallocator__
-from benchmarks.nbody_host import Body
+from benchmarks.nbody import Body
 import time
 
 start_time = time.time()
-<<<<<<< HEAD
-__pyallocator__.initialize(path='benchmarks/nbody_host.py')
-# __pyallocator__.printCppAndHpp()
-=======
 __pyallocator__.initialize(path='./benchmarks/nbody.py')
 __pyallocator__.printCppAndHpp()
->>>>>>> new-branch
 initialize_time = time.time()
 print("initialize time: %.3fs" % (initialize_time - start_time))
 __pyallocator__.parallel_new(Body, 3000)
