@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 
 from sanajeh import __pyallocator__
-from benchmarks.nbody import Body
+from benchmarks.nbody_host import Body
 import time
 
 start_time = time.time()
-__pyallocator__.initialize(path='./benchmarks/nbody.py')
+__pyallocator__.initialize(path='benchmarks/nbody_host.py')
 # __pyallocator__.printCppAndHpp()
 initialize_time = time.time()
 print("initialize time: %.3fs" % (initialize_time - start_time))

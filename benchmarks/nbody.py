@@ -1,20 +1,6 @@
-# -*- coding: utf-8 -*-
-
 from __future__ import annotations
-
-import numpy as np
-
-import math
 from sanajeh import __pyallocator__
-import random
-import time
-from matplotlib import pyplot as plt
-from matplotlib import animation
-from matplotlib.animation import HTMLWriter
-
-kNumIterations: int = 3000
-kNumBodies: int = 30
-inx = 0
+import math
 
 kSeed: int = 3000  # device
 kMaxMass: float = 1000.0  # device
@@ -23,34 +9,8 @@ kGravityConstant: float = 6.673e-5  # device
 kDampeningFactor: float = 0.05  # device
 
 
-# DynaSOArの初期化----------------------------------------------------------------------------------------------------
-# //何らかのシンタックスでここで使いたいクラスをすべて宣言する
-# class Body;
-# using AllocatorT = SoaAllocator<kNumObjects, Body>;
-#
-# //Allocatorを宣言する
-# AllocatorHandle<AllocatorT>* allocator_handle;
-# __device__ AllocatorT* device_allocator;
-# Allocatorを作成する
-# allocator_handle = new AllocatorHandle<AllocatorT>(/*unified_memory=*/ true);
-# AllocatorT* dev_ptr = allocator_handle->device_pointer();
-# cudaMemcpyToSymbol(device_allocator, &dev_ptr, sizeof(AllocatorT*), 0, cudaMemcpyHostToDevice);
+class Body:
 
-
-# -------------------------------------------------------------------------------------------------------------------
-
-
-class Body:  # クラスをDynaSOArを使う必要があることを何らかのシンタックスで宣言すべき（DynaSOArだとAllocator::Baseの子クラスにする）
-
-    # ここでAllocatorのFieldを呼び出す----------------------------------------------------------------------------------
-    # declare_field_types(Body, float, float, float, float, float, float, float);
-    # Field<Body, 0> pos_x_;
-    # Field<Body, 1> pos_y_;
-    # Field<Body, 2> vel_x_;
-    # Field<Body, 3> vel_y_;
-    # Field<Body, 4> force_x_;
-    # Field<Body, 5> force_y_;
-    # Field<Body, 6> mass_;
     pos_x: float
     pos_y: float
     vel_x: float
@@ -58,8 +18,6 @@ class Body:  # クラスをDynaSOArを使う必要があることを何らかの
     force_x: float
     force_y: float
     mass: float
-
-    # ---------------------------------------------------------------------------------------------------------------
 
     # def __init__(self, px: float, py: float, vx: float, vy: float, m: float):
     #     self.pos_x = px
@@ -83,10 +41,7 @@ class Body:  # クラスをDynaSOArを使う必要があることを何らかの
     def compute_force(self):
         self.force_x = 0.0
         self.force_y = 0.0
-        # ここでdevice_doを呼び出す-------------------------------------------------------------------------------------
-        # device_allocator->template device_do<Body>(&Body::apply_force, this);
         __pyallocator__.device_do(Body, Body.apply_force, self)
-        # -----------------------------------------------------------------------------------------------------------
 
     def apply_force(self, other: Body):
         if other is not self:
@@ -112,53 +67,3 @@ class Body:  # クラスをDynaSOArを使う必要があることを何らかの
 
         if self.pos_y < -1 or self.pos_y > 1:
             self.vel_y = -self.vel_y
-
-
-# __ global__ in cuda
-def kernel_initialize_bodies():
-    __pyallocator__.parallel_new(Body, 3000)
-
-
-def _update(frame):
-    start_time = time.time()
-    global inx
-    # 現在のグラフを消去する
-    plt.cla()
-    __pyallocator__.parallel_do(Body, Body.compute_force)
-    __pyallocator__.parallel_do(Body, Body.body_update)
-    start_time_r = time.time()
-    for j in range(kNumBodies):
-        x = __pyallocator__.classDictionary["Body"][j].pos_x
-        y = __pyallocator__.classDictionary["Body"][j].pos_y
-        plt.scatter(x, y, color='k')
-    inx += 1
-    end_time = time.time()
-    print("ループ%-4d実行時間は%.3f秒 描画時間は%.3f秒" % (inx, end_time - start_time, end_time - start_time_r))
-    plt.axis([-1, 1, -1, 1], frameon=False, aspect=1)
-
-
-if __name__ == '__main__':
-    # cudaMemcpyToSymbol(device_allocator, &dev_ptr, sizeof(AllocatorT*), 0,
-    #                     cudaMemcpyHostToDevice);
-
-    # cudaカーネルを呼び出し、Bodyのobjectを初期化する
-    # kernel_initialize_bodies << < 128, 128 >> > ();
-    # gpuErrchk(cudaDeviceSynchronize());
-
-    kernel_initialize_bodies()
-    fig = plt.figure(figsize=(5, 5))
-    plt.axis([-1, 1, -1, 1], frameon=False, aspect=1)
-    # print(__pyallocator__.classDictionary)
-
-    params = {
-        'fig': fig,
-        'func': _update,  # グラフを更新する関数
-        # 'fargs': (),  # 関数の引数 (フレーム番号を除く)
-        'interval': 10,  # 更新間隔 (ミリ秒)
-        'frames': np.arange(0, 10, 0.1),  # フレーム番号を生成するイテレータ
-        'repeat': False,  # 繰り返す
-    }
-    anime = animation.FuncAnimation(**params)
-    writer = animation.HTMLWriter()
-    anime.save('output.html', writer=writer)
-
