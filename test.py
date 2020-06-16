@@ -6,7 +6,7 @@ import time
 
 start_time = time.time()
 
-__pyallocator__.compile(path='./benchmarks/nbody.py')
+__pyallocator__.compile(py_path='./benchmarks/nbody.py')
 compile_time = time.time()
 # __pyallocator__.printCppAndHpp()
 
