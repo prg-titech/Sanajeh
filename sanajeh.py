@@ -43,9 +43,6 @@ class DeviceAllocator:
         pass
 
 
-
-
-
 # Host side allocator
 class PyAllocator:
     cpp_code: str = None
@@ -106,4 +103,3 @@ class PyAllocator:
         object_class_name = cls.__name__
         if eval("PyAllocator.lib.parallel_new_{}".format(object_class_name))(object_num) == 0:
             print("Successfully called parallel_new {} {}".format(object_class_name, object_num))
-
