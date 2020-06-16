@@ -26,11 +26,11 @@ class PyAllocator:
         # Compile cpp source file to .so file
         build.run()
         # Initialize ffi module
-        # ffi = cffi.FFI()
-        # ffi.cdef(self.cdef_code)
-        # self.lib = ffi.dlopen(SO_FILE_PATH)
-        # if self.lib.AllocatorInitialize()==0:
-        #     print("Successfully initialized the allocator through FFI.")
+        ffi = cffi.FFI()
+        ffi.cdef(self.cdef_code)
+        self.lib = ffi.dlopen(SO_FILE_PATH)
+        if self.lib.AllocatorInitialize()==0:
+            print("Successfully initialized the allocator through FFI.")
 
     # DEBUG propose
     def printCppAndHpp(self):
