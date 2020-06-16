@@ -3,7 +3,7 @@
 from sanajeh import PyAllocator
 from benchmarks.nbody import Body
 import time
-import hashlib
+import sys
 
 start_time = time.time()
 
@@ -21,8 +21,8 @@ PyAllocator.initialize()
 initialize_time = time.time()
 
 # Create objects on device
-obn = 3000
-itr = 100
+obn = int(sys.argv[1])
+itr = int(sys.argv[2])
 PyAllocator.parallel_new(Body, obn)
 parallel_new_time = time.time()
 
@@ -32,10 +32,10 @@ for x in range(itr):
     PyAllocator.parallel_do(Body, Body.compute_force)
     PyAllocator.parallel_do(Body, Body.body_update)
     p_do_end_time = time.time()
-    print("iteration%-3d time: %.3fs" % (x, p_do_end_time - p_do_start_time))
+    #print("iteration%-3d time: %.3fs" % (x, p_do_end_time - p_do_start_time))
 end_time = time.time()
 
-print("\ncompile time(py2cpp): %.3fs" % (compile_time - start_time))
+print("compile time(py2cpp): %.3fs" % (compile_time - start_time))
 print("compile time(nvcc): %.3fs" % (build_time - compile_time))
 print("initialize time: %.3fs" % (initialize_time - build_time))
 print("parallel new time(%-5d objects): %.3fs" % (obn, parallel_new_time - initialize_time))

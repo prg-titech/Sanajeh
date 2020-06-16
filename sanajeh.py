@@ -78,7 +78,10 @@ class PyAllocator:
         ffi.cdef(PyAllocator.cdef_code)
         PyAllocator.lib = ffi.dlopen(PyAllocator.so_path)
         if PyAllocator.lib.AllocatorInitialize() == 0:
-            print("Successfully initialized the allocator through FFI.")
+            pass
+            # print("Successfully initialized the allocator through FFI.")
+        else:
+            assert False
 
     # DEBUG propose
     @staticmethod
@@ -96,10 +99,16 @@ class PyAllocator:
         func_name = func_str[1]
         # todo args
         if eval("PyAllocator.lib.{}_{}_{}".format(object_class_name, func_class_name, func_name))() == 0:
-            print("Successfully called parallel_do {} {} {}".format(object_class_name, func_class_name, func_name))
+            pass
+            #print("Successfully called parallel_do {} {} {}".format(object_class_name, func_class_name, func_name))
+        else:
+            assert False
 
     @staticmethod
     def parallel_new(cls, object_num):
         object_class_name = cls.__name__
         if eval("PyAllocator.lib.parallel_new_{}".format(object_class_name))(object_num) == 0:
-            print("Successfully called parallel_new {} {}".format(object_class_name, object_num))
+            pass
+            #print("Successfully called parallel_new {} {}".format(object_class_name, object_num))
+        else:
+            assert False
