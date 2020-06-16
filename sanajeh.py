@@ -17,19 +17,23 @@ class PyAllocator:
     cdef_code: str
     lib = None
 
-    def initialize(self, path):
-        source = open(path, encoding="utf-8").read()
+    # compile python code to cpp code and .so file
+    def compile(self, py_path):
+        source = open(py_path, encoding="utf-8").read()
         codes = py2cpp.compile(source, CPP_FILE_PATH, HPP_FILE_PATH)
         self.cpp_code = codes[0]
         self.hpp_code = codes[1]
         self.cdef_code = codes[2]
         # Compile cpp source file to .so file
         build.run()
+
+    # load the shared library and initialize the allocator on GPU
+    def initialize(self, so_path=SO_FILE_PATH):
         # Initialize ffi module
         ffi = cffi.FFI()
         ffi.cdef(self.cdef_code)
-        self.lib = ffi.dlopen(SO_FILE_PATH)
-        if self.lib.AllocatorInitialize()==0:
+        self.lib = ffi.dlopen(so_path)
+        if self.lib.AllocatorInitialize() == 0:
             print("Successfully initialized the allocator through FFI.")
 
     # DEBUG propose
