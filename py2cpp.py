@@ -235,16 +235,18 @@ class Preprocessor(ast.NodeVisitor):
             self.__class_name = class_name  # The class of the object
 
         def buildCpp(self):
-            parallel_new_expr = INDENT + "allocator_handle->parallel_new<{}>(object_num);".format(self.__class_name)
-            return 'extern "C" void parallel_new_{}(int object_num){{\n'.format(self.__class_name) \
+            parallel_new_expr = INDENT + "allocator_handle->parallel_new<{}>(object_num);\n".format(self.__class_name)
+            return_expr = INDENT + "return 0;"
+            return 'extern "C" int parallel_new_{}(int object_num){{\n'.format(self.__class_name) \
                    + parallel_new_expr \
+                   + return_expr \
                    + "\n}"
 
         def buildHpp(self):
-            return 'extern "C" void parallel_new_{}(int object_num);'.format(self.__class_name)
+            return 'extern "C" int parallel_new_{}(int object_num);'.format(self.__class_name)
 
         def buildCdef(self):
-            return 'void parallel_new_{}(int object_num);'.format(self.__class_name)
+            return 'int parallel_new_{}(int object_num);'.format(self.__class_name)
 
     # Collect information of those functions used in the parallel_do function, and build codes for that function in c++
     class ParallelDoAnalyzer(ast.NodeVisitor):
@@ -292,19 +294,21 @@ class Preprocessor(ast.NodeVisitor):
             arg_strs = []
             for arg_ in self.__args:
                 arg_strs.append("{} {}".format(type_converter.convert(self.__args[arg_]), arg_))
-            parallel_do_expr = INDENT + "allocator_handle->parallel_do<{}, &{}::{}>({});".format(
+            parallel_do_expr = INDENT + "allocator_handle->parallel_do<{}, &{}::{}>({});\n".format(
                 self.__object_class_name,
                 self.__func_class_name,
                 self.__func_name,
                 ", ".join(self.__args)
             )
+            return_expr = INDENT + "return 0;"
 
-            return 'extern "C" void {}_{}_{}({}){{\n'.format(
+            return 'extern "C" int {}_{}_{}({}){{\n'.format(
                 self.__object_class_name,
                 self.__func_class_name,
                 self.__func_name,
                 ", ".join(arg_strs)) \
                    + parallel_do_expr \
+                   + return_expr \
                    + "\n}"
 
         def buildHpp(self):
@@ -312,7 +316,7 @@ class Preprocessor(ast.NodeVisitor):
             for arg_ in self.__args:
                 arg_strs.append("{} {}".format(type_converter.convert(self.__args[arg_]), arg_))
 
-            return 'extern "C" void {}_{}_{}({});'.format(
+            return 'extern "C" int {}_{}_{}({});'.format(
                 self.__object_class_name,
                 self.__func_class_name,
                 self.__func_name,
@@ -324,7 +328,7 @@ class Preprocessor(ast.NodeVisitor):
             for arg_ in self.__args:
                 arg_strs.append("{} {}".format(type_converter.convert(self.__args[arg_]), arg_))
 
-            return 'void {}_{}_{}({});'.format(
+            return 'int {}_{}_{}({});'.format(
                 self.__object_class_name,
                 self.__func_class_name,
                 self.__func_name,

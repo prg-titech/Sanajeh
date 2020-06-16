@@ -45,15 +45,18 @@ __device__ void Body::body_update() {
 	}
 }
 
-extern "C" void Body_Body_compute_force(){
+extern "C" int Body_Body_compute_force(){
 	allocator_handle->parallel_do<Body, &Body::compute_force>();
+	return 0;
 }
 
-extern "C" void Body_Body_body_update(){
+extern "C" int Body_Body_body_update(){
 	allocator_handle->parallel_do<Body, &Body::body_update>();
+	return 0;
 }
-extern "C" void parallel_new_Body(int object_num){
+extern "C" int parallel_new_Body(int object_num){
 	allocator_handle->parallel_new<Body>(object_num);
+	return 0;
 }
 
 extern "C" int AllocatorInitialize(){

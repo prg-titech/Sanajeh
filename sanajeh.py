@@ -26,11 +26,11 @@ class PyAllocator:
         # Compile cpp source file to .so file
         build.run()
         # Initialize ffi module
-        ffi = cffi.FFI()
-        ffi.cdef(self.cdef_code)
-        self.lib = ffi.dlopen(SO_FILE_PATH)
-        if self.lib.AllocatorInitialize()==0:
-            print("Successfully initialized the allocator through FFI.")
+        # ffi = cffi.FFI()
+        # ffi.cdef(self.cdef_code)
+        # self.lib = ffi.dlopen(SO_FILE_PATH)
+        # if self.lib.AllocatorInitialize()==0:
+        #     print("Successfully initialized the allocator through FFI.")
 
     # DEBUG propose
     def printCppAndHpp(self):
@@ -39,16 +39,23 @@ class PyAllocator:
         print(self.hpp_code)
 
     # dummy device_do
-    def device_do(self, class_name, func: Callable, *args):
+    def device_do(self, cls, func, *args):
         pass
 
-    def parallel_do(self, class_name, func: Callable, *args):
-        # ffiでparallel_doを呼び出す
-        pass
+    def parallel_do(self, cls, func, *args):
+        object_class_name = cls.__name__
+        func_str = func.__qualname__.split(".")
+        # todo nested class exception
+        func_class_name = func_str[0]
+        func_name = func_str[1]
+        # todo args
+        if eval("self.lib.{}_{}_{}".format(object_class_name, func_class_name, func_name))() == 0:
+            print("Successfully called parallel_do {} {} {}".format(object_class_name, func_class_name, func_name))
 
-    def parallel_new(self, class_name, object_num):
-        # ffiでparallel_newを呼び出す
-        pass
+    def parallel_new(self, cls, object_num):
+        object_class_name = cls.__name__
+        if eval("self.lib.parallel_new_{}".format(object_class_name))(object_num) == 0:
+            print("Successfully called parallel_new {} {}".format(object_class_name, object_num))
 
     # dummy rand_init
     def rand_init(self, seed, sequence, offset):
@@ -63,11 +70,3 @@ class PyAllocator:
 
 # identifier used in users' python code
 __pyallocator__ = PyAllocator()
-
-
-
-
-
-
-
-

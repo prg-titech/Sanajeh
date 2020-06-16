@@ -33,9 +33,9 @@ class Body : public AllocatorT::Base {
 		__device__ void body_update();
 };
 
-extern "C" void Body_Body_compute_force();
-extern "C" void Body_Body_body_update();
-extern "C" void parallel_new_Body(int object_num);
+extern "C" int Body_Body_compute_force();
+extern "C" int Body_Body_body_update();
+extern "C" int parallel_new_Body(int object_num);
 extern "C" int AllocatorInitialize();
 
 #endif
