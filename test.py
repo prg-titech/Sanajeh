@@ -11,6 +11,7 @@ start_time = time.time()
 PyAllocator.compile(py_path='./benchmarks/nbody.py')
 compile_time = time.time()
 # PyAllocator.printCppAndHpp()
+# PyAllocator.printCdef()
 
 # Compile cpp code to shared library
 PyAllocator.build()

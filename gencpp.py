@@ -228,31 +228,6 @@ class ClassDef(CodeStatement):
         with BuildContext(ctx, self) as new_ctx:
             new_ctx.indent_level -= 1
             body = [x.buildCpp(new_ctx) for x in self.stmt if type(x) is FunctionDef]
-            fields_str = ""
-            fields_list = list(self.fields.keys())
-            for i, field in enumerate(fields_list):
-                if i != len(fields_list) - 1:
-                    fields_str += "this->" + field + ", "
-                else:
-                    fields_str += "this->" + field
-            '''         
-            C codes for calling python function on every objects of the class
-            '''
-            body.append('\n' +
-                        INDENT * new_ctx.indent_level +
-                        '__device__ void Body::_do(pyfunc){\n' +
-                        INDENT * (new_ctx.indent_level + 1) +
-                        'pyfunc({});\n'.format(fields_str) +
-                        '}'
-                        )
-            body.append('\n' +
-                        INDENT * new_ctx.indent_level +
-                        'extern "C" int Body_do_all(pyfunc){\n' +
-                        INDENT * (new_ctx.indent_level + 1) +
-                        'device_allocator->template device_do<Body>(&Body::_do, pyfunc);\n ' +
-                        INDENT * (new_ctx.indent_level + 1) + 'return 0;\n' +
-                        '}'
-                        )
             while '' in body:
                 body.remove('')
             return "\n".join(body)
@@ -291,7 +266,7 @@ class ClassDef(CodeStatement):
                 ),
                 field_predeclaration,
                 ("\n" + INDENT).join(body),
-                ctx.indent() + "};",
+                ctx.indent() + "};"
             ])
 
 

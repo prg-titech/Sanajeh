@@ -173,16 +173,25 @@ class GenPyCallGraphVistor(ast.NodeVisitor):
         return True
 
     def build_parallel_do_cpp(self):
-        return '\n' + '\n\n'.join(self.__pp.cpp_parallel_do_codes)
+        return '\n\n' + '\n\n'.join(self.__pp.cpp_parallel_do_codes)
 
     def build_parallel_do_hpp(self):
-        return '\n' + '\n'.join(self.__pp.hpp_parallel_do_codes)
+        return '\n'.join(self.__pp.hpp_parallel_do_codes)
 
     def build_parallel_do_cdef(self):
         return '\n' + '\n'.join(self.__pp.cdef_parallel_do_codes)
 
+    def build_do_all_cpp(self):
+        return '\n\n'.join(self.__pp.cpp_do_all_codes)
+
+    def build_do_all_hpp(self):
+        return '\n' +'\n'.join(self.__pp.hpp_do_all_codes)
+
+    def build_do_all_cdef(self):
+        return '\n' + '\n'.join(self.__pp.cdef_do_all_codes)
+
     def build_parallel_new_cpp(self):
-        return '\n' + '\n\n'.join(self.__pp.cpp_parallel_new_codes)
+        return '\n\n' + '\n\n'.join(self.__pp.cpp_parallel_new_codes)
 
     def build_parallel_new_hpp(self):
         return '\n' + '\n'.join(self.__pp.hpp_parallel_new_codes)
@@ -205,9 +214,10 @@ class Preprocessor(ast.NodeVisitor):
     __cpp_parallel_new_codes = []
     __hpp_parallel_new_codes = []
     __cdef_parallel_new_codes = []
-    __hpp_do_codes = []
+    __cpp_do_all_codes = []
+    __hpp_do_all_codes = []
+    __cdef_do_all_codes = []
     __parallel_do_hashtable = []
-    __cdef_do_codes = []
 
     @property
     def cpp_parallel_do_codes(self):
@@ -234,12 +244,16 @@ class Preprocessor(ast.NodeVisitor):
         return self.__cdef_parallel_new_codes
 
     @property
-    def hpp_do_codes(self):
-        return self.__hpp_do_codes
+    def cpp_do_all_codes(self):
+        return self.__cpp_do_all_codes
 
     @property
-    def cdef_do_codes(self):
-        return self.__cdef_do_codes
+    def hpp_do_all_codes(self):
+        return self.__hpp_do_all_codes
+
+    @property
+    def cdef_do_all_codes(self):
+        return self.__cdef_do_all_codes
 
     # Build codes for parallel_new in c++
     class ParallelNewBuilder:
@@ -255,12 +269,10 @@ class Preprocessor(ast.NodeVisitor):
                    + "\n}"
 
         def buildHpp(self):
-            return 'extern "C" int parallel_new_{}(int object_num);\n'.format(self.__class_name) + \
-                   'extern "C" int {}_do_all(pyfunc);'.format(self.__class_name)
+            return 'extern "C" int parallel_new_{}(int object_num);'.format(self.__class_name)
 
         def buildCdef(self):
-            return 'int parallel_new_{}(int object_num);'.format(self.__class_name) + \
-                   'int {}_do_all(pyfunc);'.format(self.__class_name)
+            return 'int parallel_new_{}(int object_num);'.format(self.__class_name)
 
     # Collect information of those functions used in the parallel_do function, and build codes for that function in c++
     class ParallelDoBuilder(ast.NodeVisitor):
@@ -349,6 +361,85 @@ class Preprocessor(ast.NodeVisitor):
                 ",".join(arg_strs)
             )
 
+    # Collect information of class fields and build codes do_all functions in c++
+    class DoAllBuilder(ast.NodeVisitor):
+        def __init__(self, rt, class_name):
+            self.__root = rt
+            self.__node_path = [rt]
+            self.__current_node = None
+            self.__class_name = class_name
+            self.__field = {}
+
+        def visit(self, node):
+            self.__current_node = self.__node_path[-1]
+            super(Preprocessor.DoAllBuilder, self).visit(node)
+
+        def visit_ClassDef(self, node):
+            if node.name != self.__class_name:
+                return
+            class_name = node.name
+            class_node = self.__current_node.GetClassNode(class_name, None)
+            if class_node is None:
+                # Program shouldn't come to here, which means the class does not exist
+                print("The class {} is not exist.".format(class_name))
+                assert False
+            self.__node_path.append(class_node)
+            self.generic_visit(node)
+            self.__node_path.pop()
+
+        def visit_FunctionDef(self, node):
+            func_name = node.name
+            func_node = self.__current_node.GetFunctionNode(func_name, None)
+            if func_node is None:
+                # Program shouldn't come to here, which means the function does not exist
+                print("The function {} does not exist.".format(func_name))
+                assert False
+            self.__node_path.append(func_node)
+            self.generic_visit(node)
+            self.__node_path.pop()
+
+        def visit_AnnAssign(self, node):
+            if type(self.__current_node) is ClassNode:
+                var = node.target
+                anno = node.annotation
+                self.__field[var.id] = anno.id
+
+        def buildCpp(self):
+            fields_str = ""
+            field_types_str = ""
+            for i, field in enumerate(self.__field):
+                if i != len(self.__field) - 1:
+                    fields_str += "this->{}, ".format(field)
+                    field_types_str += "{}, ".format(self.__field[field])
+                else:
+                    fields_str += "this->{}".format(field)
+                    field_types_str += "{}".format(self.__field[field])
+            func_exprs = ['\n' +
+                          '__device__ void {}::_do(void (*pf)({})){{\n'.format(self.__class_name, field_types_str) +
+                          INDENT +
+                          'pf({});\n'.format(fields_str) +
+                          '}',
+                          '\n' +
+                          'extern "C" int {}_do_all(void (*pf)({})){{\n'.format(self.__class_name, field_types_str) +
+                          INDENT +
+                          'device_allocator->template device_do<{}>(&{}::_do, pf);\n '.format(self.__class_name,
+                                                                                              self.__class_name) +
+                          INDENT + 'return 0;\n' +
+                          '}']
+            return "\n".join(func_exprs)
+
+        def buildHpp(self):
+            return 'extern "C" {}\n'.format(self.buildCdef())
+
+        def buildCdef(self):
+            field_types_str = ""
+            for i, field in enumerate(self.__field):
+                if i != len(self.__field) - 1:
+                    field_types_str += "{}, ".format(self.__field[field])
+                else:
+                    field_types_str += "{}".format(self.__field[field])
+            return 'int {}_do_all(void (*pf)({}));'.format(self.__class_name, field_types_str)
+
     def __init__(self, rt: CallGraph):
         self.__root = rt
         self.__node_path.append(rt)
@@ -411,6 +502,11 @@ class Preprocessor(ast.NodeVisitor):
                         self.__cpp_parallel_new_codes.append(pnb.buildCpp())
                         self.__hpp_parallel_new_codes.append(pnb.buildHpp())
                         self.__cdef_parallel_new_codes.append(pnb.buildCdef())
+                        dab = self.DoAllBuilder(self.__root, node.args[0].id)
+                        dab.visit(self.__node_root)
+                        self.__cpp_do_all_codes.append(dab.buildCpp())
+                        self.__hpp_do_all_codes.append(dab.buildHpp())
+                        self.__cdef_do_all_codes.append(dab.buildCdef())
             elif node.func.attr == 'parallel_do':
                 hval = self.__gen_Hash([node.args[0].id, node.args[1].value.id, node.args[1].attr])
                 if hval not in self.__parallel_do_hashtable:
@@ -430,10 +526,16 @@ class Preprocessor(ast.NodeVisitor):
                 self.has_device_data = True
                 if node.args[0].id not in self.__classes:
                     self.__classes.append(node.args[0].id)
-                pnb = self.ParallelNewBuilder(node.args[0].id)
-                self.__cpp_parallel_new_codes.append(pnb.buildCpp())
-                self.__hpp_parallel_new_codes.append(pnb.buildHpp())
-                self.__cdef_parallel_new_codes.append(pnb.buildCdef())
+                    pnb = self.ParallelNewBuilder(node.args[0].id)
+                    self.__cpp_parallel_new_codes.append(pnb.buildCpp())
+                    self.__hpp_parallel_new_codes.append(pnb.buildHpp())
+                    self.__cdef_parallel_new_codes.append(pnb.buildCdef())
+                    dab = self.DoAllBuilder(self.__root, node.args[0].id)
+                    dab.visit(self.__node_root)
+                    self.__cpp_do_all_codes.append(dab.buildCpp())
+                    self.__hpp_do_all_codes.append(dab.buildHpp())
+                    self.__cdef_do_all_codes.append(dab.buildCdef())
+
             elif node.func.attr == 'parallel_do':
                 hval = self.__gen_Hash([node.args[0].id, node.args[1].value.id, node.args[1].attr])
                 if hval not in self.__parallel_do_hashtable:
@@ -516,13 +618,14 @@ def compile(source_code, cpp_path, hpp_path):
                 "}"
                 ]
     init_hpp = '\nextern "C" int AllocatorInitialize();\n'
-    init_cdef = '\nint AllocatorInitialize();\n'
+    init_cdef = '\nint AllocatorInitialize();'
     endif_expr = "\n#endif"
 
     # Source code
     cpp_code = cpp_include_expr \
                + allocator_declaration \
                + cpp_node.buildCpp(ctx) \
+               + gpcgv.build_do_all_cpp() \
                + gpcgv.build_parallel_do_cpp() \
                + gpcgv.build_parallel_new_cpp() \
                + "".join(init_cpp)
@@ -530,14 +633,14 @@ def compile(source_code, cpp_path, hpp_path):
     hpp_code = precompile_expr \
                + hpp_include_expr \
                + cpp_node.buildHpp(ctx) \
+               + gpcgv.build_do_all_hpp() \
                + gpcgv.build_parallel_do_hpp() \
                + gpcgv.build_parallel_new_hpp() \
                + init_hpp \
                + endif_expr
 
     # Codes for cffi cdef() function
-    cdef_code = gpcgv.build_parallel_do_cdef() + gpcgv.build_parallel_new_cdef() + init_cdef
-
+    cdef_code = gpcgv.build_parallel_do_cdef() + gpcgv.build_parallel_new_cdef() + init_cdef + gpcgv.build_do_all_cdef()
     with open(cpp_path, mode='w') as cpp_file:
         cpp_file.write(cpp_code)
     with open(hpp_path, mode='w') as hpp_file:

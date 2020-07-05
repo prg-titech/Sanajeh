@@ -45,12 +45,12 @@ __device__ void Body::body_update() {
 	}
 }
 
-__device__ void Body::_do(pyfunc){
-	pyfunc(this->pos_x, this->pos_y, this->vel_x, this->vel_y, this->force_x, this->force_y, this->mass);
+__device__ void Body::_do(void (*pf)(float, float, float, float, float, float, float)){
+	pf(this->pos_x, this->pos_y, this->vel_x, this->vel_y, this->force_x, this->force_y, this->mass);
 }
 
-extern "C" int Body_do_all(pyfunc){
-	device_allocator->template device_do<Body>(&Body::_do, pyfunc);
+extern "C" int Body_do_all(void (*pf)(float, float, float, float, float, float, float)){
+	device_allocator->template device_do<Body>(&Body::_do, pf);
  	return 0;
 }
 
@@ -63,6 +63,7 @@ extern "C" int Body_Body_body_update(){
 	allocator_handle->parallel_do<Body, &Body::body_update>();
 	return 0;
 }
+
 extern "C" int parallel_new_Body(int object_num){
 	allocator_handle->parallel_new<Body>(object_num);
 	return 0;

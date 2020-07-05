@@ -113,6 +113,7 @@ class GenCppVisitor(ast.NodeVisitor):
         return cpp.FunctionDef(name=name, args=args, body=body, returns=returns)
 
     def visit_ClassDef(self, node):
+        # todo do not support nested class
         self.__field = {}
         name = node.name
         class_node = self.__current_node.GetClassNode(name, None)

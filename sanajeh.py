@@ -90,6 +90,11 @@ class PyAllocator:
         print("--------------------------------")
         print(PyAllocator.hpp_code)
 
+    # DEBUG propose
+    @staticmethod
+    def printCdef():
+        print(PyAllocator.cdef_code)
+
     @staticmethod
     def parallel_do(cls, func, *args):
         object_class_name = cls.__name__
