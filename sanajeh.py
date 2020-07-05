@@ -2,11 +2,12 @@
 # This is a python version prototype of the AllocatorHandle(host side API) and AllocatorT(device side API) in DynaSOAr
 
 from typing import Callable
+import sys
 import cffi
-import build
 
 # Sanajeh package
 import py2cpp
+import build
 from config import CPP_FILE_PATH, HPP_FILE_PATH, SO_FILE_PATH
 
 
@@ -68,7 +69,9 @@ class PyAllocator:
     @staticmethod
     def build(so_path=SO_FILE_PATH):
         PyAllocator.so_path = so_path
-        build.run(PyAllocator.cpp_path, so_path)
+        if build.run(PyAllocator.cpp_path, so_path) != 0:
+            print("Build failed!")
+            sys.exit(1)
 
     # load the shared library and initialize the allocator on GPU
     @staticmethod

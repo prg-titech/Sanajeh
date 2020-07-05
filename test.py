@@ -14,8 +14,7 @@ compile_time = time.time()
 # PyAllocator.printCdef()
 
 # Compile cpp code to shared library
-if PyAllocator.build() != 0:
-    sys.exit(1)
+PyAllocator.build()
 build_time = time.time()
 
 # Load shared library and initialize device classes on GPU

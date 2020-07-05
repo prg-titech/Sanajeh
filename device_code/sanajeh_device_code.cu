@@ -50,7 +50,7 @@ __device__ void Body::_do(void (*pf)(float, float, float, float, float, float, f
 }
 
 extern "C" int Body_do_all(void (*pf)(float, float, float, float, float, float, float)){
-	device_allocator->template device_do<Body>(&Body::_do, pf);
+	allocator_handle->template device_do<Body>(&Body::_do, pf);
  	return 0;
 }
 
