@@ -14,7 +14,7 @@ compile_time = time.time()
 # PyAllocator.printCdef()
 
 # Compile cpp code to shared library
-if PyAllocator.build()[0] != 0:
+if PyAllocator.build() != 0:
     sys.exit(1)
 build_time = time.time()
 
