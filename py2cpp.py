@@ -241,12 +241,8 @@ class Preprocessor(ast.NodeVisitor):
     def cdef_do_codes(self):
         return self.__cdef_do_codes
 
-    '''
-    Collect class information of parallel_new.
-    Generate "parllel_new" and "{class}_do_all" (only hpp) codes.
-    '''
-
-    class ParallelNewAnalyzer:
+    # Build codes for parallel_new in c++
+    class ParallelNewBuilder:
         def __init__(self, class_name):
             self.__class_name = class_name  # The class of the object
 
@@ -267,7 +263,7 @@ class Preprocessor(ast.NodeVisitor):
                    'int {}_do_all(pyfunc);'.format(self.__class_name)
 
     # Collect information of those functions used in the parallel_do function, and build codes for that function in c++
-    class ParallelDoAnalyzer(ast.NodeVisitor):
+    class ParallelDoBuilder(ast.NodeVisitor):
         def __init__(self, rt, class_name, func_class_name, func_name):
             self.__root = rt
             self.__node_path = [rt]
@@ -279,7 +275,7 @@ class Preprocessor(ast.NodeVisitor):
 
         def visit(self, node):
             self.__current_node = self.__node_path[-1]
-            super(Preprocessor.ParallelDoAnalyzer, self).visit(node)
+            super(Preprocessor.ParallelDoBuilder, self).visit(node)
 
         def visit_ClassDef(self, node):
             if node.name != self.__func_class_name:
@@ -411,22 +407,22 @@ class Preprocessor(ast.NodeVisitor):
                 for cls in node.args:
                     if cls.id not in self.__classes:
                         self.__classes.append(cls.id)
-                        pna = self.ParallelNewAnalyzer(cls.id)
-                        self.__cpp_parallel_new_codes.append(pna.buildCpp())
-                        self.__hpp_parallel_new_codes.append(pna.buildHpp())
-                        self.__cdef_parallel_new_codes.append(pna.buildCdef())
+                        pnb = self.ParallelNewBuilder(cls.id)
+                        self.__cpp_parallel_new_codes.append(pnb.buildCpp())
+                        self.__hpp_parallel_new_codes.append(pnb.buildHpp())
+                        self.__cdef_parallel_new_codes.append(pnb.buildCdef())
             elif node.func.attr == 'parallel_do':
                 hval = self.__gen_Hash([node.args[0].id, node.args[1].value.id, node.args[1].attr])
                 if hval not in self.__parallel_do_hashtable:
                     self.__parallel_do_hashtable.append(hval)
-                    pda = self.ParallelDoAnalyzer(self.__root,
-                                                  node.args[0].id,
-                                                  node.args[1].value.id,
-                                                  node.args[1].attr)
-                    pda.visit(self.__node_root)
-                    self.__cpp_parallel_do_codes.append(pda.buildCpp())
-                    self.__hpp_parallel_do_codes.append(pda.buildHpp())
-                    self.__cdef_parallel_do_codes.append(pda.buildCdef())
+                    pdb = self.ParallelDoBuilder(self.__root,
+                                                 node.args[0].id,
+                                                 node.args[1].value.id,
+                                                 node.args[1].attr)
+                    pdb.visit(self.__node_root)
+                    self.__cpp_parallel_do_codes.append(pdb.buildCpp())
+                    self.__hpp_parallel_do_codes.append(pdb.buildHpp())
+                    self.__cdef_parallel_do_codes.append(pdb.buildCdef())
 
         # Find device classes through host code
         if type(node.func) is ast.Attribute and node.func.value.id == "PyAllocator":
@@ -434,22 +430,22 @@ class Preprocessor(ast.NodeVisitor):
                 self.has_device_data = True
                 if node.args[0].id not in self.__classes:
                     self.__classes.append(node.args[0].id)
-                pna = self.ParallelNewAnalyzer(node.args[0].id)
-                self.__cpp_parallel_new_codes.append(pna.buildCpp())
-                self.__hpp_parallel_new_codes.append(pna.buildHpp())
-                self.__cdef_parallel_new_codes.append(pna.buildCdef())
+                pnb = self.ParallelNewBuilder(node.args[0].id)
+                self.__cpp_parallel_new_codes.append(pnb.buildCpp())
+                self.__hpp_parallel_new_codes.append(pnb.buildHpp())
+                self.__cdef_parallel_new_codes.append(pnb.buildCdef())
             elif node.func.attr == 'parallel_do':
                 hval = self.__gen_Hash([node.args[0].id, node.args[1].value.id, node.args[1].attr])
                 if hval not in self.__parallel_do_hashtable:
                     self.__parallel_do_hashtable.append(hval)
-                    pda = self.ParallelDoAnalyzer(self.__root,
-                                                  node.args[0].id,
-                                                  node.args[1].value.id,
-                                                  node.args[1].attr)
-                    pda.visit(self.__node_root)
-                    self.__cpp_parallel_do_codes.append(pda.buildCpp())
-                    self.__hpp_parallel_do_codes.append(pda.buildHpp())
-                    self.__cdef_parallel_do_codes.append(pda.buildCdef())
+                    pdb = self.ParallelDoBuilder(self.__root,
+                                                 node.args[0].id,
+                                                 node.args[1].value.id,
+                                                 node.args[1].attr)
+                    pdb.visit(self.__node_root)
+                    self.__cpp_parallel_do_codes.append(pdb.buildCpp())
+                    self.__hpp_parallel_do_codes.append(pdb.buildHpp())
+                    self.__cdef_parallel_do_codes.append(pdb.buildCdef())
 
         func_name = None
         # todo id_name maybe class name
