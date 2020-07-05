@@ -105,7 +105,7 @@ class PyAllocator:
         # todo args
         if eval("PyAllocator.lib.{}_{}_{}".format(object_class_name, func_class_name, func_name))() == 0:
             pass
-            #print("Successfully called parallel_do {} {} {}".format(object_class_name, func_class_name, func_name))
+            # print("Successfully called parallel_do {} {} {}".format(object_class_name, func_class_name, func_name))
         else:
             assert False
 
@@ -114,6 +114,6 @@ class PyAllocator:
         object_class_name = cls.__name__
         if eval("PyAllocator.lib.parallel_new_{}".format(object_class_name))(object_num) == 0:
             pass
-            #print("Successfully called parallel_new {} {}".format(object_class_name, object_num))
+            # print("Successfully called parallel_new {} {}".format(object_class_name, object_num))
         else:
             assert False

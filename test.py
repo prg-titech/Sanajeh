@@ -14,7 +14,8 @@ compile_time = time.time()
 # PyAllocator.printCdef()
 
 # Compile cpp code to shared library
-PyAllocator.build()
+if PyAllocator.build()[0] != 0:
+    sys.exit(1)
 build_time = time.time()
 
 # Load shared library and initialize device classes on GPU
@@ -33,7 +34,7 @@ for x in range(itr):
     PyAllocator.parallel_do(Body, Body.compute_force)
     PyAllocator.parallel_do(Body, Body.body_update)
     p_do_end_time = time.time()
-    #print("iteration%-3d time: %.3fs" % (x, p_do_end_time - p_do_start_time))
+    # print("iteration%-3d time: %.3fs" % (x, p_do_end_time - p_do_start_time))
 end_time = time.time()
 
 print("compile time(py2cpp): %.3fs" % (compile_time - start_time))
