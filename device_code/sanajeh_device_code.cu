@@ -45,6 +45,15 @@ __device__ void Body::body_update() {
 	}
 }
 
+__device__ void Body::_do(pyfunc){
+	pyfunc(this->pos_x, this->pos_y, this->vel_x, this->vel_y, this->force_x, this->force_y, this->mass);
+}
+
+extern "C" int Body_do_all(pyfunc){
+	device_allocator->template device_do<Body>(&Body::_do, pyfunc);
+ 	return 0;
+}
+
 extern "C" int Body_Body_compute_force(){
 	allocator_handle->parallel_do<Body, &Body::compute_force>();
 	return 0;

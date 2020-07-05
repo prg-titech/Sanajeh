@@ -205,7 +205,9 @@ class Preprocessor(ast.NodeVisitor):
     __cpp_parallel_new_codes = []
     __hpp_parallel_new_codes = []
     __cdef_parallel_new_codes = []
+    __hpp_do_codes = []
     __parallel_do_hashtable = []
+    __cdef_do_codes = []
 
     @property
     def cpp_parallel_do_codes(self):
@@ -231,7 +233,19 @@ class Preprocessor(ast.NodeVisitor):
     def cdef_parallel_new_codes(self):
         return self.__cdef_parallel_new_codes
 
-    # Collect information of parallel_new and build codes for that function in c++
+    @property
+    def hpp_do_codes(self):
+        return self.__hpp_do_codes
+
+    @property
+    def cdef_do_codes(self):
+        return self.__cdef_do_codes
+
+    '''
+    Collect class information of parallel_new.
+    Generate "parllel_new" and "{class}_do_all" (only hpp) codes.
+    '''
+
     class ParallelNewAnalyzer:
         def __init__(self, class_name):
             self.__class_name = class_name  # The class of the object
@@ -245,10 +259,12 @@ class Preprocessor(ast.NodeVisitor):
                    + "\n}"
 
         def buildHpp(self):
-            return 'extern "C" int parallel_new_{}(int object_num);'.format(self.__class_name)
+            return 'extern "C" int parallel_new_{}(int object_num);\n'.format(self.__class_name) + \
+                   'extern "C" int {}_do_all(pyfunc);'.format(self.__class_name)
 
         def buildCdef(self):
-            return 'int parallel_new_{}(int object_num);'.format(self.__class_name)
+            return 'int parallel_new_{}(int object_num);'.format(self.__class_name) + \
+                   'int {}_do_all(pyfunc);'.format(self.__class_name)
 
     # Collect information of those functions used in the parallel_do function, and build codes for that function in c++
     class ParallelDoAnalyzer(ast.NodeVisitor):

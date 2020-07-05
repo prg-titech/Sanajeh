@@ -36,6 +36,7 @@ class Body : public AllocatorT::Base {
 extern "C" int Body_Body_compute_force();
 extern "C" int Body_Body_body_update();
 extern "C" int parallel_new_Body(int object_num);
+extern "C" int Body_do_all(pyfunc);
 extern "C" int AllocatorInitialize();
 
 #endif
