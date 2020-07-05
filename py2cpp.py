@@ -422,7 +422,7 @@ class Preprocessor(ast.NodeVisitor):
                           '\n' +
                           'extern "C" int {}_do_all(void (*pf)({})){{\n'.format(self.__class_name, field_types_str) +
                           INDENT +
-                          'device_allocator->template device_do<{}>(&{}::_do, pf);\n '.format(self.__class_name,
+                          'allocator_handle->template device_do<{}>(&{}::_do, pf);\n '.format(self.__class_name,
                                                                                               self.__class_name) +
                           INDENT + 'return 0;\n' +
                           '}']
