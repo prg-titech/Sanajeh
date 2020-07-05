@@ -31,6 +31,7 @@ class Body : public AllocatorT::Base {
 		__device__ void compute_force();
 		__device__ void apply_force(Body* other);
 		__device__ void body_update();
+		__device__ void _do(void (*pf)float, float, float, float, float, float, float)
 };
 
 extern "C" int Body_do_all(void (*pf)(float, float, float, float, float, float, float));

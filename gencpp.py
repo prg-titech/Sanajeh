@@ -257,6 +257,9 @@ class ClassDef(CodeStatement):
                                    + "private:\n" \
                                    + new_ctx.indent() \
                                    + ("\n" + new_ctx.indent()).join(field_templates)
+            _do_function = new_ctx.indent() \
+                           + INDENT \
+                           + "__device__ void _do(void (*pf){})".format(", ".join(field_types))
             return "\n".join([
                 "\n{}class {}{} {{".format(
                     ctx.indent(),
@@ -266,6 +269,7 @@ class ClassDef(CodeStatement):
                 ),
                 field_predeclaration,
                 ("\n" + INDENT).join(body),
+                _do_function,
                 ctx.indent() + "};"
             ])
 

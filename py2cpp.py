@@ -185,7 +185,7 @@ class GenPyCallGraphVistor(ast.NodeVisitor):
         return '\n\n'.join(self.__pp.cpp_do_all_codes)
 
     def build_do_all_hpp(self):
-        return '\n' +'\n'.join(self.__pp.hpp_do_all_codes)
+        return '\n' + '\n'.join(self.__pp.hpp_do_all_codes)
 
     def build_do_all_cdef(self):
         return '\n' + '\n'.join(self.__pp.cdef_do_all_codes)
