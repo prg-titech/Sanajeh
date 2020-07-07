@@ -1,6 +1,4 @@
-
 import先の関数の扱い
-a, b, c = 1, 2, 3 のような式の扱い方
 
 # Sanajehの制限
 1 python3.7で書く
@@ -10,3 +8,5 @@ a, b, c = 1, 2, 3 のような式の扱い方
 3 constructor関数の複数使用 multiple constructor
 4 parallel_do can only use functions with specific syntax (for now, "parallel_do" itself) which has been specified in device code
 5 Before generating cpp codes wo need to know all of the device classes, but in current implementation the device classes are only known after "parallel_new" is called
+
+ unknown type '**' (if you meant to use the old C syntax of giving untyped arguments, it is not supported)
