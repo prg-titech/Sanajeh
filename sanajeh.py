@@ -140,7 +140,7 @@ class PyAllocator:
         Run a function which is used to received the fields on all object of a class.
         """
         class_name = cls.__name__
-        if eval("PyAllocator.lib.{}_do_all}".format(class_name))() == 0:
+        if eval("PyAllocator.lib.{}_do_all".format(class_name))() == 0:
             pass
             # print("Successfully called parallel_new {} {}".format(object_class_name, object_num))
         else:
