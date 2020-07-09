@@ -402,7 +402,7 @@ class Preprocessor(ast.NodeVisitor):
             if type(self.__current_node) is ClassNode:
                 var = node.target
                 anno = node.annotation
-                self.__field[var.id] = anno.id
+                self.__field[var.id] = type_converter.convert(anno.id)
 
         def buildCpp(self):
             fields_str = ""

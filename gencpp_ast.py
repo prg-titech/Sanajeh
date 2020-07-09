@@ -3,7 +3,8 @@
 
 import ast
 
-from call_graph import CallGraph, ClassNode, FunctionNode, VariableNode
+import type_converter
+from call_graph import CallGraph, ClassNode
 import gencpp as cpp
 import six
 
@@ -169,7 +170,7 @@ class GenCppVisitor(ast.NodeVisitor):
             value = None
         annotation = self.visit(node.annotation)
         if type(self.__current_node) is ClassNode:
-            self.__field[var.id] = anno.id
+            self.__field[var.id] = type_converter.convert(anno.id)
         if type(self.__current_node) is CallGraph:
             is_global = True
         return cpp.AnnAssign(target, value, annotation, is_global)

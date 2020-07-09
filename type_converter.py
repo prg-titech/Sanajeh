@@ -8,7 +8,7 @@ def register(pytype, cpptype):
     type_map[pytype] = cpptype
 
 
-def convert(type_str, rettype=False):
+def convert(type_str):
     if type_str is None:
         # todo not sure if auto is fine
         return "auto"
