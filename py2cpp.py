@@ -3,6 +3,7 @@
 
 import ast
 import hashlib
+import sys
 
 import type_converter
 from config import INDENT, FILE_NAME
@@ -46,14 +47,14 @@ class GenPyCallGraphVistor(ast.NodeVisitor):
     # Create nodes for all classes declared
     def visit_ClassDef(self, node):
         if type(self.__current_node) is not CallGraph:
-            print("Error, doesn't support nested classes")
-            assert False
+            print("Doesn't support nested classes", file=sys.stderr)
+            sys.exit(1)
         class_name = node.name
         class_node = self.__current_node.GetClassNode(class_name, None)
         if class_node is not None:
             # Program shouldn't come to here, which means a class is defined twice
-            print("The class {} is defined twice.".format(class_name))
-            assert False
+            print("The class {} is defined twice.".format(class_name), file=sys.stderr)
+            sys.exit(1)
         class_node = ClassNode(node.name, None)
         self.__current_node.declared_classes.add(class_node)
         self.__node_path.append(class_node)
@@ -64,13 +65,13 @@ class GenPyCallGraphVistor(ast.NodeVisitor):
     def visit_FunctionDef(self, node):
         func_name = node.name
         if type(self.__current_node) is not CallGraph and type(self.__current_node) is not ClassNode:
-            print("Error, doesn't support nested functions")
-            assert False
+            print("Doesn't support nested functions", file=sys.stderr)
+            sys.exit(1)
         func_node = self.__current_node.GetFunctionNode(func_name, None)
         if func_node is not None:
             # Program shouldn't come to here, which means a function is defined twice
-            print("The function {} is defined twice.".format(func_name))
-            assert False
+            print("The function {} is defined twice.".format(func_name), file=sys.stderr)
+            sys.exit(1)
         func_node = FunctionNode(func_name, None)
         self.__current_node.declared_functions.add(func_node)
         self.__node_path.append(func_node)
@@ -80,8 +81,8 @@ class GenPyCallGraphVistor(ast.NodeVisitor):
     # Add arguments to the environment
     def visit_arguments(self, node):
         if type(self.__current_node) is not FunctionNode:
-            print('Unexpected node "{}"'.format(self.__current_node.name))
-            assert False
+            print('Unexpected node "{}"'.format(self.__current_node.name), file=sys.stderr)
+            sys.exit(1)
         for arg in node.args:
             if arg.arg == "self":
                 continue
@@ -93,8 +94,8 @@ class GenPyCallGraphVistor(ast.NodeVisitor):
             self.__variables.setdefault(self.__current_node.id, []).append(global_variable)
             var_node = self.__root.GetVariableNode(global_variable, None, None)
             if var_node is None:
-                print("The global variable {} is not existed.".format(global_variable))
-                assert False
+                print("The global variable {} is not existed.".format(global_variable), file=sys.stderr)
+                sys.exit(1)
             self.__current_node.called_variables.add(var_node)
 
     # Create nodes for variables without type annotation
@@ -159,8 +160,8 @@ class GenPyCallGraphVistor(ast.NodeVisitor):
             if node.id in self.__variables[annotate_location_node.id]:
                 var_node = annotate_location_node.GetVariableNode(node.id, None, None)
                 if var_node is None:
-                    print('Unexpected error, can not find variable "{}"', node.id)
-                    assert False
+                    print('Unexpected error, can not find variable "{}"', node.id, file=sys.stderr)
+                    sys.exit(1)
                 self.__current_node.called_variables.add(var_node)
                 break
 
@@ -296,8 +297,8 @@ class Preprocessor(ast.NodeVisitor):
             class_node = self.__current_node.GetClassNode(class_name, None)
             if class_node is None:
                 # Program shouldn't come to here, which means the class does not exist
-                print("The class {} is not exist.".format(class_name))
-                assert False
+                print("The class {} is not exist.".format(class_name), file=sys.stderr)
+                sys.exit(1)
             self.__node_path.append(class_node)
             self.generic_visit(node)
             self.__node_path.pop()
@@ -307,8 +308,8 @@ class Preprocessor(ast.NodeVisitor):
             func_node = self.__current_node.GetFunctionNode(func_name, None)
             if func_node is None:
                 # Program shouldn't come to here, which means the function does not exist
-                print("The function {} does not exist.".format(func_name))
-                assert False
+                print("The function {} does not exist.".format(func_name), file=sys.stderr)
+                sys.exit(1)
             if func_name != self.__func_name or self.__current_node.name != self.__func_class_name:
                 return
             for arg_ in node.args.args:
@@ -381,8 +382,8 @@ class Preprocessor(ast.NodeVisitor):
             class_node = self.__current_node.GetClassNode(class_name, None)
             if class_node is None:
                 # Program shouldn't come to here, which means the class does not exist
-                print("The class {} is not exist.".format(class_name))
-                assert False
+                print("The class {} is not exist.".format(class_name), file=sys.stderr)
+                sys.exit(1)
             self.__node_path.append(class_node)
             self.generic_visit(node)
             self.__node_path.pop()
@@ -392,8 +393,8 @@ class Preprocessor(ast.NodeVisitor):
             func_node = self.__current_node.GetFunctionNode(func_name, None)
             if func_node is None:
                 # Program shouldn't come to here, which means the function does not exist
-                print("The function {} does not exist.".format(func_name))
-                assert False
+                print("The function {} does not exist.".format(func_name), file=sys.stderr)
+                sys.exit(1)
             self.__node_path.append(func_node)
             self.generic_visit(node)
             self.__node_path.pop()
@@ -471,8 +472,8 @@ class Preprocessor(ast.NodeVisitor):
         class_node = self.__current_node.GetClassNode(class_name, None)
         if class_node is None:
             # Program shouldn't come to here, which means the class does not exist
-            print("The class {} is not exist.".format(class_name))
-            assert False
+            print("The class {} is not exist.".format(class_name), file=sys.stderr)
+            sys.exit(1)
         self.__node_path.append(class_node)
         self.generic_visit(node)
         self.__node_path.pop()
@@ -483,8 +484,8 @@ class Preprocessor(ast.NodeVisitor):
         func_node = self.__current_node.GetFunctionNode(func_name, None)
         if func_node is None:
             # Program shouldn't come to here, which means the function does not exist
-            print("The function {} does not exist.".format(func_name))
-            assert False
+            print("The function {} does not exist.".format(func_name), file=sys.stderr)
+            sys.exit(1)
         self.__node_path.append(func_node)
         self.generic_visit(node)
         self.__node_path.pop()
@@ -592,7 +593,7 @@ def compile(source_code, cpp_path, hpp_path):
     # Mark all device data on the call graph
     if not gpcgv.mark_device_data(py_ast):
         print("No device data found")
-        assert False
+        sys.exit(1)
     # Generate cpp ast from python ast
     gcv = GenCppVisitor(gpcgv.root)
     cpp_node = gcv.visit(py_ast)

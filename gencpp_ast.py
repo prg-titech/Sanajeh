@@ -2,6 +2,7 @@
 # Generate C/C++/CUDA AST from python source code
 
 import ast
+import sys
 
 import type_converter
 from call_graph import CallGraph, ClassNode
@@ -93,8 +94,8 @@ class GenCppVisitor(ast.NodeVisitor):
         func_node = self.__current_node.GetFunctionNode(name, None)
         if func_node is None:
             # Program shouldn't come to here, which means the function is not analyzed by the marker yet
-            print("The function {} does not exist.".format(name))
-            assert False
+            print("The function {} does not exist.".format(name), file=sys.stderr)
+            sys.exit(1)
         # If it is not a device function just skip
         if not func_node.is_device:
             return cpp.IgnoredNode(node)
@@ -120,8 +121,8 @@ class GenCppVisitor(ast.NodeVisitor):
         class_node = self.__current_node.GetClassNode(name, None)
         if class_node is None:
             # Program shouldn't come to here, which means the class is not analyzed by the marker yet
-            print("The class {} does not exist.".format(name))
-            assert False
+            print("The class {} does not exist.".format(name), file=sys.stderr)
+            sys.exit(1)
         # If it is not a device class just skip
         if not class_node.is_device:
             return cpp.IgnoredNode(node)
@@ -159,8 +160,8 @@ class GenCppVisitor(ast.NodeVisitor):
             var_node = self.__current_node.GetVariableNode(var.id, None, anno.id)
             if var_node is None:
                 # Program shouldn't come to here, which means the variable is not analyzed by the marker yet
-                print("The variable {} does not exist.".format(var.id))
-                assert False
+                print("The variable {} does not exist.".format(var.id), file=sys.stderr)
+                sys.exit(1)
             if not var_node.is_device:
                 return cpp.IgnoredNode(node)
         target = self.visit(node.target)

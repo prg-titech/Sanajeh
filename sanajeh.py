@@ -70,7 +70,7 @@ class PyAllocator:
     def build(so_path=SO_FILE_PATH):
         PyAllocator.so_path = so_path
         if build.run(PyAllocator.cpp_path, so_path) != 0:
-            print("Build failed!")
+            print("Build failed!", file=sys.stderr)
             sys.exit(1)
 
     # load the shared library and initialize the allocator on GPU
@@ -84,7 +84,8 @@ class PyAllocator:
             pass
             # print("Successfully initialized the allocator through FFI.")
         else:
-            assert False
+            print("Initialization failed!", file=sys.stderr)
+            sys.exit(1)
 
     # DEBUG propose
     @staticmethod
@@ -110,7 +111,8 @@ class PyAllocator:
             pass
             # print("Successfully called parallel_do {} {} {}".format(object_class_name, func_class_name, func_name))
         else:
-            assert False
+            print("Parallel_do expression failed!", file=sys.stderr)
+            sys.exit(1)
 
     @staticmethod
     def parallel_new(cls, object_num):
@@ -119,4 +121,5 @@ class PyAllocator:
             pass
             # print("Successfully called parallel_new {} {}".format(object_class_name, object_num))
         else:
-            assert False
+            print("Parallel_new expression failed!", file=sys.stderr)
+            sys.exit(1)
