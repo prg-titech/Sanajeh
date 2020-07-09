@@ -141,8 +141,10 @@ class PyAllocator:
         """
         class_name = cls.__name__
         if eval("PyAllocator.lib.{}_do_all".format(class_name))(func) == 0:
+            print(1)
             pass
             # print("Successfully called parallel_new {} {}".format(object_class_name, object_num))
         else:
             print("Do_all expression failed!", file=sys.stderr)
             sys.exit(1)
+        print(2)

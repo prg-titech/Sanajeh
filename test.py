@@ -39,7 +39,7 @@ end_time = time.time()
 object_index = 0
 
 
-@ffi.callback("int*(float, float, float, float, float, float, float)")
+@ffi.callback("void(float, float, float, float, float, float, float)")
 def printAllFields(pos_x, pos_y, vel_x, vel_y, force_x, force_y, mass):
     print("Object {}:".format(object_index))
     print("\n\tpos_x:{}".format(pos_x))
@@ -49,7 +49,6 @@ def printAllFields(pos_x, pos_y, vel_x, vel_y, force_x, force_y, mass):
     print("\n\tforce_x:{}".format(force_x))
     print("\n\tforce_y:{}".format(force_y))
     print("\n\tmass:{}\n".format(mass))
-    return 0
 
 
 PyAllocator.do_all(Body, printAllFields)
