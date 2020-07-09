@@ -416,7 +416,7 @@ class Preprocessor(ast.NodeVisitor):
                     fields_str += "this->{}".format(field)
                     field_types_str += "{}".format(self.__field[field])
             func_exprs = ['\n' +
-                          '__device__ void {}::_do(void (*pf)({})){{\n'.format(self.__class_name, field_types_str) +
+                          'void {}::_do(void (*pf)({})){{\n'.format(self.__class_name, field_types_str) +
                           INDENT +
                           'pf({});\n'.format(fields_str) +
                           '}',

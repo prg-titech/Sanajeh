@@ -45,7 +45,7 @@ __device__ void Body::body_update() {
 	}
 }
 
-__device__ void Body::_do(void (*pf)(float, float, float, float, float, float, float)){
+void Body::_do(void (*pf)(float, float, float, float, float, float, float)){
 	pf(this->pos_x, this->pos_y, this->vel_x, this->vel_y, this->force_x, this->force_y, this->mass);
 }
 
