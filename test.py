@@ -36,6 +36,22 @@ for x in range(itr):
     # print("iteration%-3d time: %.3fs" % (x, p_do_end_time - p_do_start_time))
 end_time = time.time()
 
+object_index = 0
+
+
+def printAllFields(pos_x, pos_y, vel_x, vel_y, force_x, force_y, mass):
+    print("Object {}:".format(object_index))
+    print("\n\tpos_x:{}".format(pos_x))
+    print("\n\tpos_y:{}".format(pos_y))
+    print("\n\tvel_x:{}".format(vel_x))
+    print("\n\tvel_y:{}".format(vel_y))
+    print("\n\tforce_x:{}".format(force_x))
+    print("\n\tforce_y:{}".format(force_y))
+    print("\n\tmass:{}\n".format(mass))
+
+
+PyAllocator.do_all(Body, printAllFields)
+
 print("compile time(py2cpp): %.3fs" % (compile_time - start_time))
 print("compile time(nvcc): %.3fs" % (build_time - compile_time))
 print("initialize time: %.3fs" % (initialize_time - build_time))

@@ -65,9 +65,11 @@ class PyAllocator:
         PyAllocator.hpp_code = codes[1]
         PyAllocator.cdef_code = codes[2]
 
-    # Compile cpp source file to .so file
     @staticmethod
     def build(so_path=SO_FILE_PATH):
+        """
+        Compile cpp source file to .so file
+        """
         PyAllocator.so_path = so_path
         if build.run(PyAllocator.cpp_path, so_path) != 0:
             print("Build failed!", file=sys.stderr)
@@ -76,7 +78,9 @@ class PyAllocator:
     # load the shared library and initialize the allocator on GPU
     @staticmethod
     def initialize():
-        # Initialize ffi module
+        """
+        Initialize ffi module
+        """
         ffi = cffi.FFI()
         ffi.cdef(PyAllocator.cdef_code)
         PyAllocator.lib = ffi.dlopen(PyAllocator.so_path)
@@ -101,6 +105,9 @@ class PyAllocator:
 
     @staticmethod
     def parallel_do(cls, func, *args):
+        """
+        Parallelly run a function on all objects of a class.
+        """
         object_class_name = cls.__name__
         func_str = func.__qualname__.split(".")
         # todo nested class exception
@@ -116,10 +123,26 @@ class PyAllocator:
 
     @staticmethod
     def parallel_new(cls, object_num):
+        """
+        Parallelly create objects of a class
+        """
         object_class_name = cls.__name__
         if eval("PyAllocator.lib.parallel_new_{}".format(object_class_name))(object_num) == 0:
             pass
             # print("Successfully called parallel_new {} {}".format(object_class_name, object_num))
         else:
             print("Parallel_new expression failed!", file=sys.stderr)
+            sys.exit(1)
+
+    @staticmethod
+    def do_all(cls, func):
+        """
+        Run a function which is used to received the fields on all object of a class.
+        """
+        class_name = cls.__name__
+        if eval("PyAllocator.lib.{}_do_all}".format(class_name))() == 0:
+            pass
+            # print("Successfully called parallel_new {} {}".format(object_class_name, object_num))
+        else:
+            print("Do_all expression failed!", file=sys.stderr)
             sys.exit(1)
