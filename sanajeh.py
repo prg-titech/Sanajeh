@@ -10,6 +10,7 @@ import py2cpp
 import build
 from config import CPP_FILE_PATH, HPP_FILE_PATH, SO_FILE_PATH
 
+ffi = cffi.FFI()
 
 # Device side allocator
 class DeviceAllocator:
@@ -81,7 +82,6 @@ class PyAllocator:
         """
         Initialize ffi module
         """
-        ffi = cffi.FFI()
         ffi.cdef(PyAllocator.cdef_code)
         PyAllocator.lib = ffi.dlopen(PyAllocator.so_path)
         if PyAllocator.lib.AllocatorInitialize() == 0:
