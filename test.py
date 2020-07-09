@@ -41,14 +41,16 @@ object_index = 0
 
 @ffi.callback("void(float, float, float, float, float, float, float)")
 def printAllFields(pos_x, pos_y, vel_x, vel_y, force_x, force_y, mass):
+    global object_index
     print("Object {}:".format(object_index))
-    print("\n\tpos_x:{}".format(pos_x))
-    print("\n\tpos_y:{}".format(pos_y))
-    print("\n\tvel_x:{}".format(vel_x))
-    print("\n\tvel_y:{}".format(vel_y))
-    print("\n\tforce_x:{}".format(force_x))
-    print("\n\tforce_y:{}".format(force_y))
-    print("\n\tmass:{}\n".format(mass))
+    print("\tpos_x:{}".format(pos_x))
+    print("\tpos_y:{}".format(pos_y))
+    print("\tvel_x:{}".format(vel_x))
+    print("\tvel_y:{}".format(vel_y))
+    print("\tforce_x:{}".format(force_x))
+    print("\tforce_y:{}".format(force_y))
+    print("\tmass:{}\n".format(mass))
+    object_index = object_index + 1
 
 
 PyAllocator.do_all(Body, printAllFields)
