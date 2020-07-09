@@ -208,7 +208,7 @@ class FunctionDef(CodeStatement):
     def rtype(self, ctx):
         if self.returns:
             rtype = self.returns.buildCpp(ctx)
-            return type_converter.convert(rtype, rettype=True)
+            return type_converter.convert(rtype)
         else:
             return "void"
 
