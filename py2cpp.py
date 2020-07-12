@@ -5,14 +5,19 @@ import ast
 import hashlib
 import sys
 
+import astunparse
+
 import type_converter
 from config import INDENT, FILE_NAME
 from call_graph import CallGraph, ClassNode, FunctionNode, VariableNode
+from py2spy import PyDeviceCodeTransformer
 from gencpp_ast import GenCppAstVisitor
 import gencpp
 
 
 # Generate python call graph
+
+
 class GenPyCallGraphVistor(ast.NodeVisitor):
     __root = CallGraph('root', None)
     __node_path = [__root]
@@ -578,12 +583,13 @@ class Preprocessor(ast.NodeVisitor):
         self.generic_visit(node)
 
 
-def compile(source_code, cpp_path, hpp_path):
+def compile(source_code, cpp_path, hpp_path, py_path):
     """
     Compile python source_code into c++ source file and header file
         source_code:    codes written in python
         cpp_path:       path for the compiled c++ source file
         hpp_path:       path for the compiled c++ header file
+        py_path:        path for the compiled python sanajeh code
     """
     # Generate python ast
     py_ast = ast.parse(source_code)
@@ -597,6 +603,10 @@ def compile(source_code, cpp_path, hpp_path):
     # Generate cpp ast from python ast
     gcv = GenCppAstVisitor(gpcgv.root)
     cpp_node = gcv.visit(py_ast)
+    # Generate python device code from python source code ast
+    pdct = PyDeviceCodeTransformer(gpcgv.root)
+    pdct.visit(py_ast)
+    py_code = astunparse.unparse(py_ast)
     # Generate cpp(hpp) code from cpp ast
     ctx = gencpp.BuildContext.create()
     # Expression needed for DynaSOAr API
@@ -646,4 +656,6 @@ def compile(source_code, cpp_path, hpp_path):
         cpp_file.write(cpp_code)
     with open(hpp_path, mode='w') as hpp_file:
         hpp_file.write(hpp_code)
+    with open(py_path, mode='w') as py_file:
+        py_file.write(py_code)
     return cpp_code, hpp_code, cdef_code

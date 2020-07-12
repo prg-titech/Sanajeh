@@ -58,10 +58,6 @@ class Body:
             other.force_y += f * dy / dist
 
     def body_update(self):
-
-        """
-        test code
-        """
         self.vel_x += self.force_x * kDt / self.mass
         self.vel_y += self.force_y * kDt / self.mass
         self.pos_x += self.vel_x * kDt

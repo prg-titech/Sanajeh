@@ -8,7 +8,7 @@ import sys
 start_time = time.time()
 
 # Compile python code to cpp code
-PyAllocator.compile(py_path='./benchmarks/nbody.py')
+PyAllocator.compile(source_path='./benchmarks/nbody.py')
 compile_time = time.time()
 # PyAllocator.printCppAndHpp()
 # PyAllocator.printCdef()

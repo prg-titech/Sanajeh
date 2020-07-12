@@ -50,19 +50,20 @@ class DeviceAllocator:
 class PyAllocator:
     cpp_path: str = CPP_FILE_PATH
     hpp_path: str = HPP_FILE_PATH
-    cpp_code: str = open(CPP_FILE_PATH, mode='r').read()
-    hpp_code: str = open(HPP_FILE_PATH, mode='r').read()
+    cpp_code: str = None
+    hpp_code: str = None
     so_path: str = SO_FILE_PATH
+    py_path: str = PY_FILE_PATH
     cdef_code: str = None
     lib = None
 
     # compile python code to cpp code and .so file
     @staticmethod
-    def compile(py_path, cpp_path=CPP_FILE_PATH, hpp_path=HPP_FILE_PATH):
-        source = open(py_path, encoding="utf-8").read()
+    def compile(source_path, cpp_path=CPP_FILE_PATH, hpp_path=HPP_FILE_PATH, py_path=PY_FILE_PATH):
+        source = open(source_path, encoding="utf-8").read()
         PyAllocator.cpp_path = cpp_path
         PyAllocator.hpp_path = cpp_path
-        codes = py2cpp.compile(source, cpp_path, hpp_path)
+        codes = py2cpp.compile(source, cpp_path, hpp_path, py_path)
         PyAllocator.cpp_code = codes[0]
         PyAllocator.hpp_code = codes[1]
         PyAllocator.cdef_code = codes[2]
