@@ -55,12 +55,12 @@ class Body():
             self.vel_y = (- self.vel_y)
 
     @staticmethod
-    def parallel_new_Body(object_num, lib):
-        lib.parallel_new_Body(object_num)
+    def parallel_new(cpp_lib, object_num):
+        return cpp_lib.parallel_new_Body(object_num)
 
     @staticmethod
-    def Body_do_all(lib, func):
-        lib.Body_do_all(func)
+    def do_all(cpp_lib, func):
+        return cpp_lib.Body_do_all(func)
 
 def specify_device_class():
     DeviceAllocator.device_class(Body)

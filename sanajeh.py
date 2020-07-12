@@ -8,7 +8,7 @@ import cffi
 # Sanajeh package
 import py2cpp
 import build
-from config import CPP_FILE_PATH, HPP_FILE_PATH, SO_FILE_PATH, PY_FILE_PATH
+from config import CPP_FILE_PATH, HPP_FILE_PATH, SO_FILE_PATH, PY_FILE_PATH, FILE_NAME, PY_FILE
 
 ffi = cffi.FFI()
 
@@ -55,7 +55,8 @@ class PyAllocator:
     so_path: str = SO_FILE_PATH
     py_path: str = PY_FILE_PATH
     cdef_code: str = None
-    lib = None
+    py_lib = None
+    cpp_lib = None
 
     # compile python code to cpp code and .so file
     @staticmethod
@@ -67,6 +68,7 @@ class PyAllocator:
         PyAllocator.cpp_code = codes[0]
         PyAllocator.hpp_code = codes[1]
         PyAllocator.cdef_code = codes[2]
+        PyAllocator.py_lib = __import__(PY_FILE)
 
     @staticmethod
     def build(so_path=SO_FILE_PATH):
@@ -85,8 +87,8 @@ class PyAllocator:
         Initialize ffi module
         """
         ffi.cdef(PyAllocator.cdef_code)
-        PyAllocator.lib = ffi.dlopen(PyAllocator.so_path)
-        if PyAllocator.lib.AllocatorInitialize() == 0:
+        PyAllocator.cpp_lib = ffi.dlopen(PyAllocator.so_path)
+        if PyAllocator.cpp_lib.AllocatorInitialize() == 0:
             pass
             # print("Successfully initialized the allocator through FFI.")
         else:
@@ -115,8 +117,8 @@ class PyAllocator:
         # todo nested class exception
         func_class_name = func_str[0]
         func_name = func_str[1]
-        # todo args
-        if eval("PyAllocator.lib.{}_{}_{}".format(object_class_name, func_class_name, func_name))() == 0:
+        # todo args, eval
+        if eval("PyAllocator.cpp_lib.{}_{}_{}".format(object_class_name, func_class_name, func_name))() == 0:
             pass
             # print("Successfully called parallel_do {} {} {}".format(object_class_name, func_class_name, func_name))
         else:
@@ -128,8 +130,7 @@ class PyAllocator:
         """
         Parallelly create objects of a class
         """
-        object_class_name = cls.__name__
-        if eval("PyAllocator.lib.parallel_new_{}".format(object_class_name))(object_num) == 0:
+        if cls.parallel_new(PyAllocator.cpp_lib, object_num) == 0:
             pass
             # print("Successfully called parallel_new {} {}".format(object_class_name, object_num))
         else:
@@ -141,8 +142,7 @@ class PyAllocator:
         """
         Run a function which is used to received the fields on all object of a class.
         """
-        class_name = cls.__name__
-        if eval("PyAllocator.lib.{}_do_all".format(class_name))(func) == 0:
+        if cls.do_all(PyAllocator.cpp_lib, func) == 0:
             pass
             # print("Successfully called parallel_new {} {}".format(object_class_name, object_num))
         else:

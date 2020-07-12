@@ -17,26 +17,18 @@ class PyDeviceCodeTransformer(ast.NodeTransformer):
         # Extra code to add in python code
         self.code = """
 @staticmethod
-def parallel_new(object_num, lib):
-    lib.parallel_new(object_num)
+def parallel_new(cpp_lib, object_num):
+    return cpp_lib.parallel_new(object_num)
     
 @staticmethod
-def do_all(lib, func):
-    lib.do_all(func)
+def do_all(cpp_lib, func):
+    return cpp_lib.do_all(func)
 """
 
     class ClassNodeTransformer(ast.NodeTransformer):
 
         def __init__(self, class_name):
             self.class_name = class_name
-
-        def visit_FunctionDef(self, node):
-            if node.name == "parallel_new":
-                node.name = "parallel_new_{}".format(self.class_name)
-            elif node.name == "do_all":
-                node.name = "{}_do_all".format(self.class_name)
-            self.generic_visit(node)
-            return node
 
         def visit_Attribute(self, node):
             if node.attr == "parallel_new":

@@ -606,6 +606,7 @@ def compile(source_code, cpp_path, hpp_path, py_path):
     # Generate python device code from python source code ast
     pdct = PyDeviceCodeTransformer(gpcgv.root)
     pdct.visit(py_ast)
+    ast.fix_missing_locations(py_ast)
     py_code = astunparse.unparse(py_ast)
     # Generate cpp(hpp) code from cpp ast
     ctx = gencpp.BuildContext.create()
