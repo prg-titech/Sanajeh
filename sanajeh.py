@@ -12,6 +12,7 @@ from config import CPP_FILE_PATH, HPP_FILE_PATH, SO_FILE_PATH
 
 ffi = cffi.FFI()
 
+
 # Device side allocator
 class DeviceAllocator:
     """
@@ -47,11 +48,11 @@ class DeviceAllocator:
 
 # Host side allocator
 class PyAllocator:
-    cpp_code: str = None
-    hpp_code: str = None
-    cpp_path: str = None
-    hpp_path: str = None
-    so_path: str = None
+    cpp_path: str = CPP_FILE_PATH
+    hpp_path: str = HPP_FILE_PATH
+    cpp_code: str = open(CPP_FILE_PATH, mode='r').read()
+    hpp_code: str = open(HPP_FILE_PATH, mode='r').read()
+    so_path: str = SO_FILE_PATH
     cdef_code: str = None
     lib = None
 
