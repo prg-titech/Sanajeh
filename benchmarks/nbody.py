@@ -74,11 +74,11 @@ class Body:
             self.vel_y = -self.vel_y
 
 
-def kernel_initialize_bodies():
+def specify_device_class():
     DeviceAllocator.device_class(Body)
 
 
-def _update():
+def specify_parallel_do():
     DeviceAllocator.parallel_do(Body, Body.compute_force)
     DeviceAllocator.parallel_do(Body, Body.body_update)
 

@@ -8,7 +8,7 @@ import cffi
 # Sanajeh package
 import py2cpp
 import build
-from config import CPP_FILE_PATH, HPP_FILE_PATH, SO_FILE_PATH
+from config import CPP_FILE_PATH, HPP_FILE_PATH, SO_FILE_PATH, PY_FILE_PATH
 
 ffi = cffi.FFI()
 

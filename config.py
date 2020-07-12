@@ -7,3 +7,4 @@ INDENT: str = "\t"
 CPP_FILE_PATH: str = 'device_code/sanajeh_device_code.cu'
 HPP_FILE_PATH: str = 'device_code/sanajeh_device_code.h'
 SO_FILE_PATH: str = 'device_code/sanajeh_device_code.so'
+PY_FILE_PATH: str = 'device_code/sanajeh_device_code.py'
