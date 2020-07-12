@@ -294,10 +294,11 @@ class GenCppAstVisitor(ast.NodeVisitor):
         return cpp.Subscript(value=value, slice=slice)
 
     def visit_Name(self, node):
+        nid = node.id
         # change 'self' to 'this'
-        if node.id == "self":
-            node.id = "this"
-        return cpp.Name(node.id)
+        if nid == "self":
+            nid = "this"
+        return cpp.Name(nid)
 
     # def visit_Tuple(self, node):
     #     elts = [self.visit(x) for x in node.elts]
