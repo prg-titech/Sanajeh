@@ -56,7 +56,7 @@ CMPOP_MAP = {
 }
 
 
-class GenCppVisitor(ast.NodeVisitor):
+class GenCppAstVisitor(ast.NodeVisitor):
 
     def __init__(self, root: CallGraph):
         self.__root: CallGraph = root
@@ -67,7 +67,7 @@ class GenCppVisitor(ast.NodeVisitor):
 
     def visit(self, node):
         self.__current_node = self.__node_path[-1]
-        ret = super(GenCppVisitor, self).visit(node)
+        ret = super(GenCppAstVisitor, self).visit(node)
         if ret is None:
             return cpp.UnsupportedNode(node)
         return ret

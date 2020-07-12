@@ -8,7 +8,7 @@ import sys
 import type_converter
 from config import INDENT, FILE_NAME
 from call_graph import CallGraph, ClassNode, FunctionNode, VariableNode
-from gencpp_ast import GenCppVisitor
+from gencpp_ast import GenCppAstVisitor
 import gencpp
 
 
@@ -595,7 +595,7 @@ def compile(source_code, cpp_path, hpp_path):
         print("No device data found")
         sys.exit(1)
     # Generate cpp ast from python ast
-    gcv = GenCppVisitor(gpcgv.root)
+    gcv = GenCppAstVisitor(gpcgv.root)
     cpp_node = gcv.visit(py_ast)
     # Generate cpp(hpp) code from cpp ast
     ctx = gencpp.BuildContext.create()
