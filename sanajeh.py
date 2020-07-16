@@ -8,9 +8,11 @@ import cffi
 # Sanajeh package
 import py2cpp
 import build
-from config import CPP_FILE_PATH, HPP_FILE_PATH, SO_FILE_PATH, PY_FILE_PATH, FILE_NAME, PY_FILE
+from config import CPP_FILE_PATH, HPP_FILE_PATH, SO_FILE_PATH, PY_FILE_PATH, PY_FILE
+import importlib
 
 ffi = cffi.FFI()
+py_lib = None
 
 
 # Device side allocator
@@ -55,7 +57,7 @@ class PyAllocator:
     so_path: str = SO_FILE_PATH
     py_path: str = PY_FILE_PATH
     cdef_code: str = None
-    py_lib = None
+
     cpp_lib = None
 
     # compile python code to cpp code and .so file
@@ -68,7 +70,8 @@ class PyAllocator:
         PyAllocator.cpp_code = codes[0]
         PyAllocator.hpp_code = codes[1]
         PyAllocator.cdef_code = codes[2]
-        PyAllocator.py_lib = __import__(PY_FILE)
+        global py_lib
+        py_lib = importlib.import_module(PY_FILE)
 
     @staticmethod
     def build(so_path=SO_FILE_PATH):

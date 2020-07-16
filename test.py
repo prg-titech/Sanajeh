@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import sanajeh
-from sanajeh import PyAllocator, ffi
+from sanajeh import PyAllocator, ffi, py_lib
 import time
 import sys
 
@@ -23,14 +23,14 @@ initialize_time = time.time()
 # Create objects on device
 obn = int(sys.argv[1])
 itr = int(sys.argv[2])
-PyAllocator.parallel_new(PyAllocator.py_lib.Body, obn)
+PyAllocator.parallel_new(py_lib.Body, obn)
 parallel_new_time = time.time()
 
 # Compute on device
 for x in range(itr):
     p_do_start_time = time.time()
-    PyAllocator.parallel_do(PyAllocator.py_lib.Body, PyAllocator.py_lib.Body.compute_force)
-    PyAllocator.parallel_do(PyAllocator.py_lib.Body, PyAllocator.py_lib.Body.body_update)
+    PyAllocator.parallel_do(py_lib.Body, py_lib.Body.compute_force)
+    PyAllocator.parallel_do(py_lib.Body, py_lib.Body.body_update)
     p_do_end_time = time.time()
     # print("iteration%-3d time: %.3fs" % (x, p_do_end_time - p_do_start_time))
 end_time = time.time()
