@@ -10,3 +10,37 @@ import先の関数の扱い
 5 Before generating cpp codes wo need to know all of the device classes, but in current implementation the device classes are only known after "parallel_new" is called
 
  unknown type '**' (if you meant to use the old C syntax of giving untyped arguments, it is not supported)
+
+------use eval-------
+(10000 objects, 10 iterations)
+compile time(py2cpp): 0.006s
+compile time(nvcc): 6.217s
+initialize time: 0.112s
+parallel new time(10000 objects): 0.005s
+average computation time: 0.013s
+overall computation time(10   iterations): 0.131s
+do_all time: 0.718s
+overall time: 7.189s
+
+(10000 objects, 100 iterations)
+compile time(py2cpp): 0.006s
+compile time(nvcc): 6.263s
+initialize time: 0.128s
+parallel new time(10000 objects): 0.005s
+average computation time: 0.011s
+overall computation time(100  iterations): 1.085s
+do_all time: 0.425s
+overall time: 7.913s
+
+(1000 objects, 10 iterations)
+compile time(py2cpp): 0.006s
+compile time(nvcc): 6.282s
+initialize time: 0.125s
+parallel new time(1000  objects): 0.004s
+average computation time: 0.001s
+overall computation time(10   iterations): 0.015s
+do_all time: 0.040s
+overall time: 6.472s
+
+-----without eval -------
+

@@ -115,12 +115,20 @@ class PyAllocator:
         func_class_name = func_str[0]
         func_name = func_str[1]
         # todo args
-        if eval("PyAllocator.lib.{}_{}_{}".format(object_class_name, func_class_name, func_name))() == 0:
-            pass
-            # print("Successfully called parallel_do {} {} {}".format(object_class_name, func_class_name, func_name))
-        else:
-            print("Parallel_do expression failed!", file=sys.stderr)
-            sys.exit(1)
+        if func_name == "compute_force":
+            if PyAllocator.lib.Body_Body_compute_force() == 0:
+                pass
+                # print("Successfully called parallel_do {} {} {}".format(object_class_name, func_class_name, func_name))
+            else:
+                print("Parallel_do expression failed!", file=sys.stderr)
+                sys.exit(1)
+        elif func_name == "body_update":
+            if PyAllocator.lib.Body_Body_body_update() == 0:
+                pass
+                # print("Successfully called parallel_do {} {} {}".format(object_class_name, func_class_name, func_name))
+            else:
+                print("Parallel_do expression failed!", file=sys.stderr)
+                sys.exit(1)
 
     @staticmethod
     def parallel_new(cls, object_num):
@@ -128,7 +136,7 @@ class PyAllocator:
         Parallelly create objects of a class
         """
         object_class_name = cls.__name__
-        if eval("PyAllocator.lib.parallel_new_{}".format(object_class_name))(object_num) == 0:
+        if PyAllocator.lib.parallel_new_Body(object_num) == 0:
             pass
             # print("Successfully called parallel_new {} {}".format(object_class_name, object_num))
         else:
@@ -141,7 +149,7 @@ class PyAllocator:
         Run a function which is used to received the fields on all object of a class.
         """
         class_name = cls.__name__
-        if eval("PyAllocator.lib.{}_do_all".format(class_name))(func) == 0:
+        if PyAllocator.lib.Body_do_all(func) == 0:
             pass
             # print("Successfully called parallel_new {} {}".format(object_class_name, object_num))
         else:
