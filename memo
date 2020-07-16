@@ -12,6 +12,26 @@ import先の関数の扱い
  unknown type '**' (if you meant to use the old C syntax of giving untyped arguments, it is not supported)
 
 ------use eval-------
+(100000 objects, 100 iterations)
+compile time(py2cpp): 0.006s
+compile time(nvcc): 6.201s
+initialize time: 0.147s
+parallel new time(100000 objects): 0.013s
+average computation time: 0.418s
+overall computation time(100  iterations): 41.774s
+do_all time: 10.727s
+overall time: 58.867s
+
+(100000 objects, 10 iterations)
+compile time(py2cpp): 0.006s
+compile time(nvcc): 6.196s
+initialize time: 0.117s
+parallel new time(100000 objects): 0.014s
+average computation time: 0.417s
+overall computation time(10   iterations): 4.174s
+do_all time: 8.343s
+overall time: 18.851s
+
 (10000 objects, 10 iterations)
 compile time(py2cpp): 0.006s
 compile time(nvcc): 6.217s
@@ -43,4 +63,53 @@ do_all time: 0.040s
 overall time: 6.472s
 
 -----without eval -------
+(100000 objects, 100 iterations)
+compile time(py2cpp): 0.006s
+compile time(nvcc): 6.273s
+initialize time: 0.124s
+parallel new time(100000 objects): 0.014s
+average computation time: 0.418s
+overall computation time(100  iterations): 41.755s
+do_all time: 7.551s
+overall time: 55.723s
 
+(100000 objects, 10 iterations)
+compile time(py2cpp): 0.006s
+compile time(nvcc): 6.218s
+initialize time: 0.125s
+parallel new time(100000 objects): 0.013s
+average computation time: 0.416s
+overall computation time(10   iterations): 4.163s
+do_all time: 8.085s
+overall time: 18.610s
+
+
+(10000 objects, 10 iterations)
+compile time(py2cpp): 0.006s
+compile time(nvcc): 6.241s
+initialize time: 0.119s
+parallel new time(10000 objects): 0.005s
+average computation time: 0.013s
+overall computation time(10   iterations): 0.131s
+do_all time: 0.759s
+overall time: 7.262s
+
+(10000 objects, 100 iterations)
+compile time(py2cpp): 0.006s
+compile time(nvcc): 6.246s
+initialize time: 0.120s
+parallel new time(10000 objects): 0.006s
+average computation time: 0.011s
+overall computation time(100  iterations): 1.079s
+do_all time: 0.731s
+overall time: 8.187s
+
+(1000 objects, 10 iterations)
+compile time(py2cpp): 0.006s
+compile time(nvcc): 6.292s
+initialize time: 0.108s
+parallel new time(1000  objects): 0.004s
+average computation time: 0.001s
+overall computation time(10   iterations): 0.011s
+do_all time: 0.037s
+overall time: 6.457s
