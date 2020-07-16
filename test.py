@@ -52,7 +52,8 @@ def printAllFields(pos_x, pos_y, vel_x, vel_y, force_x, force_y, mass):
     object_index = object_index + 1
 
 
-PyAllocator.do_all(PyAllocator.py_lib.Body, printAllFields)
+PyAllocator.do_all(Body, printAllFields)
+end_time2 = time.time()
 
 print("compile time(py2cpp): %.3fs" % (compile_time - start_time))
 print("compile time(nvcc): %.3fs" % (build_time - compile_time))
@@ -60,4 +61,5 @@ print("initialize time: %.3fs" % (initialize_time - build_time))
 print("parallel new time(%-5d objects): %.3fs" % (obn, parallel_new_time - initialize_time))
 print("average computation time: %.3fs" % ((end_time - parallel_new_time) / itr))
 print("overall computation time(%-4d iterations): %.3fs" % (itr, end_time - parallel_new_time))
-print("overall time: %.3fs" % (end_time - start_time))
+print("do_all time: %.3fs" % (end_time2 - end_time))
+print("overall time: %.3fs" % (end_time2 - start_time))
