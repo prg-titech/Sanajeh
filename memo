@@ -14,13 +14,13 @@ import先の関数の扱い
 ------use eval-------
 (100000 objects, 100 iterations)
 compile time(py2cpp): 0.006s
-compile time(nvcc): 6.201s
-initialize time: 0.147s
-parallel new time(100000 objects): 0.013s
-average computation time: 0.418s
-overall computation time(100  iterations): 41.774s
-do_all time: 10.727s
-overall time: 58.867s
+compile time(nvcc): 6.310s
+initialize time: 0.115s
+parallel new time(100000 objects): 0.014s
+average computation time: 0.413s
+overall computation time(100  iterations): 41.332s
+do_all time: 8.182s
+overall time: 55.959s
 
 (100000 objects, 10 iterations)
 compile time(py2cpp): 0.006s
