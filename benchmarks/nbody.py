@@ -58,10 +58,6 @@ class Body:
             other.force_y += f * dy / dist
 
     def body_update(self):
-
-        """
-        test code
-        """
         self.vel_x += self.force_x * kDt / self.mass
         self.vel_y += self.force_y * kDt / self.mass
         self.pos_x += self.vel_x * kDt
@@ -74,11 +70,11 @@ class Body:
             self.vel_y = -self.vel_y
 
 
-def kernel_initialize_bodies():
+def specify_device_class():
     DeviceAllocator.device_class(Body)
 
 
-def _update():
+def specify_parallel_do():
     DeviceAllocator.parallel_do(Body, Body.compute_force)
     DeviceAllocator.parallel_do(Body, Body.body_update)
 
