@@ -150,7 +150,7 @@ class FunctionDef(CodeStatement):
                 body.remove('')
             if ctx.in_class():
                 # __init__ special case
-                if self.name == "__init__":
+                if self.name == "__init__" or self.name == ctx.stack[-1].name:
                     return "\n".join([
                         "\n{}__device__ {}::{}({}) {{".format(
                             ctx.indent(),
@@ -188,7 +188,7 @@ class FunctionDef(CodeStatement):
     def buildHpp(self, ctx):
         with BuildContext(ctx, self) as new_ctx:
             # __init__ special case
-            if self.name == "__init__" and ctx.in_class():
+            if self.name == "__init__" or self.name == ctx.stack[-1].name and ctx.in_class():
                 return "\n".join([
                     "{}__device__ {}({});".format(
                         ctx.indent(),

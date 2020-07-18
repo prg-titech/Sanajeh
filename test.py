@@ -39,17 +39,16 @@ end_time = time.time()
 object_index = 0
 
 
-@ffi.callback("void(float, float, float, float, float, float, float)")
-def printAllFields(pos_x, pos_y, vel_x, vel_y, force_x, force_y, mass):
+def printAllFields(b):
     global object_index
     print("Object {}:".format(object_index))
-    print("\tpos_x:{}".format(pos_x))
-    print("\tpos_y:{}".format(pos_y))
-    print("\tvel_x:{}".format(vel_x))
-    print("\tvel_y:{}".format(vel_y))
-    print("\tforce_x:{}".format(force_x))
-    print("\tforce_y:{}".format(force_y))
-    print("\tmass:{}\n".format(mass))
+    print("\tpos_x:{}".format(b.pos_x))
+    print("\tpos_y:{}".format(b.pos_y))
+    print("\tvel_x:{}".format(b.vel_x))
+    print("\tvel_y:{}".format(b.vel_y))
+    print("\tforce_x:{}".format(b.force_x))
+    print("\tforce_y:{}".format(b.force_y))
+    print("\tmass:{}\n".format(b.mass))
     object_index = object_index + 1
 
 

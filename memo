@@ -6,6 +6,7 @@ import先の関数の扱い
     ->クラスのfieldとその型の宣言が必要
 2 deviceクラスの中の変数の型はint, float, boolしか使えない(double?)
 3 constructor関数の複数使用 multiple constructor
+   can create 2 right now
 4 parallel_do can only use functions with specific syntax (for now, "parallel_do" itself) which has been specified in device code
 5 Before generating cpp codes wo need to know all of the device classes, but in current implementation the device classes are only known after "parallel_new" is called
 

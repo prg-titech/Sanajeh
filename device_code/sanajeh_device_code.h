@@ -27,6 +27,7 @@ class Body : public AllocatorT::Base {
 		Field<Body, 5> force_y;
 		Field<Body, 6> mass;
 	public:
+		__device__ Body(float px, float py, float vx, float vy, float fx, float fy, float m);
 		__device__ Body(int idx);
 		__device__ void compute_force();
 		__device__ void apply_force(Body* other);

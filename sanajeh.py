@@ -141,7 +141,12 @@ class PyAllocator:
         Run a function which is used to received the fields on all object of a class.
         """
         class_name = cls.__name__
-        if eval("PyAllocator.lib.{}_do_all".format(class_name))(func) == 0:
+        callback_types = "void({})".format(", ".join(cls.__dict__['__annotations__'].values()))
+        fields = ", ".join(cls.__dict__['__annotations__'])
+        lambda_for_create_host_objects = eval("lambda {}: func(cls({}))".format(fields, fields), locals())
+        lambda_for_callback = ffi.callback(callback_types, lambda_for_create_host_objects)
+
+        if eval("PyAllocator.lib.{}_do_all".format(class_name))(lambda_for_callback) == 0:
             pass
             # print("Successfully called parallel_new {} {}".format(object_class_name, object_num))
         else:

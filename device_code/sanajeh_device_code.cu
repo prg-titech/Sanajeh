@@ -3,6 +3,16 @@
 AllocatorHandle<AllocatorT>* allocator_handle;
 __device__ AllocatorT* device_allocator;
 
+__device__ Body::Body(float px, float py, float vx, float vy, float fx, float fy, float m) {
+	this->pos_x = px;
+	this->pos_y = py;
+	this->vel_x = vx;
+	this->vel_y = vy;
+	this->force_x = fx;
+	this->force_y = fy;
+	this->mass = m;
+}
+
 __device__ Body::Body(int idx) {
 	curandState rand_state;
 	curand_init(kSeed, idx, 0, &rand_state);

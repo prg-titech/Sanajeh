@@ -24,16 +24,16 @@ class Body:
     force_y: float
     mass: float
 
-    # def __init__(self, px: float, py: float, vx: float, vy: float, m: float):
-    #     self.pos_x = px
-    #     self.pos_y = py
-    #     self.vel_x = vx
-    #     self.vel_y = vy
-    #     self.mass = m
-    #     self.force_x = 0.0
-    #     self.force_y = 0.0
+    def __init__(self, px: float, py: float, vx: float, vy: float, fx: float, fy: float, m: float):
+        self.pos_x = px
+        self.pos_y = py
+        self.vel_x = vx
+        self.vel_y = vy
+        self.force_x = fx
+        self.force_y = fy
+        self.mass = m
 
-    def __init__(self, idx: int):
+    def Body(self, idx: int):
         DeviceAllocator.rand_init(kSeed, idx, 0)
         self.pos_x = 2.0 * DeviceAllocator.rand_uniform() - 1.0
         self.pos_y = 2.0 * DeviceAllocator.rand_uniform() - 1.0
