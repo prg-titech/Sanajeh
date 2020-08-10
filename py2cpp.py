@@ -6,7 +6,7 @@ import hashlib
 import sys
 
 import type_converter
-from config import INDENT, FILE_NAME
+from config import INDENT, FILE_NAME, CDEF_FILE_PATH, CPP_FILE_PATH, HPP_FILE_PATH
 from call_graph import CallGraph, ClassNode, FunctionNode, VariableNode
 from gencpp_ast import GenCppAstVisitor
 import gencpp
@@ -578,12 +578,10 @@ class Preprocessor(ast.NodeVisitor):
         self.generic_visit(node)
 
 
-def compile(source_code, cpp_path, hpp_path):
+def compile(source_code):
     """
     Compile python source_code into c++ source file and header file
         source_code:    codes written in python
-        cpp_path:       path for the compiled c++ source file
-        hpp_path:       path for the compiled c++ header file
     """
     # Generate python ast
     py_ast = ast.parse(source_code)
@@ -642,8 +640,10 @@ def compile(source_code, cpp_path, hpp_path):
 
     # Codes for cffi cdef() function
     cdef_code = gpcgv.build_parallel_do_cdef() + gpcgv.build_parallel_new_cdef() + init_cdef + gpcgv.build_do_all_cdef()
-    with open(cpp_path, mode='w') as cpp_file:
+    with open(CPP_FILE_PATH, mode='w') as cpp_file:
         cpp_file.write(cpp_code)
-    with open(hpp_path, mode='w') as hpp_file:
+    with open(HPP_FILE_PATH, mode='w') as hpp_file:
         hpp_file.write(hpp_code)
+    with open(CDEF_FILE_PATH, mode='w') as cdef_file:
+        hpp_file.write(cdef_code)
     return cpp_code, hpp_code, cdef_code

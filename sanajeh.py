@@ -8,7 +8,7 @@ import cffi
 # Sanajeh package
 import py2cpp
 import build
-from config import CPP_FILE_PATH, HPP_FILE_PATH, SO_FILE_PATH
+from config import CPP_FILE_PATH, HPP_FILE_PATH, SO_FILE_PATH, CDEF_FILE_PATH
 
 ffi = cffi.FFI()
 
@@ -48,12 +48,12 @@ class DeviceAllocator:
 
 # Host side allocator
 class PyAllocator:
-    cpp_path: str = CPP_FILE_PATH
-    hpp_path: str = HPP_FILE_PATH
     cpp_code: str = open(CPP_FILE_PATH, mode='r').read()
     hpp_code: str = open(HPP_FILE_PATH, mode='r').read()
+    cdef_code: str = open(CDEF_FILE_PATH, mode='r').read()
+    cpp_path: str = CPP_FILE_PATH
+    hpp_path: str = HPP_FILE_PATH
     so_path: str = SO_FILE_PATH
-    cdef_code: str = None
     lib = None
 
     # compile python code to cpp code and .so file
@@ -61,19 +61,18 @@ class PyAllocator:
     def compile(py_path, cpp_path=CPP_FILE_PATH, hpp_path=HPP_FILE_PATH):
         source = open(py_path, encoding="utf-8").read()
         PyAllocator.cpp_path = cpp_path
-        PyAllocator.hpp_path = cpp_path
-        codes = py2cpp.compile(source, cpp_path, hpp_path)
+        PyAllocator.hpp_path = hpp_path
+        codes = py2cpp.compile(source)
         PyAllocator.cpp_code = codes[0]
         PyAllocator.hpp_code = codes[1]
         PyAllocator.cdef_code = codes[2]
 
     @staticmethod
-    def build(so_path=SO_FILE_PATH):
+    def build(cpp_path= CPP_FILE_PATH, so_path=SO_FILE_PATH):
         """
         Compile cpp source file to .so file
         """
-        PyAllocator.so_path = so_path
-        if build.run(PyAllocator.cpp_path, so_path) != 0:
+        if build.run(cpp_path, so_path) != 0:
             print("Build failed!", file=sys.stderr)
             sys.exit(1)
 
