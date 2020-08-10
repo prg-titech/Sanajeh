@@ -48,9 +48,9 @@ class DeviceAllocator:
 
 # Host side allocator
 class PyAllocator:
-    cpp_code: str = open(CPP_FILE_PATH, mode='r').read()
-    hpp_code: str = open(HPP_FILE_PATH, mode='r').read()
-    cdef_code: str = open(CDEF_FILE_PATH, mode='r').read()
+    cpp_code: str = ""
+    hpp_code: str = ""
+    cdef_code: str = ""
     cpp_path: str = CPP_FILE_PATH
     hpp_path: str = HPP_FILE_PATH
     so_path: str = SO_FILE_PATH
@@ -68,7 +68,7 @@ class PyAllocator:
         PyAllocator.cdef_code = codes[2]
 
     @staticmethod
-    def build(cpp_path= CPP_FILE_PATH, so_path=SO_FILE_PATH):
+    def build(cpp_path=CPP_FILE_PATH, so_path=SO_FILE_PATH):
         """
         Compile cpp source file to .so file
         """
@@ -78,10 +78,14 @@ class PyAllocator:
 
     # load the shared library and initialize the allocator on GPU
     @staticmethod
-    def initialize(so_path=SO_FILE_PATH):
+    def initialize(cdef_path=CDEF_FILE_PATH, so_path=SO_FILE_PATH):
         """
         Initialize ffi module
         """
+        PyAllocator.cpp_code = open(PyAllocator.cpp_path, mode='r').read()
+        PyAllocator.hpp_code = open(PyAllocator.hpp_path, mode='r').read()
+        PyAllocator.cdef_code = open(cdef_path, mode='r').read()
+
         ffi.cdef(PyAllocator.cdef_code)
         PyAllocator.lib = ffi.dlopen(so_path)
         if PyAllocator.lib.AllocatorInitialize() == 0:
