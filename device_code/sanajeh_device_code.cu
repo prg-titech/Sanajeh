@@ -89,12 +89,12 @@ extern "C" int AllocatorInitialize(){
 int main(int argc, char* argv[]) {
 
 	AllocatorInitialize();
-	parallel_new_Body(argv[1]);
+	parallel_new_Body(static_cast<int>(argv[1]));
 
 	for (int i = 0; i < 100; ++i) {
 		auto time_start = std::chrono::system_clock::now();
 		Body_Body_compute_force();
-		Body_Body_body_update():
+		Body_Body_body_update();
 		auto time_end = std::chrono::system_clock::now();
 		auto elapsed = time_end - time_start;
 		auto micros = std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
