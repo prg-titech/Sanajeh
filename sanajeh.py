@@ -79,12 +79,12 @@ class PyAllocator:
 
     # load the shared library and initialize the allocator on GPU
     @staticmethod
-    def initialize():
+    def initialize(so_path=SO_FILE_PATH):
         """
         Initialize ffi module
         """
         ffi.cdef(PyAllocator.cdef_code)
-        PyAllocator.lib = ffi.dlopen(PyAllocator.so_path)
+        PyAllocator.lib = ffi.dlopen(so_path)
         if PyAllocator.lib.AllocatorInitialize() == 0:
             pass
             # print("Successfully initialized the allocator through FFI.")
