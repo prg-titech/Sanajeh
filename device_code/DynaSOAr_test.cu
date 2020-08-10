@@ -7,7 +7,7 @@ int main(int argc, char* argv[]) {
 #endif  // OPTION_RENDER
 
   // Create new allocator.
-  AllocatorInitialize()
+	AllocatorInitialize();
 
   allocator_handle->parallel_new<Body>(argv[1]);
 
@@ -15,7 +15,7 @@ int main(int argc, char* argv[]) {
   for (int i = 0; i < 100; ++i) {
 	auto time_start = std::chrono::system_clock::now();
     allocator_handle->parallel_do<Body, &Body::compute_force>();
-    allocator_handle->parallel_do<Body, &Body::update>();
+    allocator_handle->parallel_do<Body, &Body::body_update>();
 	auto time_end = std::chrono::system_clock::now();
 	auto elapsed = time_end - time_start;
 	auto micros = std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
