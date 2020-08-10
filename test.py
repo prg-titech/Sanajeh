@@ -23,7 +23,7 @@ initialize_time = time.perf_counter()
 
 # Create objects on device
 obn = int(sys.argv[1])
-itr = 100
+itr = int(sys.argv[2])
 PyAllocator.parallel_new(Body, obn)
 parallel_new_time = time.perf_counter()
 
@@ -52,14 +52,14 @@ def printAllFields(b):
     object_index = object_index + 1
 
 
-PyAllocator.do_all(Body, printAllFields)
+# PyAllocator.do_all(Body, printAllFields)
 end_time2 = time.perf_counter()
 
-print("compile time(py2cpp): %.3fs" % (compile_time - start_time))
-print("compile time(nvcc): %.3fs" % (build_time - compile_time))
-print("initialize time: %.3fs" % (initialize_time - build_time))
+print("compile time(py2cpp): %.7s" % (compile_time - start_time))
+print("compile time(nvcc): %.7s" % (build_time - compile_time))
+print("initialize time: %.7fs" % (initialize_time - build_time))
 print("parallel new time(%-5d objects): %.3fs" % (obn, parallel_new_time - initialize_time))
-print("average computation time: %.3fs" % ((end_time - parallel_new_time) / itr))
-print("overall computation time(%-4d iterations): %.3fs" % (itr, end_time - parallel_new_time))
-print("do_all time: %.3fs" % (end_time2 - end_time))
-print("overall time: %.3fs" % (end_time2 - start_time))
+print("average computation time: %.7fs" % ((end_time - parallel_new_time) / itr))
+print("overall computation time(%-4d iterations): %.7fs" % (itr, end_time - parallel_new_time))
+# print("do_all time: %.7fs" % (end_time2 - end_time))
+print("overall time: %.7fs" % (end_time2 - start_time))
