@@ -5,11 +5,12 @@ int main(int argc, char* argv[]) {
 #ifdef OPTION_RENDER
 
 #endif  // OPTION_RENDER
-
+	AllocatorHandle<AllocatorT>* allocator_handler;
+	__device__ AllocatorT* device_allocatorr;
   // Create new allocator.
 	allocator_handler = new AllocatorHandle<AllocatorT>(/* unified_memory= */ true);
 	AllocatorT* dev_ptr = allocator_handler->device_pointer();
-	cudaMemcpyToSymbol(device_allocator, &dev_ptr, sizeof(AllocatorT*), 0, cudaMemcpyHostToDevice);
+	cudaMemcpyToSymbol(device_allocatorr, &dev_ptr, sizeof(AllocatorT*), 0, cudaMemcpyHostToDevice);
 
 	allocator_handler->parallel_new<Body>(argv[1]);
 
