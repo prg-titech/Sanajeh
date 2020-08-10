@@ -645,5 +645,5 @@ def compile(source_code):
     with open(HPP_FILE_PATH, mode='w') as hpp_file:
         hpp_file.write(hpp_code)
     with open(CDEF_FILE_PATH, mode='w') as cdef_file:
-        hpp_file.write(cdef_code)
+        cdef_file.write(cdef_code)
     return cpp_code, hpp_code, cdef_code
