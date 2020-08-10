@@ -5,36 +5,36 @@ from benchmarks.nbody import Body
 import time
 import sys
 
-start_time = time.time()
+start_time = time.perf_counter()
 
 # Compile python code to cpp code
 PyAllocator.compile(py_path='./benchmarks/nbody.py')
-compile_time = time.time()
+compile_time = time.perf_counter()
 # PyAllocator.printCppAndHpp()
 # PyAllocator.printCdef()
 
 # Compile cpp code to shared library
 PyAllocator.build()
-build_time = time.time()
+build_time = time.perf_counter()
 
 # Load shared library and initialize device classes on GPU
 PyAllocator.initialize()
-initialize_time = time.time()
+initialize_time = time.perf_counter()
 
 # Create objects on device
 obn = int(sys.argv[1])
-itr = int(sys.argv[2])
+itr = 100
 PyAllocator.parallel_new(Body, obn)
-parallel_new_time = time.time()
+parallel_new_time = time.perf_counter()
 
 # Compute on device
 for x in range(itr):
-    p_do_start_time = time.time()
+    p_do_start_time = time.perf_counter()
     PyAllocator.parallel_do(Body, Body.compute_force)
     PyAllocator.parallel_do(Body, Body.body_update)
-    p_do_end_time = time.time()
+    p_do_end_time = time.perf_counter()
     # print("iteration%-3d time: %.3fs" % (x, p_do_end_time - p_do_start_time))
-end_time = time.time()
+end_time = time.perf_counter()
 
 object_index = 0
 
@@ -53,7 +53,7 @@ def printAllFields(b):
 
 
 PyAllocator.do_all(Body, printAllFields)
-end_time2 = time.time()
+end_time2 = time.perf_counter()
 
 print("compile time(py2cpp): %.3fs" % (compile_time - start_time))
 print("compile time(nvcc): %.3fs" % (build_time - compile_time))
