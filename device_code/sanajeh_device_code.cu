@@ -94,19 +94,13 @@ int main(int argc, char* argv[]) {
 
 	auto time_start = std::chrono::system_clock::now();
 	for (int i = 0; i < 100; ++i) {
-		auto time_start = std::chrono::system_clock::now();
 		Body_Body_compute_force();
 		Body_Body_body_update();
-		auto time_end = std::chrono::system_clock::now();
-		auto elapsed = time_end - time_start;
-		auto micros = std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
-
 	}
-	printf("%lu\n", overall / 100);
 	auto time_end = std::chrono::system_clock::now();
 	auto elapsed = time_end - time_start;
 	auto micros = std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
-	long unsigned int overall = micros;
+	overall = micros;
 	printf("%lu\n", overall / 100);
 
 	return 0;
