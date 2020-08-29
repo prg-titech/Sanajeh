@@ -6,8 +6,8 @@ from benchmarks.nbody import Body
 import time
 import sys
 
-screen_width = 250
-screen_height = 250
+screen_width = 1000
+screen_height = 1000
 pygame.init()
 screen = pygame.display.set_mode((screen_width, screen_height))
 pygame.display.flip()
@@ -36,8 +36,8 @@ parallel_new_time = time.perf_counter()
 
 
 def render(b):
-    px = int((b.pos_x + 1) * 125)
-    py = int((b.pos_y + 1) * 125)
+    px = int((b.pos_x + 1) * int(screen_width/2))
+    py = int((b.pos_y + 1) * int(screen_width/2))
     pygame.draw.circle(screen, (255, 255, 255), (px, py), 3)
 
 
