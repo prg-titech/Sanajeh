@@ -31,6 +31,7 @@ parallel_new_time = time.perf_counter()
 
 fig = plt.figure(figsize=(5, 5))
 plt.axis([-1, 1, -1, 1], frameon=False, aspect=1)
+plt.ion()
 
 
 def render(b):
@@ -40,20 +41,20 @@ def render(b):
 # Compute on device
 for x in range(itr):
     # p_do_start_time = time.perf_counter()
+    plt.clf()
+    plt.axis([-1, 1, -1, 1], frameon=False, aspect=1)
     PyAllocator.parallel_do(Body, Body.compute_force)
     PyAllocator.parallel_do(Body, Body.body_update)
     PyAllocator.do_all(Body, render)
     plt.pause(0.00001)
-    plt.clf()
-    plt.axis([-1, 1, -1, 1], frameon=False, aspect=1)
     # p_do_end_time = time.perf_counter()
     # print("iteration%-3d time: %.3fs" % (x, p_do_end_time - p_do_start_time))
 end_time = time.perf_counter()
 
+plt.ioff()
+plt.show()
+
 object_index = 0
-
-
-
 
 
 
