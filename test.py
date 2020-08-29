@@ -28,11 +28,20 @@ itr = int(sys.argv[2])
 PyAllocator.parallel_new(Body, obn)
 parallel_new_time = time.perf_counter()
 
+
+def render(b):
+    ax = fig.add_subplot(1, 1, 1)
+    ax.scatter(b.pos_x, b.pos_y)
+    plt.ion()
+    plt.show()
+
+
 # Compute on device
 for x in range(itr):
     # p_do_start_time = time.perf_counter()
     PyAllocator.parallel_do(Body, Body.compute_force)
     PyAllocator.parallel_do(Body, Body.body_update)
+    PyAllocator.do_all(Body, render)
     # p_do_end_time = time.perf_counter()
     # print("iteration%-3d time: %.3fs" % (x, p_do_end_time - p_do_start_time))
 end_time = time.perf_counter()
@@ -42,11 +51,7 @@ object_index = 0
 fig = plt.figure()
 
 
-def render(b):
-    ax = fig.add_subplot(1, 1, 1)
-    ax.scatter(b.pos_x, b.pos_y)
-    plt.ion()
-    plt.show()
+
 
 
 def printAllFields(b):
@@ -62,7 +67,6 @@ def printAllFields(b):
     object_index = object_index + 1
 
 
-PyAllocator.do_all(Body, render)
 end_time2 = time.perf_counter()
 
 # print("compile time(py2cpp): %dµs" % ((compile_time - start_time) * 1000000))
