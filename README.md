@@ -1,5 +1,5 @@
 # Sanajeh
-A python interface for calling Dynasoar APIs.
+A DSL for GPGPU programming with Python objects.
 
 # Get-start
 Run this after `git clone`
