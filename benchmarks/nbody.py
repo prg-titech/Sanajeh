@@ -3,14 +3,11 @@ from __future__ import annotations
 import math
 from sanajeh import DeviceAllocator
 
-kNumIterations: int = 3000
-kNumBodies: int = 30
-inx = 0
 
-kSeed: int = 3000  # device
+kSeed: int = 45  # device
 kMaxMass: float = 1000.0  # device
 kDt: float = 0.02  # device
-kGravityConstant: float = 6.673e-5  # device
+kGravityConstant: float = 6.673e-6  # device
 kDampeningFactor: float = 0.05  # device
 
 
