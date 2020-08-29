@@ -6,6 +6,12 @@ from benchmarks.nbody import Body
 import time
 import sys
 
+screen_width = 1000
+screen_height = 1000
+pygame.init()
+screen = pygame.display.set_mode((screen_width, screen_height))
+pygame.display.flip()
+
 start_time = time.perf_counter()
 
 # Compile python code to cpp code
@@ -28,15 +34,11 @@ itr = int(sys.argv[2])
 PyAllocator.parallel_new(Body, obn)
 parallel_new_time = time.perf_counter()
 
-screen_width = 1000
-screen_height = 1000
-pygame.init()
-screen = pygame.display.set_mode((screen_width, screen_height))
-pygame.display.flip()
-
 
 def render(b):
-    pygame.draw.circle(screen, (0, 0, 0), (b.pos_x, b.pos_y), 5)
+    px = int((b.pos_x + 1) * 125)
+    py = int((b.pos_y + 1) * 125)
+    pygame.draw.circle(screen, (0, 0, 0), (px, py), 5)
 
 
 def clear_screen():
