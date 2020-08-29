@@ -43,7 +43,6 @@ def render(b):
 
 def clear_screen():
     screen.fill((0, 0, 0))
-    pygame.display.flip()
 
 
 # Compute on device
@@ -52,6 +51,7 @@ for x in range(itr):
     PyAllocator.parallel_do(Body, Body.compute_force)
     PyAllocator.parallel_do(Body, Body.body_update)
     PyAllocator.do_all(Body, render)
+    pygame.display.flip()
     clear_screen()
     # p_do_end_time = time.perf_counter()
     # print("iteration%-3d time: %.3fs" % (x, p_do_end_time - p_do_start_time))
