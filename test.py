@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from sanajeh import PyAllocator, ffi
+from sanajeh import PyAllocator
+import matplotlib.pyplot as plt
 from benchmarks.nbody import Body
 import time
 import sys
@@ -38,6 +39,15 @@ end_time = time.perf_counter()
 
 object_index = 0
 
+fig = plt.figure()
+
+
+def render(b):
+    ax = fig.add_subplot(1, 1, 1)
+    ax.scatter(b.pos_x, b.pos_y)
+    plt.ion()
+    plt.show()
+
 
 def printAllFields(b):
     global object_index
@@ -52,7 +62,7 @@ def printAllFields(b):
     object_index = object_index + 1
 
 
-# PyAllocator.do_all(Body, printAllFields)
+PyAllocator.do_all(Body, render)
 end_time2 = time.perf_counter()
 
 # print("compile time(py2cpp): %dµs" % ((compile_time - start_time) * 1000000))
