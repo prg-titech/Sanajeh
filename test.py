@@ -36,9 +36,9 @@ parallel_new_time = time.perf_counter()
 
 
 def render(b):
-    px = int((b.pos_x + 1) * int(screen_width/2))
-    py = int((b.pos_y + 1) * int(screen_width/2))
-    pygame.draw.circle(screen, (255, 255, 255), (px, py), 3)
+    px = int((b.pos_x + 1) * 500)
+    py = int((b.pos_y + 1) * 500)
+    pygame.draw.circle(screen, (255, 255, 255), (px, py), 5)
 
 
 def clear_screen():
