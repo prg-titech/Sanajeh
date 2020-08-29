@@ -1,16 +1,10 @@
 # -*- coding: utf-8 -*-
 
 from sanajeh import PyAllocator
-import pygame
 from benchmarks.nbody import Body
 import time
 import sys
 
-screen_width = 300
-screen_height = 300
-pygame.init()
-screen = pygame.display.set_mode((screen_width, screen_height))
-pygame.display.flip()
 
 start_time = time.perf_counter()
 
@@ -34,25 +28,11 @@ itr = int(sys.argv[2])
 PyAllocator.parallel_new(Body, obn)
 parallel_new_time = time.perf_counter()
 
-
-def render(b):
-    px = int((b.pos_x + 1) * 150)
-    py = int((b.pos_y + 1) * 150)
-    pygame.draw.circle(screen, (255, 255, 255), (px, py), 2)
-
-
-def clear_screen():
-    screen.fill((0, 0, 0))
-
-
 # Compute on device
 for x in range(itr):
     # p_do_start_time = time.perf_counter()
     PyAllocator.parallel_do(Body, Body.compute_force)
     PyAllocator.parallel_do(Body, Body.body_update)
-    PyAllocator.do_all(Body, render)
-    pygame.display.flip()
-    clear_screen()
     # p_do_end_time = time.perf_counter()
     # print("iteration%-3d time: %.3fs" % (x, p_do_end_time - p_do_start_time))
 end_time = time.perf_counter()
