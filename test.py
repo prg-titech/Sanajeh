@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from sanajeh import PyAllocator
-import matplotlib.pyplot as plt
+import pygame
 from benchmarks.nbody import Body
 import time
 import sys
@@ -28,35 +28,34 @@ itr = int(sys.argv[2])
 PyAllocator.parallel_new(Body, obn)
 parallel_new_time = time.perf_counter()
 
-
-fig = plt.figure(figsize=(5, 5))
-plt.axis([-1, 1, -1, 1], frameon=False, aspect=1)
-plt.ion()
+screen_width = 1000
+screen_height = 1000
+pygame.init()
+screen = pygame.display.set_mode((screen_width, screen_height))
+pygame.display.flip()
 
 
 def render(b):
-    plt.scatter(b.pos_x, b.pos_y, color='k')
+    pygame.draw.circle(screen, (0, 0, 0), (b.pos_x, b.pos_y), 5)
+
+
+def clear_screen():
+    pygame.draw.circle(screen, (255, 255, 255), (screen_width / 2, screen_height / 2), screen_height / 2, 1)
+    pygame.display.flip()
 
 
 # Compute on device
 for x in range(itr):
     # p_do_start_time = time.perf_counter()
-    plt.clf()
-    plt.axis([-1, 1, -1, 1], frameon=False, aspect=1)
     PyAllocator.parallel_do(Body, Body.compute_force)
     PyAllocator.parallel_do(Body, Body.body_update)
     PyAllocator.do_all(Body, render)
-    plt.pause(0.00001)
+    clear_screen()
     # p_do_end_time = time.perf_counter()
     # print("iteration%-3d time: %.3fs" % (x, p_do_end_time - p_do_start_time))
 end_time = time.perf_counter()
 
-plt.ioff()
-plt.show()
-
 object_index = 0
-
-
 
 
 def printAllFields(b):
