@@ -29,6 +29,9 @@ PyAllocator.parallel_new(Body, obn)
 parallel_new_time = time.perf_counter()
 
 
+fig = plt.figure()
+
+
 def render(b):
     ax = fig.add_subplot(1, 1, 1)
     ax.scatter(b.pos_x, b.pos_y)
@@ -48,7 +51,7 @@ end_time = time.perf_counter()
 
 object_index = 0
 
-fig = plt.figure()
+
 
 
 
