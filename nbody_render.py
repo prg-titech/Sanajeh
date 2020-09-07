@@ -15,13 +15,13 @@ pygame.display.flip()
 start_time = time.perf_counter()
 
 # Compile python code to cpp code
-# PyAllocator.compile(py_path='./benchmarks/nbody.py')
+PyAllocator.compile(py_path='./benchmarks/nbody.py')
 # compile_time = time.perf_counter()
 # PyAllocator.printCppAndHpp()
 # PyAllocator.printCdef()
 
 # Compile cpp code to shared library
-# PyAllocator.build()
+PyAllocator.build()
 build_time = time.perf_counter()
 
 # Load shared library and initialize device classes on GPU

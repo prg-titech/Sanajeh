@@ -15,8 +15,8 @@ bodies = []
 for i in range(obn):
     px_ = 2.0 * random.random() - 1.0
     py_ = 2.0 * random.random() - 1.0
-    vx_ = (random.random() - 0.5) / 1000.0
-    vy_ = (random.random() - 0.5) / 1000.0
+    vx_ = 0.0
+    vy_ = 0.0
     ms_ = (random.random() / 2.0 + 0.5) * 1000.0
     bodies.append(Body(px_, py_, vx_, vy_, 0.0, 0.0, ms_))
 

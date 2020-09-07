@@ -7,7 +7,7 @@ from sanajeh import DeviceAllocator
 kSeed: int = 45  # device
 kMaxMass: float = 1000.0  # device
 kDt: float = 0.02  # device
-kGravityConstant: float = 6.673e-6  # device
+kGravityConstant: float = 6.673e-7  # device
 kDampeningFactor: float = 0.05  # device
 
 
@@ -34,8 +34,8 @@ class Body:
         DeviceAllocator.rand_init(kSeed, idx, 0)
         self.pos_x = 2.0 * DeviceAllocator.rand_uniform() - 1.0
         self.pos_y = 2.0 * DeviceAllocator.rand_uniform() - 1.0
-        self.vel_x = (DeviceAllocator.rand_uniform() - 0.5) / 1000.0
-        self.vel_y = (DeviceAllocator.rand_uniform() - 0.5) / 1000.0
+        self.vel_x = 0.0
+        self.vel_y = 0.0
         self.mass = (DeviceAllocator.rand_uniform() / 2.0 + 0.5) * kMaxMass
         self.force_x = 0.0
         self.force_y = 0.0

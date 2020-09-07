@@ -18,8 +18,8 @@ __device__ Body::Body(int idx) {
 	curand_init(kSeed, idx, 0, &rand_state);
 	this->pos_x = (2.0 * curand_uniform(&rand_state)) - 1.0;
 	this->pos_y = (2.0 * curand_uniform(&rand_state)) - 1.0;
-	this->vel_x = (curand_uniform(&rand_state) - 0.5) / 1000.0;
-	this->vel_y = (curand_uniform(&rand_state) - 0.5) / 1000.0;
+	this->vel_x = 0.0;
+	this->vel_y = 0.0;
 	this->mass = ((curand_uniform(&rand_state) / 2.0) + 0.5) * kMaxMass;
 	this->force_x = 0.0;
 	this->force_y = 0.0;
