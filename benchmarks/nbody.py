@@ -48,7 +48,7 @@ class Body:
     def apply_force(self, other: Body):
         if other is not self:
             dx: float = self.pos_x - other.pos_x
-            dy: float = self.pos_x - other.pos_y
+            dy: float = self.pos_y - other.pos_y
             dist: float = math.sqrt(dx * dx + dy * dy)
             f: float = kGravityConstant * self.mass * other.mass / (dist * dist + kDampeningFactor)
             other.force_x += f * dx / dist
