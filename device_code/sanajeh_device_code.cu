@@ -34,7 +34,7 @@ __device__ void Body::compute_force() {
 __device__ void Body::apply_force(Body* other) {
 	if (other != this) {
 		float dx = this->pos_x - other->pos_x;
-		float dy = this->pos_x - other->pos_y;
+		float dy = this->pos_y - other->pos_y;
 		float dist = sqrt((dx * dx) + (dy * dy));
 		float f = ((kGravityConstant * this->mass) * other->mass) / ((dist * dist) + kDampeningFactor);
 		other->force_x += (f * dx) / dist;

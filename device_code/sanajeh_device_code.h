@@ -11,8 +11,8 @@ using AllocatorT = SoaAllocator<KNUMOBJECTS, Body>;
 
 static const int kSeed = 45;
 static const float kMaxMass = 1000.0;
-static const float kDt = 0.02;
-static const float kGravityConstant = 6.673e-07;
+static const float kDt = 0.01;
+static const float kGravityConstant = 4e-06;
 static const float kDampeningFactor = 0.05;
 
 class Body : public AllocatorT::Base {

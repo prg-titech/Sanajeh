@@ -6,8 +6,8 @@ from sanajeh import DeviceAllocator
 
 kSeed: int = 45  # device
 kMaxMass: float = 1000.0  # device
-kDt: float = 0.02  # device
-kGravityConstant: float = 6.673e-7  # device
+kDt: float = 0.01  # device
+kGravityConstant: float = 4e-6  # device
 kDampeningFactor: float = 0.05  # device
 
 
