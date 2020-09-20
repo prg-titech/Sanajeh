@@ -11,10 +11,44 @@ kGravityConstant: float = 4e-6  # device
 kDampeningFactor: float = 0.05  # device
 
 
-class Body:
+class Point2D:
+    x: float
+    y: float
 
-    pos_x: float
-    pos_y: float
+    def __init__(self, x_, y_):
+        self.x = x_
+        self.y = y_
+
+    def dist(self, other: Point2D) -> float:
+        dx: float = self.dist_x(other)
+        dy: float = self.dist_y(other)
+        return math.sqrt(dx * dx + dy * dy)
+
+    def dist_x(self, other: Point2D) -> float:
+        return self.x - other.x
+
+    def dist_y(self, other: Point2D) -> float:
+        return self.y - other.y
+
+    def move(self, vx, vy, t):
+        self.x += vx * t
+        self.y += vy * t
+
+    def is_out_x(self, r):
+        if self.x < -r or self.x > r:
+            return True
+        else:
+            return False
+
+    def is_out_y(self, r):
+        if self.y < -r or self.y > r:
+            return True
+        else:
+            return False
+
+
+class Body:
+    pos: Point2D
     vel_x: float
     vel_y: float
     force_x: float
@@ -22,8 +56,7 @@ class Body:
     mass: float
 
     def __init__(self, px: float, py: float, vx: float, vy: float, fx: float, fy: float, m: float):
-        self.pos_x = px
-        self.pos_y = py
+        self.pos = Point2D(px, py)
         self.vel_x = vx
         self.vel_y = vy
         self.force_x = fx
@@ -32,8 +65,8 @@ class Body:
 
     def Body(self, idx: int):
         DeviceAllocator.rand_init(kSeed, idx, 0)
-        self.pos_x = 2.0 * DeviceAllocator.rand_uniform() - 1.0
-        self.pos_y = 2.0 * DeviceAllocator.rand_uniform() - 1.0
+        self.pos = Point2D(2.0 * DeviceAllocator.rand_uniform() - 1.0,
+                           2.0 * DeviceAllocator.rand_uniform() - 1.0)
         self.vel_x = 0.0
         self.vel_y = 0.0
         self.mass = (DeviceAllocator.rand_uniform() / 2.0 + 0.5) * kMaxMass
@@ -47,24 +80,20 @@ class Body:
 
     def apply_force(self, other: Body):
         if other is not self:
-            dx: float = self.pos_x - other.pos_x
-            dy: float = self.pos_y - other.pos_y
-            dist: float = math.sqrt(dx * dx + dy * dy)
-            f: float = kGravityConstant * self.mass * other.mass / (dist * dist + kDampeningFactor)
-            other.force_x += f * dx / dist
-            other.force_y += f * dy / dist
+            d = self.pos.dist(other.pos)
+            f: float = kGravityConstant * self.mass * other.mass / (d * d + kDampeningFactor)
+            other.force_x += f * self.pos.dist_x(other.pos) / d
+            other.force_y += f * self.pos.dist_y(other.pos) / d
 
     def body_update(self):
 
         self.vel_x += self.force_x * kDt / self.mass
         self.vel_y += self.force_y * kDt / self.mass
-        self.pos_x += self.vel_x * kDt
-        self.pos_y += self.vel_y * kDt
-
-        if self.pos_x < -1 or self.pos_x > 1:
+        self.pos.move(self.vel_x, self.vel_y, kDt)
+        if self.pos.is_out_x(1):
             self.vel_x = -self.vel_x
 
-        if self.pos_y < -1 or self.pos_y > 1:
+        if self.pos.is_out_y(1):
             self.vel_y = -self.vel_y
 
 

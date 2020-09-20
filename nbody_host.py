@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import pygame
 
-from benchmarks.nbody import Body
+from benchmarks.nbody_point2D import Body
 import time
 import sys
 import random
@@ -28,8 +28,8 @@ pygame.display.flip()
 
 
 def render(b):
-    px = int((b.pos_x + 1) * 150)
-    py = int((b.pos_y + 1) * 150)
+    px = int((b.pos.x + 1) * 150)
+    py = int((b.pos.y + 1) * 150)
     pygame.draw.circle(screen, (255, 255, 255), (px, py), 2)
 
 
