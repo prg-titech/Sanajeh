@@ -55,15 +55,12 @@ class Body:
             other.force_y += f * dy / dist
 
     def body_update(self):
-
         self.vel_x += self.force_x * kDt / self.mass
         self.vel_y += self.force_y * kDt / self.mass
         self.pos_x += self.vel_x * kDt
         self.pos_y += self.vel_y * kDt
-
         if self.pos_x < -1 or self.pos_x > 1:
             self.vel_x = -self.vel_x
-
         if self.pos_y < -1 or self.pos_y > 1:
             self.vel_y = -self.vel_y
 
