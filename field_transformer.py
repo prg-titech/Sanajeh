@@ -85,7 +85,9 @@ class FieldTransformer:
         """Replace all self-defined type fields with specific implementation"""
         scr = self.Searcher(call_graph)
         scr.visit(node)
-        # print(scr.dev_cls, scr.sdef_csl)
+        for cls in scr.dev_cls:
+            if cls in scr.sdef_csl:
+                scr.sdef_csl.remove(cls)
         # node = ast.fix_missing_locations(self.Normalizer(call_graph).visit(node))
         # node = ast.fix_missing_locations(self.Expander().visit(node))
         # node = ast.fix_missing_locations(self.Eliminator().visit(node))
