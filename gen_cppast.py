@@ -6,7 +6,7 @@ import sys
 
 import type_converter
 from call_graph import CallGraph, ClassNode
-import gencpp as cpp
+import build_cpp as cpp
 import six
 
 

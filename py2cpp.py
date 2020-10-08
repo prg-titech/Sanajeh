@@ -8,8 +8,8 @@ import sys
 import type_converter
 from config import INDENT, FILE_NAME, CDEF_FILE_PATH, CPP_FILE_PATH, HPP_FILE_PATH
 from call_graph import CallGraph, ClassNode, FunctionNode, VariableNode
-from gencpp_ast import GenCppAstVisitor
-import gencpp
+from gen_cppast import GenCppAstVisitor
+import build_cpp
 
 
 # Generate python call graph
@@ -596,7 +596,7 @@ def compile(source_code):
     gcv = GenCppAstVisitor(gpcgv.root)
     cpp_node = gcv.visit(py_ast)
     # Generate cpp(hpp) code from cpp ast
-    ctx = gencpp.BuildContext.create()
+    ctx = build_cpp.BuildContext.create()
     # Expression needed for DynaSOAr API
     cpp_include_expr = '#include "{}.h"\n\n'.format(FILE_NAME)
     allocator_declaration = "AllocatorHandle<AllocatorT>* allocator_handle;\n" \
