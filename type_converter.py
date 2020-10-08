@@ -1,6 +1,6 @@
-#
-# type registry
-#
+# import builtins
+# builtin_types = [getattr(builtins, d) for d in dir(builtins) if isinstance(getattr(builtins, d), type)]
+
 type_map = {}
 
 

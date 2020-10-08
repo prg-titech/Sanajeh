@@ -1,5 +1,6 @@
 import ast
 import sys
+import pprint
 
 from call_graph import CallGraph
 from py2cpp import GenPyCallGraphVisitor
@@ -56,7 +57,8 @@ class FieldTransformer:
 
         def visit_AnnAssign(self, node):
             ann = node.annotation.id
-
+            if ann not in ("str", "float", "int"):
+                self.sdef_csl.add(ann)
 
     class Normalizer(ast.NodeTransformer):
         """Use variables to rewrite nested expressions"""
