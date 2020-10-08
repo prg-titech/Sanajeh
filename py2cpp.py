@@ -13,7 +13,7 @@ import build_cpp
 
 
 # Generate python call graph
-class GenPyCallGraphVistor(ast.NodeVisitor):
+class GenPyCallGraphVisitor(ast.NodeVisitor):
     __root = CallGraph('root', None)
     __node_path = [__root]
     __current_node = None
@@ -38,7 +38,7 @@ class GenPyCallGraphVistor(ast.NodeVisitor):
 
     def visit(self, node):
         self.__current_node = self.__node_path[-1]
-        super(GenPyCallGraphVistor, self).visit(node)
+        super(GenPyCallGraphVisitor, self).visit(node)
 
     # todo other py files
     # def visit_Module(self, node):
@@ -106,12 +106,13 @@ class GenPyCallGraphVistor(ast.NodeVisitor):
             id_name = None
 
             if type(var) is ast.Attribute:
-                var_name = var.attr
+                pass
+                # var_name = var.attr
                 # print(var_name, var.value.id)
-                # todo Attribute variables(self should refer to the class not in the current block),
-                # todo haven't thought about other occasions
-                if var.value.id == 'self':
-                    pass
+                # # todo Attribute variables(self should refer to the class not in the current block),
+                # # todo haven't thought about other occasions
+                # if var.value.id == 'self':
+                #     pass
             elif type(var) is ast.Name:
                 var_name = var.id
                 self.__variables.setdefault(self.__current_node.id, [])
@@ -128,7 +129,6 @@ class GenPyCallGraphVistor(ast.NodeVisitor):
         var = node.target
         ann = node.annotation.id
 
-        var_name = None
         # todo id_name
         id_name = None
 
@@ -493,7 +493,9 @@ class Preprocessor(ast.NodeVisitor):
     # Analyze function calling relationships
     def visit_Call(self, node):
         # Find device classes through device code
-        if type(node.func) is ast.Attribute and node.func.value.id == "DeviceAllocator":
+        if type(node.func) is ast.Attribute and \
+                hasattr(node.func.value, "id") and \
+                node.func.value.id == "DeviceAllocator":
             if node.func.attr == 'device_class':
                 self.has_device_data = True
                 for cls in node.args:
@@ -522,7 +524,9 @@ class Preprocessor(ast.NodeVisitor):
                     self.__cdef_parallel_do_codes.append(pdb.buildCdef())
 
         # Find device classes through host code
-        if type(node.func) is ast.Attribute and node.func.value.id == "PyAllocator":
+        if type(node.func) is ast.Attribute \
+                and hasattr(node.func.value, "id") and \
+                node.func.value.id == "PyAllocator":
             if node.func.attr == 'parallel_new':
                 self.has_device_data = True
                 if node.args[0].id not in self.__classes:
@@ -558,8 +562,7 @@ class Preprocessor(ast.NodeVisitor):
         # ignore call other functions in the same class
         if type(node.func) is ast.Attribute:
             func_name = node.func.attr
-            id_name = node.func.value.id
-            if id_name == 'self':
+            if hasattr(node.func.value, "id") and node.func.value.id == 'self':
                 return
         elif type(node.func) is ast.Name:
             func_name = node.func.id
@@ -586,7 +589,7 @@ def compile(source_code):
     # Generate python ast
     py_ast = ast.parse(source_code)
     # Generate python call graph
-    gpcgv = GenPyCallGraphVistor()
+    gpcgv = GenPyCallGraphVisitor()
     gpcgv.visit(py_ast)
     # Mark all device data on the call graph
     if not gpcgv.mark_device_data(py_ast):
