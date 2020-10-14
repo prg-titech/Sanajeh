@@ -93,9 +93,9 @@ class Body:
 
     def body_update(self):
         self.vel.add(self.force.multiply(kDt).divide(self.mass))
-        # self.vel.add(self.force).scale(kDt).divide_by(self.mass)
+        # self.vel.add(self.force.scale(kDt).divide_by(self.mass))
         self.pos.add(self.vel.multiply(kDt))
-        # self.pos.add(self.vel).scale(kDt)
+        # self.pos.add(self.vel.scale(kDt))
 
         if self.pos.x < -1 or self.pos.x > 1:
             self.vel.x = -self.vel.x
