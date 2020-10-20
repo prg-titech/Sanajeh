@@ -61,12 +61,10 @@ class GenCppAstVisitor(ast.NodeVisitor):
     def __init__(self, root: CallGraph):
         self.__root: CallGraph = root
         self.__node_path = [self.__root]
-        self.__current_node = None
         self.__classes = []
         self.__field = []
 
     def visit(self, node):
-        self.__current_node = self.__node_path[-1]
         ret = super(GenCppAstVisitor, self).visit(node)
         if ret is None:
             return cpp.UnsupportedNode(node)
@@ -91,7 +89,7 @@ class GenCppAstVisitor(ast.NodeVisitor):
 
     def visit_FunctionDef(self, node):
         name = node.name
-        func_node = self.__current_node.GetFunctionNode(name, None)
+        func_node = self.__node_path[-1].GetFunctionNode(name, None)
         if func_node is None:
             # Program shouldn't come to here, which means the function is not analyzed by the marker yet
             print("The function {} does not exist.".format(name), file=sys.stderr)
@@ -118,7 +116,7 @@ class GenCppAstVisitor(ast.NodeVisitor):
         # todo do not support nested class
         self.__field = {}
         name = node.name
-        class_node = self.__current_node.GetClassNode(name, None)
+        class_node = self.__node_path[-1].GetClassNode(name, None)
         if class_node is None:
             # Program shouldn't come to here, which means the class is not analyzed by the marker yet
             print("The class {} does not exist.".format(name), file=sys.stderr)
@@ -157,7 +155,7 @@ class GenCppAstVisitor(ast.NodeVisitor):
         anno = node.annotation
         is_global = False
         if type(var) is ast.Name:
-            var_node = self.__current_node.GetVariableNode(var.id, None, anno.id)
+            var_node = self.__node_path[-1].GetVariableNode(var.id, None, anno.id)
             if var_node is None:
                 # Program shouldn't come to here, which means the variable is not analyzed by the marker yet
                 print("The variable {} does not exist.".format(var.id), file=sys.stderr)
@@ -170,9 +168,9 @@ class GenCppAstVisitor(ast.NodeVisitor):
         else:
             value = None
         annotation = self.visit(node.annotation)
-        if type(self.__current_node) is ClassNode:
+        if type(self.__node_path[-1]) is ClassNode:
             self.__field[var.id] = type_converter.convert(anno.id)
-        if type(self.__current_node) is CallGraph:
+        if type(self.__node_path[-1]) is CallGraph:
             is_global = True
         return cpp.AnnAssign(target, value, annotation, is_global)
 
