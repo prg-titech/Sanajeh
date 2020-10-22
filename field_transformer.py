@@ -182,24 +182,6 @@ class Normalizer(DeviceCodeVisitor):
                                       ))
                 self.v_counter += 1
                 node.args[x] = new_var_node
-                # if hasattr(node.args[x].func, "value") and type(node.args[x].func.value) == ast.Call:
-                #     assign_nodes = self.visit(node.args[x])
-                #     new_var_node = ast.Name(id="__auto_v" + str(self.v_counter), ctx=ast.Load())  # change argument
-                #     ret.extend(assign_nodes[:-1])
-                #     ret.append(ast.Assign(targets=[ast.Name(id="__auto_v" + str(self.v_counter), ctx=ast.Store())],
-                #                           value=assign_nodes[-1]
-                #                           ))
-                #     self.v_counter += 1
-                #     node.args[x] = new_var_node
-                # elif type(node.args[x].func) == ast.Name:
-                #     assign_nodes = self.visit(node.args[x])
-                #     new_var_node = ast.Name(id="__auto_v" + str(self.v_counter), ctx=ast.Load())  # change argument
-                #     ret.extend(assign_nodes[:-1])
-                #     ret.append(ast.Assign(targets=[ast.Name(id="__auto_v" + str(self.v_counter), ctx=ast.Store())],
-                #                           value=assign_nodes[-1]
-                #                           ))
-                #     self.v_counter += 1
-                #     node.args[x] = new_var_node
         ret.append(node)
         return ret
 
