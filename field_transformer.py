@@ -129,10 +129,39 @@ class Normalizer(DeviceCodeVisitor):
                 if type(v) == ast.Call:
                     v = ast.Expr(value=v)
                 ret.append(v)
-        return ret
+            return ret
+        else:
+            return node
+
+    def visit_Assign(self, node):
+        ret = []
+        node.value = self.visit(node.value)
+        if type(node.value) == list:
+            for v in node.value:
+                if type(v) == ast.Call:
+                    v = ast.Assign(targets=node.targets, value=v)
+                ret.append(v)
+            return ret
+        else:
+            return node
+
+    def visit_AnnAssign(self, node):
+        if node.value is None:
+            return node
+        ret = []
+        node.value = self.visit(node.value)
+        if type(node.value) == list:
+            for v in node.value:
+                if type(v) == ast.Call:
+                    v = ast.AnnAssign(annotation=node.annotation, simple=node.simple, target=node.target, value=v)
+                ret.append(v)
+            return ret
+        else:
+            return node
 
     def visit_Call(self, node):
         ret = []
+        # self.f.A().B()...
         if hasattr(node.func, "value") and type(node.func.value) == ast.Call:
             assign_nodes = self.visit(node.func.value)
             new_var_node = ast.Name(id="__auto_v" + str(self.v_counter), ctx=ast.Load())  # change argument
@@ -143,17 +172,34 @@ class Normalizer(DeviceCodeVisitor):
             self.v_counter += 1
             node.func.value = new_var_node
         for x in range(len(node.args)):
+            # self.f.A(B())
             if type(node.args[x]) == ast.Call:
-                if hasattr(node.args[x].func, "value") and type(node.args[x].func.value) == ast.Call:
-                    assign_nodes = self.visit(node.args[x])
-                    new_var_node = ast.Name(id="__auto_v" + str(self.v_counter), ctx=ast.Load())  # change argument
-                    ret.extend(assign_nodes[:-1])
-                    ret.append(ast.Assign(targets=[ast.Name(id="__auto_v" + str(self.v_counter), ctx=ast.Store())],
-                                          value=assign_nodes[-1]
-                                          ))
-                    self.v_counter += 1
-                    node.args[x] = new_var_node
-
+                assign_nodes = self.visit(node.args[x])
+                new_var_node = ast.Name(id="__auto_v" + str(self.v_counter), ctx=ast.Load())  # change argument
+                ret.extend(assign_nodes[:-1])
+                ret.append(ast.Assign(targets=[ast.Name(id="__auto_v" + str(self.v_counter), ctx=ast.Store())],
+                                      value=assign_nodes[-1]
+                                      ))
+                self.v_counter += 1
+                node.args[x] = new_var_node
+                # if hasattr(node.args[x].func, "value") and type(node.args[x].func.value) == ast.Call:
+                #     assign_nodes = self.visit(node.args[x])
+                #     new_var_node = ast.Name(id="__auto_v" + str(self.v_counter), ctx=ast.Load())  # change argument
+                #     ret.extend(assign_nodes[:-1])
+                #     ret.append(ast.Assign(targets=[ast.Name(id="__auto_v" + str(self.v_counter), ctx=ast.Store())],
+                #                           value=assign_nodes[-1]
+                #                           ))
+                #     self.v_counter += 1
+                #     node.args[x] = new_var_node
+                # elif type(node.args[x].func) == ast.Name:
+                #     assign_nodes = self.visit(node.args[x])
+                #     new_var_node = ast.Name(id="__auto_v" + str(self.v_counter), ctx=ast.Load())  # change argument
+                #     ret.extend(assign_nodes[:-1])
+                #     ret.append(ast.Assign(targets=[ast.Name(id="__auto_v" + str(self.v_counter), ctx=ast.Store())],
+                #                           value=assign_nodes[-1]
+                #                           ))
+                #     self.v_counter += 1
+                #     node.args[x] = new_var_node
         ret.append(node)
         return ret
 
@@ -185,7 +231,7 @@ def transform(node, call_graph):
     # ast.fix_missing_locations(Eliminator(call_graph).visit(node))
 
 
-tree = ast.parse(open('./benchmarks/nbody_vector.py', encoding="utf-8").read())
+tree = ast.parse(open('./benchmarks/nbody_vector_test.py', encoding="utf-8").read())
 # Generate python call graph
 gpcgv = GenPyCallGraphVisitor()
 gpcgv.visit(tree)
