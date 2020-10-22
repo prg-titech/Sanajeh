@@ -14,7 +14,7 @@ class Vector:
     x: float
     y: float
 
-    def __init__(self, x_, y_):
+    def __init__(self, x_: float, y_: float):
         self.x = x_
         self.y = y_
 

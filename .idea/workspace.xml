@@ -34,16 +34,17 @@
     <property name="settings.editor.selected.configurable" value="editor.preferences.fonts.default" />
   </component>
   <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="C:\Sanajeh\benchmarks" />
+      <recent name="$PROJECT_DIR$/python2cpp_examples" />
+      <recent name="$PROJECT_DIR$/python_examples" />
+    </key>
     <key name="MoveFile.RECENT_KEYS">
       <recent name="C:\Sanajeh" />
       <recent name="C:\Sanajeh\py2cpp" />
       <recent name="C:\Sanajeh\justfortest" />
       <recent name="$PROJECT_DIR$/benchmarks" />
       <recent name="$PROJECT_DIR$" />
-    </key>
-    <key name="CopyFile.RECENT_KEYS">
-      <recent name="$PROJECT_DIR$/python2cpp_examples" />
-      <recent name="$PROJECT_DIR$/python_examples" />
     </key>
   </component>
   <component name="RunManager" selected="Python.test">
