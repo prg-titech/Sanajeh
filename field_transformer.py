@@ -226,10 +226,10 @@ class FunctionBodyGenerator(ast.NodeTransformer):
 
     def visit_Name(self, node):
         if node.id == "self":
-            return copy.deepcopy(self.caller)
+            return self.caller
         for i in range(len(self.func_args)):
             if node.id == self.func_args[i]:
-                return copy.deepcopy(self.args[i])
+                return self.args[i]
         return node
 
     def GetTransformedNodes(self, caller, func_name, args):
