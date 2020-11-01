@@ -4,13 +4,9 @@ import先の関数の扱い
 1 python3.7で書く
     ->関数の返り値の型の宣言が必要(ない時はvoidと認識される)
     ->クラスのfieldとその型の宣言が必要
-2 deviceクラスの中の変数の型はint, float, boolしか使えない(double?)
-3 constructor関数の複数使用 multiple constructor
-   can create 2 right now
-4 parallel_do can only use functions with specific syntax (for now, "parallel_do" itself) which has been specified in device code
-5 Before generating cpp codes wo need to know all of the device classes, but in current implementation the device classes are only known after "parallel_new" is called
+2 parallel_do can only use functions with specific syntax (for now, "parallel_do" itself) which has been specified in device code
+3 can't use functions with same names in those classes which are used for field types in device classes
 
- unknown type '**' (if you meant to use the old C syntax of giving untyped arguments, it is not supported)
 
  ------use eval-------
 (100000 objects, 100 iterations)
@@ -114,3 +110,4 @@ average computation time: 0.001s
 overall computation time(10   iterations): 0.011s
 do_all time: 0.037s
 overall time: 6.457s
+

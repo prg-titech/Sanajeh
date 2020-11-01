@@ -54,12 +54,10 @@ class Vector:
     def dist_origin(self) -> float:
         return math.sqrt(self.x * self.x + self.y * self.y)
 
-
-def to_zero(v: Vector):
-    v.x = 0.0
-    v.y = 0.0
-    return v
-
+    def to_zero(self) -> Vector:
+        self.x = 0.0
+        self.y = 0.0
+        return self
 
 class Body:
     pos: Vector
@@ -82,7 +80,7 @@ class Body:
         self.mass = (DeviceAllocator.rand_uniform() / 2.0 + 0.5) * kMaxMass
 
     def compute_force(self):
-        to_zero(self.force)
+        self.force.to_zero()
         DeviceAllocator.device_do(Body, Body.apply_force, self)
 
     def apply_force(self, other: Body):
@@ -107,10 +105,10 @@ class Body:
         self.vel.add(self.force.multiply(kDt).divide(self.mass))
 
     def test_Expr_2(self):
-        self.vel.minus(to_zero(self.force.scale(kDt).divide_by(self.mass)))
+        self.vel.subtract(self.force.scale(kDt).divide_by(self.mass).to_zero())
 
     def test_Expr_3(self):
-        to_zero(self.force).add(self.force.scale(kDt).divide_by(self.mass)).minus(self.force.scale(kDt).divide_by(self.mass))
+        self.vel.subtract(self.force)
 
     def test_Assign(self):
         a = self.vel.add(self.force.scale(kDt).add(self.force.divide(self.mass)))

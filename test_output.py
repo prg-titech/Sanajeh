@@ -12,7 +12,7 @@ class Vector():
     x: float
     y: float
 
-    def __init__(self, x_, y_):
+    def __init__(self, x_: float, y_: float):
         self.x = x_
         self.y = y_
 
@@ -51,10 +51,10 @@ class Vector():
     def dist_origin(self) -> float:
         return math.sqrt(((self.x * self.x) + (self.y * self.y)))
 
-def to_zero(v: Vector):
-    v.x = 0.0
-    v.y = 0.0
-    return v
+    def to_zero(self) -> Vector:
+        self.x = 0.0
+        self.y = 0.0
+        return self
 
 class Body():
     pos: Vector
@@ -76,7 +76,8 @@ class Body():
         self.mass = (((DeviceAllocator.rand_uniform() / 2.0) + 0.5) * kMaxMass)
 
     def compute_force(self):
-        to_zero(self.force)
+        self.force.x = 0.0
+        self.force.y = 0.0
         DeviceAllocator.device_do(Body, Body.apply_force, self)
 
     def apply_force(self, other: Body):
@@ -86,14 +87,17 @@ class Body():
             f: float = (((kGravityConstant * self.mass) * other.mass) / ((dist * dist) + kDampeningFactor))
             __auto_v0 = d.multiply(f)
             __auto_v1 = __auto_v0.divide(dist)
-            other.force.add(__auto_v1)
+            other.force.x += __auto_v1.x
+            other.force.y += __auto_v1.y
 
     def body_update(self):
         __auto_v0 = self.force.multiply(kDt)
         __auto_v1 = __auto_v0.divide(self.mass)
-        self.vel.add(__auto_v1)
+        self.vel.x += __auto_v1.x
+        self.vel.y += __auto_v1.y
         __auto_v2 = self.vel.multiply(kDt)
-        self.pos.add(__auto_v2)
+        self.pos.x += __auto_v2.x
+        self.pos.y += __auto_v2.y
         if ((self.pos.x < (- 1)) or (self.pos.x > 1)):
             self.vel.x = (- self.vel.x)
         if ((self.pos.y < (- 1)) or (self.pos.y > 1)):
@@ -102,22 +106,19 @@ class Body():
     def test_Expr_1(self):
         __auto_v0 = self.force.multiply(kDt)
         __auto_v1 = __auto_v0.divide(self.mass)
-        self.vel.add(__auto_v1)
+        self.vel.x += __auto_v1.x
+        self.vel.y += __auto_v1.y
 
     def test_Expr_2(self):
         __auto_v0 = self.force.scale(kDt)
         __auto_v1 = __auto_v0.divide_by(self.mass)
-        __auto_v2 = to_zero(__auto_v1)
-        self.vel.minus(__auto_v2)
+        __auto_v2 = __auto_v1.to_zero()
+        self.vel.x -= __auto_v2.x
+        self.vel.y -= __auto_v2.y
 
     def test_Expr_3(self):
-        __auto_v0 = to_zero(self.force)
-        __auto_v1 = self.force.scale(kDt)
-        __auto_v2 = __auto_v1.divide_by(self.mass)
-        __auto_v3 = __auto_v0.add(__auto_v2)
-        __auto_v4 = self.force.scale(kDt)
-        __auto_v5 = __auto_v4.divide_by(self.mass)
-        __auto_v3.minus(__auto_v5)
+        self.vel.x -= self.force.x
+        self.vel.y -= self.force.y
 
     def test_Assign(self):
         __auto_v0 = self.force.scale(kDt)
