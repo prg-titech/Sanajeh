@@ -561,23 +561,28 @@ class Preprocessor(ast.NodeVisitor):
 
         func_name = None
         call_node = None
+        var_type = None
 
-        # ignore call other functions in the same class
         if type(node.func) is ast.Attribute:
             func_name = node.func.attr
-            if hasattr(node.func.value, "id") and node.func.value.id == 'self':
-                return
+            if type(node.func.value) is ast.Attribute:
+                if hasattr(node.func.value.value, "id") \
+                        and node.func.value.value.id == "self" \
+                        and type(self.__node_path[-2]) is ClassNode:
+                    for var in self.__node_path[-2].declared_variables:
+                        if var.name == node.func.value.attr:
+                            var_type = var.v_type
         elif type(node.func) is ast.Name:
             func_name = node.func.id
 
         for parent_node in self.__node_path[::-1]:
             if type(parent_node) is FunctionNode:
                 continue
-            call_node = parent_node.GetFunctionNode(func_name, None)
+            call_node = parent_node.GetFunctionNode(func_name, var_type)
             if call_node is not None:
                 break
         if call_node is None:
-            call_node = FunctionNode(func_name, None, None)
+            call_node = FunctionNode(func_name, var_type, None)
             self.__root.library_functions.add(call_node)
         self.__current_node.called_functions.add(call_node)
         self.generic_visit(node)
