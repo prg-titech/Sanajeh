@@ -59,6 +59,42 @@ class Vector:
         self.y = 0.0
         return self
 
+    def to_test1(self) -> VectorForTest1:
+        return VectorForTest1(self.x, self.y)
+
+    def add1(self, other: Vector) -> Vector:
+        self.x += other.x
+        self.y += other.y
+        return self
+
+    def minus1(self, other: Vector) -> Vector:
+        return Vector(self.x - other.x, self.y - other.y)
+
+
+class VectorForTest1:
+    x: float
+    y: float
+
+    def __init__(self, x_: float, y_: float):
+        self.x = x_
+        self.y = y_
+
+    def to_test2(self) -> VectorForTest2:
+        return VectorForTest2(self.x, self.y)
+
+class VectorForTest2:
+    x: float
+    y: float
+
+    def __init__(self, x_: float, y_: float):
+        self.x = x_
+        self.y = y_
+
+    def add(self, other: Vector) -> VectorForTest2:
+        self.x += other.x
+        self.y += other.y
+        return self
+
 class Body:
     pos: Vector
     vel: Vector
@@ -110,11 +146,18 @@ class Body:
     def test_Expr_3(self):
         self.vel.subtract(self.force)
 
+    def test_Expr_4(self, other: Body):
+        other.vel.subtract(self.force).add(self.force)
+
+    def test_annotation(self, other: Body):
+        self.vel.to_test1().to_test2().add(other.vel)
+
     def test_Assign(self):
         a = self.vel.add(self.force.scale(kDt).add(self.force.divide(self.mass)))
 
     def test_AnnAssign(self):
         a: Vector = self.vel.add(self.force).minus(self.vel)
+        a.subtract(self.force)
 
 
 def kernel_initialize_bodies():

@@ -3,7 +3,7 @@ import astunparse
 import sys
 import copy
 
-from call_graph import CallGraph
+from call_graph import CallGraph, ClassNode, FunctionNode
 from py2cpp import GenPyCallGraphVisitor
 
 
@@ -21,7 +21,7 @@ class DeviceCodeVisitor(ast.NodeTransformer):
 
     def visit_ClassDef(self, node):
         name = node.name
-        class_node = self.node_path[-1].GetClassNode(name, None)
+        class_node = self.node_path[-1].GetClassNode(name)
         if class_node is None:
             # Program shouldn't come to here, which means the class is not analyzed by the marker yet
             print("The class {} does not exist.".format(name), file=sys.stderr)
@@ -36,7 +36,7 @@ class DeviceCodeVisitor(ast.NodeTransformer):
 
     def visit_FunctionDef(self, node):
         name = node.name
-        func_node = self.node_path[-1].GetFunctionNode(name, None)
+        func_node = self.node_path[-1].GetFunctionNode(name, self.node_path[-1].name)
         if func_node is None:
             # Program shouldn't come to here, which means the function is not analyzed by the marker yet
             print("The function {} does not exist.".format(name), file=sys.stderr)
@@ -61,7 +61,7 @@ class Searcher(DeviceCodeVisitor):
 
     def visit_ClassDef(self, node):
         name = node.name
-        class_node = self.node_path[-1].GetClassNode(name, None)
+        class_node = self.node_path[-1].GetClassNode(name)
         if class_node is None:
             # Program shouldn't come to here, which means the class is not analyzed by the marker yet
             print("The class {} does not exist.".format(name), file=sys.stderr)
@@ -95,11 +95,13 @@ class Normalizer(DeviceCodeVisitor):
     def __init__(self, root: CallGraph):
         super().__init__(root)
         self.v_counter = 0  # used to count the auto generated variables
+        self.has_auto_variables = False
+        self.last_annotation = None
 
     def visit_FunctionDef(self, node):
         self.v_counter = 0  # counter needs to be reset in every function
         name = node.name
-        func_node = self.node_path[-1].GetFunctionNode(name, None)
+        func_node = self.node_path[-1].GetFunctionNode(name, self.node_path[-1].name)
         if func_node is None:
             # Program shouldn't come to here, which means the function is not analyzed by the marker yet
             print("The function {} does not exist.".format(name), file=sys.stderr)
@@ -123,6 +125,9 @@ class Normalizer(DeviceCodeVisitor):
 
     def visit_Expr(self, node):
         ret = []
+        self.has_auto_variables = False
+        # todo
+        self.last_annotation = "None"
         node.value = self.visit(node.value)
         if type(node.value) == list:
             for v in node.value:
@@ -135,6 +140,9 @@ class Normalizer(DeviceCodeVisitor):
 
     def visit_Assign(self, node):
         ret = []
+        self.has_auto_variables = False
+        # todo
+        self.last_annotation = "None"
         node.value = self.visit(node.value)
         if type(node.value) == list:
             for v in node.value:
@@ -149,6 +157,9 @@ class Normalizer(DeviceCodeVisitor):
         if node.value is None:
             return node
         ret = []
+        self.has_auto_variables = False
+        # todo
+        self.last_annotation = "None"
         node.value = self.visit(node.value)
         if type(node.value) == list:
             for v in node.value:
@@ -161,25 +172,80 @@ class Normalizer(DeviceCodeVisitor):
 
     def visit_Call(self, node):
         ret = []
+        # if self.has_auto_variables:
+        if hasattr(node.func, "value") and type(node.func.value) == ast.Name and self.has_auto_variables:
+            if type(self.node_path[-1]) == FunctionNode:
+                var_type = self.node_path[-1].GetVariableType(node.func.value.id)
+                if var_type is None:
+                    class_node = self.node_path[0].GetClassNode(self.last_annotation)
+                    for x in class_node.declared_functions:
+                        if x.name == node.func.attr:
+                            self.last_annotation = x.ret_type
+                            break
+                else:
+                    for x in self.node_path[-1].called_functions:
+                        if x.name == node.func.attr and x.c_name == var_type:
+                            self.last_annotation = x.ret_type
+                            break
+
+        elif hasattr(node.func, "value") and type(node.func.value) == ast.Attribute and self.has_auto_variables:
+            if node.func.value.value.id == "self":
+                var_type = None
+                for x in self.node_path[-2].declared_variables:
+                    if x.name == node.func.value.attr:
+                        var_type = x.v_type
+                        break
+                for x in self.node_path[-1].called_functions:
+                    if x.name == node.func.attr and x.c_name == var_type:
+                        self.last_annotation = x.ret_type
+                        break
+            else:
+                var_type = None
+                caller_type = self.node_path[-1].GetVariableType(node.func.value.value.id)
+                var_class = self.node_path[0].GetClassNode(caller_type)
+                for x in var_class.declared_variables:
+                    if x.name == node.func.value.attr:
+                        var_type = x.v_type
+                        break
+                caller_class = self.node_path[0].GetClassNode(var_type)
+                for x in caller_class.declared_functions:
+                    if x.name == node.func.attr:
+                        self.last_annotation = x.ret_type
+                        break
+
         # self.f.A().B()...
         if hasattr(node.func, "value") and type(node.func.value) == ast.Call:
+            self.has_auto_variables = True
             assign_nodes = self.visit(node.func.value)
             new_var_node = ast.Name(id="__auto_v" + str(self.v_counter), ctx=ast.Load())  # change argument
+            self.visit(assign_nodes[-1])
             ret.extend(assign_nodes[:-1])
-            ret.append(ast.Assign(targets=[ast.Name(id="__auto_v" + str(self.v_counter), ctx=ast.Store())],
-                                  value=assign_nodes[-1]
-                                  ))
+            if type(self.node_path[-2]) == ClassNode:
+                pass
+            else:
+                print("Invalid data structure.", file=sys.stderr)
+                sys.exit(1)
+            ret.append(ast.AnnAssign(target=ast.Name(id="__auto_v" + str(self.v_counter), ctx=ast.Store()),
+                                     value=assign_nodes[-1],
+                                     simple=1,
+                                     annotation=ast.Name(id=self.last_annotation, ctx=ast.Load())
+                                     ))
             self.v_counter += 1
             node.func.value = new_var_node
+
         for x in range(len(node.args)):
             # self.f.A(B())
             if type(node.args[x]) == ast.Call:
+                self.has_auto_variables = True
                 assign_nodes = self.visit(node.args[x])
                 new_var_node = ast.Name(id="__auto_v" + str(self.v_counter), ctx=ast.Load())  # change argument
                 ret.extend(assign_nodes[:-1])
-                ret.append(ast.Assign(targets=[ast.Name(id="__auto_v" + str(self.v_counter), ctx=ast.Store())],
-                                      value=assign_nodes[-1]
-                                      ))
+                self.visit(assign_nodes[-1])
+                ret.append(ast.AnnAssign(target=ast.Name(id="__auto_v" + str(self.v_counter), ctx=ast.Store()),
+                                         value=assign_nodes[-1],
+                                         simple=1,
+                                         annotation=ast.Name(id=self.last_annotation, ctx=ast.Load())
+                                         ))
                 self.v_counter += 1
                 node.args[x] = new_var_node
         ret.append(node)
@@ -189,14 +255,14 @@ class Normalizer(DeviceCodeVisitor):
 class FunctionBodyGenerator(ast.NodeTransformer):
     """Gernerate new ast nodes which are used by the Inliner to inline functions"""
 
-    def __init__(self, node, sdef_cls):
+    def __init__(self, node, caller_type):
         self.func_name = None
         self.caller = None
         self.args = []
         self.func_args = []
         self.new_ast_nodes = []
         self.node = copy.deepcopy(node)
-        self.self_define_class = sdef_cls
+        self.caller_type = caller_type
 
     def visit_Module(self, node):
         for x in node.body:
@@ -205,7 +271,7 @@ class FunctionBodyGenerator(ast.NodeTransformer):
         return node
 
     def visit_ClassDef(self, node):
-        if node.name not in self.self_define_class:
+        if node.name != self.caller_type:
             return node
         else:
             node.body = [self.visit(x) for x in node.body]
@@ -214,7 +280,7 @@ class FunctionBodyGenerator(ast.NodeTransformer):
     def visit_FunctionDef(self, node):
         if node.name == self.func_name:
             #  check if argument number is correct
-            if len(node.args.args)-1 != len(self.args):
+            if len(node.args.args) - 1 != len(self.args):
                 print("Invalid argument number.", file=sys.stderr)
                 sys.exit(1)
             for arg in node.args.args:
@@ -250,7 +316,7 @@ class Inliner(DeviceCodeVisitor):
 
     def visit_FunctionDef(self, node):
         name = node.name
-        func_node = self.node_path[-1].GetFunctionNode(name, None)
+        func_node = self.node_path[-1].GetFunctionNode(name, self.node_path[-1].name)
         if func_node is None:
             # Program shouldn't come to here, which means the function is not analyzed by the marker yet
             print("The function {} does not exist.".format(name), file=sys.stderr)
@@ -273,15 +339,42 @@ class Inliner(DeviceCodeVisitor):
         return node
 
     def visit_Expr(self, node):
-        if type(node.value) == ast.Call:
-            if type(node.value.func) == ast.Attribute:
-                if type(node.value.func.value) == ast.Attribute:
-                    func_body_gen = FunctionBodyGenerator(self.node, self.sdef_cls)
-                    func_body_gen.GetTransformedNodes(node.value.func.value,
-                                                      node.value.func.attr,
-                                                      node.value.args)
-                    if len(func_body_gen.new_ast_nodes) != 0:
-                        return func_body_gen.new_ast_nodes[:-1]
+        if type(node.value) == ast.Call and type(node.value.func) == ast.Attribute:
+            if type(node.value.func.value) == ast.Attribute:
+                if type(node.value.func.value.value) == ast.Name:
+                    if node.value.func.value.value.id == "self" and type(self.node_path[-2]) is ClassNode:
+                        caller_type = None
+                        for x in self.node_path[-2].declared_variables:
+                            if x.name == node.value.func.value.attr:
+                                caller_type = x.v_type
+                        if caller_type not in self.sdef_cls:
+                            return node
+                        func_body_gen = FunctionBodyGenerator(self.node, caller_type)
+                        func_body_gen.GetTransformedNodes(node.value.func.value,
+                                                          node.value.func.attr,
+                                                          node.value.args)
+                        if len(func_body_gen.new_ast_nodes) != 0:
+                            return func_body_gen.new_ast_nodes[:-1]
+                    else:
+                        caller_type = self.node_path[-1].GetVariableType(node.value.func.value.attr)
+                        if caller_type not in self.sdef_cls:
+                            return node
+                        func_body_gen = FunctionBodyGenerator(self.node, caller_type)
+                        func_body_gen.GetTransformedNodes(node.value.func.value,
+                                                          node.value.func.attr,
+                                                          node.value.args)
+                        if len(func_body_gen.new_ast_nodes) != 0:
+                            return func_body_gen.new_ast_nodes[:-1]
+            elif type(node.value.func.value) == ast.Name:
+                caller_type = self.node_path[-1].GetVariableType(node.value.func.value.id)
+                if caller_type not in self.sdef_cls:
+                    return node
+                func_body_gen = FunctionBodyGenerator(self.node, caller_type)
+                func_body_gen.GetTransformedNodes(node.value.func.value,
+                                                  node.value.func.attr,
+                                                  node.value.args)
+                if len(func_body_gen.new_ast_nodes) != 0:
+                    return func_body_gen.new_ast_nodes[:-1]
         return node
 
     #
@@ -327,13 +420,18 @@ class Eliminator(DeviceCodeVisitor):
 
 def transform(node, call_graph):
     """Replace all self-defined type fields with specific implementation"""
+    ast.fix_missing_locations(Normalizer(call_graph).visit(node))
+    gpcgv1 = GenPyCallGraphVisitor()
+    gpcgv1.visit(node)
+    if not gpcgv1.mark_device_data(tree):
+        print("No device data found")
+        sys.exit(1)
+    call_graph = gpcgv1.root
     scr = Searcher(call_graph)
     scr.visit(node)
     for cls in scr.dev_cls:
         if cls in scr.sdef_cls:
             scr.sdef_cls.remove(cls)
-
-    ast.fix_missing_locations(Normalizer(call_graph).visit(node))
     ast.fix_missing_locations(Inliner(call_graph, node, scr.sdef_cls).visit(node))
     # ast.fix_missing_locations(Eliminator(call_graph).visit(node))
 
