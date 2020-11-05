@@ -130,15 +130,15 @@ class VariableNode(CallGraphNode):
 
 # A tree which represents the calling and declaring relationships
 class CallGraph(CallGraphNode):
-    declared_classes: Set[ClassNode] = set()  # global classes
-    declared_functions: Set[FunctionNode] = set()  # global functions
-    declared_variables: Set[VariableNode] = set()  # global variables
-    library_functions: Set[FunctionNode] = set()  # library functions
-    called_functions: Set[FunctionNode] = set()  # functions called globally(shouldn't be device function)
-    called_variables: Set[VariableNode] = set()  # variables called globally
 
     def __init__(self, node_name):
         super(CallGraph, self).__init__(node_name)
+        self.declared_classes: Set[ClassNode] = set()  # global classes
+        self.declared_functions: Set[FunctionNode] = set()  # global functions
+        self.declared_variables: Set[VariableNode] = set()  # global variables
+        self.library_functions: Set[FunctionNode] = set()  # library functions
+        self.called_functions: Set[FunctionNode] = set()  # functions called globally(shouldn't be device function)
+        self.called_variables: Set[VariableNode] = set()  # variables called globally
 
     # Find the class 'class_name'
     def GetClassNode(self, class_name):

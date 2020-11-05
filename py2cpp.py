@@ -14,13 +14,13 @@ import build_cpp
 
 # Generate python call graph
 class GenPyCallGraphVisitor(ast.NodeVisitor):
-    __root = CallGraph('root')
-    __node_path = [__root]
-    __current_node = None
-    __variables = {}
 
     def __init__(self):
+        self.__root = CallGraph('root')
         self.__pp = Preprocessor(self.__root)
+        self.__node_path = [self.__root]
+        self.__current_node = None
+        self.__variables = {}
 
     @property
     def root(self):
@@ -560,6 +560,7 @@ class Preprocessor(ast.NodeVisitor):
                     self.__cdef_parallel_do_codes.append(pdb.buildCdef())
 
         func_name = None
+        call_node = None
 
         # ignore call other functions in the same class
         if type(node.func) is ast.Attribute:
