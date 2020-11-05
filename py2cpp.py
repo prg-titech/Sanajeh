@@ -84,8 +84,13 @@ class GenPyCallGraphVisitor(ast.NodeVisitor):
             print('Unexpected node "{}"'.format(self.__current_node.name), file=sys.stderr)
             sys.exit(1)
         for arg in node.args:
+            annotation = None
             if arg.arg == "self":
                 continue
+            if hasattr(arg, "annotation"):
+                annotation = arg.annotation.id
+            var_node = VariableNode(arg.arg, None, annotation)
+            self.__current_node.arguments.add(var_node)
             self.__variables.setdefault(self.__current_node.id, []).append(arg.arg)
 
     # Add global variables to the environment
