@@ -54,6 +54,10 @@ class ClassNode(CallGraphNode):
 
     # Find the function 'function_name' by recursion
     def GetFunctionNode(self, function_name, class_name):
+        if class_name is None:
+            for x in self.declared_functions:
+                if x.name == function_name:
+                    return x
         for x in self.declared_functions:
             if x.name == function_name and x.c_name == class_name:
                 return x
@@ -145,10 +149,9 @@ class CallGraph(CallGraphNode):
 
     def GetFunctionNode(self, function_name, class_name):
         for x in self.declared_classes:
-            if x.name == class_name:
-                ret = x.GetFunctionNode(function_name, x.name)
-                if ret is not None:
-                    return ret
+            ret = x.GetFunctionNode(function_name, class_name)
+            if ret is not None:
+                return ret
         # find the function in the functions defined in the global block
         for x in self.declared_functions:
             if x.name == function_name:

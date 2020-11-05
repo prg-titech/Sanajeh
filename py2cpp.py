@@ -569,9 +569,14 @@ class Preprocessor(ast.NodeVisitor):
         elif type(node.func) is ast.Name:
             func_name = node.func.id
 
-        call_node = self.__root.GetFunctionNode(func_name, self.__current_node.c_name)
+        for parent_node in self.__node_path[::-1]:
+            if type(parent_node) is FunctionNode:
+                continue
+            call_node = parent_node.GetFunctionNode(func_name, None)
+            if call_node is not None:
+                break
         if call_node is None:
-            call_node = FunctionNode(func_name, self.__current_node.c_name, None)
+            call_node = FunctionNode(func_name, None, None)
             self.__root.library_functions.add(call_node)
         self.__current_node.called_functions.add(call_node)
         self.generic_visit(node)
