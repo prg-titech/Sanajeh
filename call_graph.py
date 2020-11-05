@@ -8,13 +8,12 @@ from typing import Set
 class CallGraphNode:
     node_count = 0
 
-    def __init__(self, node_name, identifier_name):
+    def __init__(self, node_name):
         self.name: str = node_name  # node name
         self.declared_variables: Set[VariableNode] = set()  # variables declared in this block
         self.called_functions: Set[FunctionNode] = set()  # functions called in this block
         self.called_variables: Set[VariableNode] = set()  # variables called in this block
         self.is_device = False  # if it is an __device__ node
-        self.i_name: str = identifier_name  # identifier name
         self.id = CallGraphNode.node_count  # node id
         CallGraphNode.node_count += 1
 
@@ -47,23 +46,22 @@ class CallGraphNode:
 # Tree node for class
 class ClassNode(CallGraphNode):
 
-    def __init__(self, node_name, identifier_name):
-        super(ClassNode, self).__init__(node_name, identifier_name)
+    def __init__(self, node_name):
+        super(ClassNode, self).__init__(node_name)
 
         # functions declared in this class
         self.declared_functions: Set[FunctionNode] = set()
 
     # Find the function 'function_name' by recursion
-    def GetFunctionNode(self, function_name, identifier_name):
-        # todo identifier_name maybe a class name
+    def GetFunctionNode(self, function_name, class_name):
         for x in self.declared_functions:
-            if x.name == function_name and x.i_name == identifier_name:
+            if x.name == function_name and x.c_name == class_name:
                 return x
 
-    def GetVariableNode(self, variable_name, identifier_name, variable_type):
+    def GetVariableNode(self, variable_name, variable_type):
         # find the variable in the class block
         for x in self.declared_variables:
-            if x.name == variable_name and x.i_name == identifier_name:
+            if x.name == variable_name:
                 if x.v_type == variable_type:
                     return x
                 else:
@@ -74,26 +72,27 @@ class ClassNode(CallGraphNode):
 
         return None
 
-    def IsDeviceFunction(self, function_name, identifier_name):
+    def IsDeviceFunction(self, function_name, class_name):
         for x in self.declared_functions:
-            if x.name == function_name and x.i_name == identifier_name:
+            if x.name == function_name and x.c_name == class_name:
                 return x.is_device
         return None
 
 
 # Tree node for function
 class FunctionNode(CallGraphNode):
-    def __init__(self, node_name, identifier_name, return_type):
-        super(FunctionNode, self).__init__(node_name, identifier_name)
+    def __init__(self, node_name, class_name, return_type):
+        super(FunctionNode, self).__init__(node_name)
 
         # arguments of the function
         self.arguments: Set[VariableNode] = set()
         self.ret_type = return_type
+        self.c_name = class_name
 
-    def GetVariableNode(self, variable_name, identifier_name, variable_type):
+    def GetVariableNode(self, variable_name, variable_type):
         # find the variable in this function
         for x in self.declared_variables:
-            if x.name == variable_name and x.i_name == identifier_name:
+            if x.name == variable_name:
                 if x.v_type == variable_type:
                     return x
                 else:
@@ -103,21 +102,21 @@ class FunctionNode(CallGraphNode):
                     assert False
         return None
 
-    def GetVariableType(self, variable_name, identifier_name):
+    def GetVariableType(self, variable_name):
         for x in self.declared_variables:
-            if x.name == variable_name and x.i_name == identifier_name:
+            if x.name == variable_name:
                 return x.v_type
         # find the variable in the arguments:
         else:
             for x in self.arguments:
-                if x.name == variable_name and x.i_name == identifier_name:
+                if x.name == variable_name:
                     return x.v_type
 
 
 # Tree node for variable
 class VariableNode(CallGraphNode):
-    def __init__(self, node_name, identifier_name, var_type):
-        super(VariableNode, self).__init__(node_name, identifier_name)
+    def __init__(self, node_name, var_type):
+        super(VariableNode, self).__init__(node_name)
         self.v_type: str = var_type  # type of the variable, "None" for untyped variables
 
     def MarkDeviceData(self):
@@ -134,35 +133,35 @@ class CallGraph(CallGraphNode):
     called_functions: Set[FunctionNode] = set()  # functions called globally(shouldn't be device function)
     called_variables: Set[VariableNode] = set()  # variables called globally
 
-    def __init__(self, node_name, identifier_name):
-        super(CallGraph, self).__init__(node_name, identifier_name)
+    def __init__(self, node_name):
+        super(CallGraph, self).__init__(node_name)
 
     # Find the class 'class_name'
-    def GetClassNode(self, class_name, identifier_name):
+    def GetClassNode(self, class_name):
         for x in self.declared_classes:
-            if x.name == class_name and x.i_name == identifier_name:
+            if x.name == class_name:
                 return x
         return None
 
-    # Find the function 'function_name' by recursion
-    def GetFunctionNode(self, function_name, identifier_name):
+    def GetFunctionNode(self, function_name, class_name):
+        for x in self.declared_classes:
+            if x.name == class_name:
+                ret = x.GetFunctionNode(function_name, x.name)
+                if ret is not None:
+                    return ret
         # find the function in the functions defined in the global block
         for x in self.declared_functions:
-            if x.name == function_name and x.i_name == identifier_name:
+            if x.name == function_name:
                 return x
         for x in self.library_functions:
-            if x.name == function_name and x.i_name == identifier_name:
+            if x.name == function_name:
                 return x
-        for x in self.declared_classes:
-            ret = x.GetFunctionNode(function_name, identifier_name)
-            if ret is not None:
-                return ret
         return None
 
-    def GetVariableNode(self, variable_name, identifier_name, variable_type):
+    def GetVariableNode(self, variable_name, variable_type):
         # find the variable in the global block
         for x in self.declared_variables:
-            if x.name == variable_name and x.i_name == identifier_name:
+            if x.name == variable_name:
                 if x.v_type == variable_type or variable_type is None:
                     return x
                 else:
@@ -192,13 +191,13 @@ class CallGraph(CallGraphNode):
                         var.MarkDeviceData()
 
     # Query whether the function is a device function
-    def IsDeviceFunction(self, function_name, class_name, identifier_name):
+    def IsDeviceFunction(self, function_name, class_name):
         for x in self.declared_classes:
             if x.name == class_name:
-                result = x.IsDeviceFunction(function_name, identifier_name)
+                result = x.IsDeviceFunction(function_name, class_name)
                 if result is not None:
                     return result
         for x in self.declared_functions:
-            if x.name == function_name and x.i_name == identifier_name:
+            if x.name == function_name:
                 return x.is_device
         print("Undeclared function '{}.{}'".format(class_name, function_name))

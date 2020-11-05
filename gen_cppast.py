@@ -89,7 +89,7 @@ class GenCppAstVisitor(ast.NodeVisitor):
 
     def visit_FunctionDef(self, node):
         name = node.name
-        func_node = self.__node_path[-1].GetFunctionNode(name, None)
+        func_node = self.__node_path[-1].GetFunctionNode(name, self.__node_path[-1].name)
         if func_node is None:
             # Program shouldn't come to here, which means the function is not analyzed by the marker yet
             print("The function {} does not exist.".format(name), file=sys.stderr)
@@ -116,7 +116,7 @@ class GenCppAstVisitor(ast.NodeVisitor):
         # todo do not support nested class
         self.__field = {}
         name = node.name
-        class_node = self.__node_path[-1].GetClassNode(name, None)
+        class_node = self.__node_path[-1].GetClassNode(name)
         if class_node is None:
             # Program shouldn't come to here, which means the class is not analyzed by the marker yet
             print("The class {} does not exist.".format(name), file=sys.stderr)
@@ -155,7 +155,7 @@ class GenCppAstVisitor(ast.NodeVisitor):
         anno = node.annotation
         is_global = False
         if type(var) is ast.Name:
-            var_node = self.__node_path[-1].GetVariableNode(var.id, None, anno.id)
+            var_node = self.__node_path[-1].GetVariableNode(var.id, anno.id)
             if var_node is None:
                 # Program shouldn't come to here, which means the variable is not analyzed by the marker yet
                 print("The variable {} does not exist.".format(var.id), file=sys.stderr)
