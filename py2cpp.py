@@ -102,7 +102,7 @@ class GenPyCallGraphVisitor(ast.NodeVisitor):
     def visit_Global(self, node):
         for global_variable in node.names:
             self.__variables.setdefault(self.__current_node.id, []).append(global_variable)
-            var_node = self.__root.GetVariableNode(global_variable, None, None)
+            var_node = self.__root.GetVariableNode(global_variable, None)
             if var_node is None:
                 print("The global variable {} is not existed.".format(global_variable), file=sys.stderr)
                 sys.exit(1)
@@ -560,8 +560,6 @@ class Preprocessor(ast.NodeVisitor):
                     self.__cdef_parallel_do_codes.append(pdb.buildCdef())
 
         func_name = None
-        # todo id_name maybe class name
-        call_node = None
 
         # ignore call other functions in the same class
         if type(node.func) is ast.Attribute:
