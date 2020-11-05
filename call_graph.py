@@ -153,6 +153,10 @@ class CallGraph(CallGraphNode):
         for x in self.library_functions:
             if x.name == function_name and x.i_name == identifier_name:
                 return x
+        for x in self.declared_classes:
+            ret = x.GetFunctionNode(function_name, identifier_name)
+            if ret is not None:
+                return ret
         return None
 
     def GetVariableNode(self, variable_name, identifier_name, variable_type):
