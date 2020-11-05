@@ -72,7 +72,12 @@ class GenPyCallGraphVisitor(ast.NodeVisitor):
             # Program shouldn't come to here, which means a function is defined twice
             print("The function {} is defined twice.".format(func_name), file=sys.stderr)
             sys.exit(1)
-        func_node = FunctionNode(func_name, None)
+        ret_type = None
+        if type(self.__current_node) is ClassNode and func_name == "__init__":
+            ret_type = self.__current_node.name
+        elif hasattr(node.returns, "id"):
+            ret_type = node.returns.id
+        func_node = FunctionNode(func_name, None, ret_type)
         self.__current_node.declared_functions.add(func_node)
         self.__node_path.append(func_node)
         self.generic_visit(node)
@@ -580,7 +585,7 @@ class Preprocessor(ast.NodeVisitor):
             if call_node is not None:
                 break
         if call_node is None:
-            call_node = FunctionNode(func_name, id_name)
+            call_node = FunctionNode(func_name, id_name, None)
             self.__root.library_functions.add(call_node)
         self.__current_node.called_functions.add(call_node)
         self.generic_visit(node)

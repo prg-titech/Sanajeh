@@ -6,7 +6,6 @@ from typing import Set
 
 # Block tree Node
 class CallGraphNode:
-
     node_count = 0
 
     def __init__(self, node_name, identifier_name):
@@ -84,36 +83,35 @@ class ClassNode(CallGraphNode):
 
 # Tree node for function
 class FunctionNode(CallGraphNode):
-    def __init__(self, node_name, identifier_name):
+    def __init__(self, node_name, identifier_name, return_type):
         super(FunctionNode, self).__init__(node_name, identifier_name)
 
         # arguments of the function
         self.arguments: Set[VariableNode] = set()
+        self.ret_type = return_type
 
-    def GetVariableNode(self, variable_name, identifier_name, variable_type, is_argument=False):
+    def GetVariableNode(self, variable_name, identifier_name, variable_type):
         # find the variable in this function
-        if not is_argument:
-            for x in self.declared_variables:
-                if x.name == variable_name and x.i_name == identifier_name:
-                    if x.v_type == variable_type:
-                        return x
-                    else:
-                        print("Variable '{}' has type '{}', not '{}'".format(
-                            variable_name, x.v_type, variable_type
-                        ))
-                        assert False
+        for x in self.declared_variables:
+            if x.name == variable_name and x.i_name == identifier_name:
+                if x.v_type == variable_type:
+                    return x
+                else:
+                    print("Variable '{}' has type '{}', not '{}'".format(
+                        variable_name, x.v_type, variable_type
+                    ))
+                    assert False
+        return None
+
+    def GetVariableType(self, variable_name, identifier_name):
+        for x in self.declared_variables:
+            if x.name == variable_name and x.i_name == identifier_name:
+                return x.v_type
         # find the variable in the arguments:
         else:
             for x in self.arguments:
                 if x.name == variable_name and x.i_name == identifier_name:
-                    if x.v_type == variable_type:
-                        return x
-                    else:
-                        print("Variable '{}' has type '{}', not '{}'".format(
-                            variable_name, x.v_type, variable_type
-                        ))
-                        assert False
-        return None
+                    return x.v_type
 
 
 # Tree node for variable
