@@ -87,8 +87,8 @@ class VectorForTest2():
         self.y = y_
 
     def add(self, other: Vector) -> VectorForTest2:
-        self.x += other.x
-        self.y += other.y
+        self.x -= other.x
+        self.y -= other.y
         return self
 
 class Body():
@@ -117,19 +117,20 @@ class Body():
 
     def apply_force(self, other: Body):
         if (other is not self):
-            d: Vector = self.pos.minus(other.pos)
-            dist: float = d.dist_origin()
+            d: Vector = Vector((self.pos.x - other.pos.x), (self.pos.y - other.pos.y))
+            dist: float = math.sqrt(((d.x * d.x) + (d.y * d.y)))
             f: float = (((kGravityConstant * self.mass) * other.mass) / ((dist * dist) + kDampeningFactor))
-            __auto_v0: Vector = d.multiply(f)
-            __auto_v1: Vector = __auto_v0.divide(dist)
-            other.force.add(__auto_v1)
+            __auto_v0: Vector = Vector((d.x * f), (d.y * f))
+            __auto_v1: Vector = Vector((__auto_v0.x / dist), (__auto_v0.y / dist))
+            other.force.x += __auto_v1.x
+            other.force.y += __auto_v1.y
 
     def body_update(self):
-        __auto_v0: Vector = self.force.multiply(kDt)
-        __auto_v1: Vector = __auto_v0.divide(self.mass)
+        __auto_v0: Vector = Vector((self.force.x * kDt), (self.force.y * kDt))
+        __auto_v1: Vector = Vector((__auto_v0.x / self.mass), (__auto_v0.y / self.mass))
         self.vel.x += __auto_v1.x
         self.vel.y += __auto_v1.y
-        __auto_v2: Vector = self.vel.multiply(kDt)
+        __auto_v2: Vector = Vector((self.vel.x * kDt), (self.vel.y * kDt))
         self.pos.x += __auto_v2.x
         self.pos.y += __auto_v2.y
         if ((self.pos.x < (- 1)) or (self.pos.x > 1)):
@@ -138,15 +139,21 @@ class Body():
             self.vel.y = (- self.vel.y)
 
     def test_Expr_1(self):
-        __auto_v0: Vector = self.force.multiply(kDt)
-        __auto_v1: Vector = __auto_v0.divide(self.mass)
+        __auto_v0: Vector = Vector((self.force.x * kDt), (self.force.y * kDt))
+        __auto_v1: Vector = Vector((__auto_v0.x / self.mass), (__auto_v0.y / self.mass))
         self.vel.x += __auto_v1.x
         self.vel.y += __auto_v1.y
 
     def test_Expr_2(self):
-        __auto_v0: Vector = self.force.scale(kDt)
-        __auto_v1: Vector = __auto_v0.divide_by(self.mass)
-        __auto_v2: Vector = __auto_v1.to_zero()
+        self.force.x *= kDt
+        self.force.y *= kDt
+        __auto_v0: Vector = self.force
+        __auto_v0.x /= self.mass
+        __auto_v0.y /= self.mass
+        __auto_v1: Vector = __auto_v0
+        __auto_v1.x = 0.0
+        __auto_v1.y = 0.0
+        __auto_v2: Vector = __auto_v1
         self.vel.x -= __auto_v2.x
         self.vel.y -= __auto_v2.y
 
@@ -155,25 +162,35 @@ class Body():
         self.vel.y -= self.force.y
 
     def test_Expr_4(self, other: Body):
-        __auto_v0: Vector = other.vel.subtract(self.force)
+        other.vel.x -= self.force.x
+        other.vel.y -= self.force.y
+        __auto_v0: Vector = other.vel
         __auto_v0.x += self.force.x
         __auto_v0.y += self.force.y
 
     def test_annotation(self, other: Body):
-        __auto_v0: VectorForTest1 = self.vel.to_test1()
-        __auto_v1: VectorForTest2 = __auto_v0.to_test2()
-        __auto_v1.x += other.vel.x
-        __auto_v1.y += other.vel.y
+        __auto_v0: VectorForTest1 = VectorForTest1(self.vel.x, self.vel.y)
+        __auto_v1: VectorForTest2 = VectorForTest2(__auto_v0.x, __auto_v0.y)
+        __auto_v1.x -= other.vel.x
+        __auto_v1.y -= other.vel.y
 
     def test_Assign(self):
-        __auto_v0: Vector = self.force.scale(kDt)
-        __auto_v1: Vector = self.force.divide(self.mass)
-        __auto_v2: Vector = __auto_v0.add(__auto_v1)
-        a = self.vel.add(__auto_v2)
+        self.force.x *= kDt
+        self.force.y *= kDt
+        __auto_v0: Vector = self.force
+        __auto_v1: Vector = Vector((self.force.x / self.mass), (self.force.y / self.mass))
+        __auto_v0.x += __auto_v1.x
+        __auto_v0.y += __auto_v1.y
+        __auto_v2: Vector = __auto_v0
+        self.vel.x += __auto_v2.x
+        self.vel.y += __auto_v2.y
+        a = self.vel
 
     def test_AnnAssign(self):
-        __auto_v0: Vector = self.vel.add(self.force)
-        a: Vector = __auto_v0.minus(self.vel)
+        self.vel.x += self.force.x
+        self.vel.y += self.force.y
+        __auto_v0: Vector = self.vel
+        a: Vector = Vector((__auto_v0.x - self.vel.x), (__auto_v0.y - self.vel.y))
         a.x -= self.force.x
         a.y -= self.force.y
 

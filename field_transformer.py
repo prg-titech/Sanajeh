@@ -126,7 +126,6 @@ class Normalizer(DeviceCodeVisitor):
     def visit_Expr(self, node):
         ret = []
         self.has_auto_variables = False
-        # todo
         self.last_annotation = "None"
         node.value = self.visit(node.value)
         if type(node.value) == list:
@@ -141,7 +140,6 @@ class Normalizer(DeviceCodeVisitor):
     def visit_Assign(self, node):
         ret = []
         self.has_auto_variables = False
-        # todo
         self.last_annotation = "None"
         node.value = self.visit(node.value)
         if type(node.value) == list:
@@ -158,7 +156,6 @@ class Normalizer(DeviceCodeVisitor):
             return node
         ret = []
         self.has_auto_variables = False
-        # todo
         self.last_annotation = "None"
         node.value = self.visit(node.value)
         if type(node.value) == list:
@@ -339,76 +336,88 @@ class Inliner(DeviceCodeVisitor):
         return node
 
     def visit_Expr(self, node):
-        if type(node.value) == ast.Call and type(node.value.func) == ast.Attribute:
-            if type(node.value.func.value) == ast.Attribute:
-                if type(node.value.func.value.value) == ast.Name:
-                    if node.value.func.value.value.id == "self" and type(self.node_path[-2]) is ClassNode:
+        ret = []
+        node.value = self.visit(node.value)
+        if type(node.value) == list:
+            for v in node.value:
+                if type(v) == ast.Return:
+                    continue
+                ret.append(v)
+            return ret
+        else:
+            return node
+
+
+    def visit_Assign(self, node):
+        ret = []
+        node.value = self.visit(node.value)
+        if type(node.value) == list:
+            for v in node.value:
+                if type(v) == ast.Return:
+                    v = ast.Assign(targets=node.targets, value=v.value)
+                ret.append(v)
+            return ret
+        else:
+            return node
+
+    def visit_AnnAssign(self, node):
+        if node.value is None:
+            return node
+        ret = []
+        node.value = self.visit(node.value)
+        if type(node.value) == list:
+            for v in node.value:
+                if type(v) == ast.Return:
+                    v = ast.AnnAssign(annotation=node.annotation, simple=node.simple, target=node.target, value=v.value)
+                ret.append(v)
+            return ret
+        else:
+            return node
+
+    def visit_Call(self, node):
+        if type(node.func) == ast.Attribute:
+            if type(node.func.value) == ast.Attribute:
+                if type(node.func.value.value) == ast.Name:
+                    if node.func.value.value.id == "self" and type(self.node_path[-2]) is ClassNode:
                         caller_type = None
                         for x in self.node_path[-2].declared_variables:
-                            if x.name == node.value.func.value.attr:
+                            if x.name == node.func.value.attr:
                                 caller_type = x.v_type
                         if caller_type not in self.sdef_cls:
                             return node
                         func_body_gen = FunctionBodyGenerator(self.node, caller_type)
-                        func_body_gen.GetTransformedNodes(node.value.func.value,
-                                                          node.value.func.attr,
-                                                          node.value.args)
+                        func_body_gen.GetTransformedNodes(node.func.value,
+                                                          node.func.attr,
+                                                          node.args)
                         if len(func_body_gen.new_ast_nodes) != 0:
-                            return func_body_gen.new_ast_nodes[:-1]
+                            return func_body_gen.new_ast_nodes
                     else:
-                        caller_type = self.node_path[-1].GetVariableType(node.value.func.value.attr)
-                        if caller_type not in self.sdef_cls:
+                        var_type = None
+                        caller_type = self.node_path[-1].GetVariableType(node.func.value.value.id)
+                        var_class = self.node_path[0].GetClassNode(caller_type)
+                        for x in var_class.declared_variables:
+                            if x.name == node.func.value.attr:
+                                var_type = x.v_type
+                                break
+                        if var_type not in self.sdef_cls:
                             return node
-                        func_body_gen = FunctionBodyGenerator(self.node, caller_type)
-                        func_body_gen.GetTransformedNodes(node.value.func.value,
-                                                          node.value.func.attr,
-                                                          node.value.args)
+                        func_body_gen = FunctionBodyGenerator(self.node, var_type)
+                        func_body_gen.GetTransformedNodes(node.func.value,
+                                                          node.func.attr,
+                                                          node.args)
                         if len(func_body_gen.new_ast_nodes) != 0:
-                            return func_body_gen.new_ast_nodes[:-1]
-            elif type(node.value.func.value) == ast.Name:
-                caller_type = self.node_path[-1].GetVariableType(node.value.func.value.id)
+                            return func_body_gen.new_ast_nodes
+            elif type(node.func.value) == ast.Name:
+                caller_type = self.node_path[-1].GetVariableType(node.func.value.id)
                 if caller_type not in self.sdef_cls:
                     return node
                 func_body_gen = FunctionBodyGenerator(self.node, caller_type)
-                func_body_gen.GetTransformedNodes(node.value.func.value,
-                                                  node.value.func.attr,
-                                                  node.value.args)
+                func_body_gen.GetTransformedNodes(node.func.value,
+                                                  node.func.attr,
+                                                  node.args)
                 if len(func_body_gen.new_ast_nodes) != 0:
-                    return func_body_gen.new_ast_nodes[:-1]
+                    return func_body_gen.new_ast_nodes
         return node
-
-    #
-    # def visit_Assign(self, node):
-    #     ret = []
-    #     node.value = self.visit(node.value)
-    #     if type(node.value) == list:
-    #         for v in node.value:
-    #             if type(v) == ast.Call:
-    #                 v = ast.Assign(targets=node.targets, value=v)
-    #             ret.append(v)
-    #         return ret
-    #     else:
-    #         return node
-    #
-    # def visit_AnnAssign(self, node):
-    #     if node.value is None:
-    #         return node
-    #     ret = []
-    #     node.value = self.visit(node.value)
-    #     if type(node.value) == list:
-    #         for v in node.value:
-    #             if type(v) == ast.Call:
-    #                 v = ast.AnnAssign(annotation=node.annotation, simple=node.simple, target=node.target, value=v)
-    #             ret.append(v)
-    #         return ret
-    #     else:
-    #         return node
-
-    # def visit_Call(self, node):
-    #     ret = []
-    #     print(node.func)
-    #     #self.func_body_gen.GetTransformedNodes("a", "b")
-    #     return node
 
 
 class Eliminator(DeviceCodeVisitor):
@@ -447,7 +456,7 @@ if not gpcgv.mark_device_data(tree):
 
 transform(tree, gpcgv.root)
 
-path_w = './test_output.py'
+path_w = './test_output_incliner.py'
 s = astunparse.unparse(tree)
 with open(path_w, mode='w') as f:
     f.write(s)

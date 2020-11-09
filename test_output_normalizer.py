@@ -1,16 +1,14 @@
-from __future__ import annotations
 
+from __future__ import annotations
 import math
 from sanajeh import DeviceAllocator
+kSeed: int = 45
+kMaxMass: float = 1000.0
+kDt: float = 0.01
+kGravityConstant: float = 4e-06
+kDampeningFactor: float = 0.05
 
-kSeed: int = 45  # device
-kMaxMass: float = 1000.0  # device
-kDt: float = 0.01  # device
-kGravityConstant: float = 4e-6  # device
-kDampeningFactor: float = 0.05  # device
-
-
-class Vector:
+class Vector():
     x: float
     y: float
 
@@ -24,7 +22,7 @@ class Vector:
         return self
 
     def plus(self, other: Vector) -> Vector:
-        return Vector(self.x + other.x, self.y + other.y)
+        return Vector((self.x + other.x), (self.y + other.y))
 
     def subtract(self, other: Vector) -> Vector:
         self.x -= other.x
@@ -32,7 +30,7 @@ class Vector:
         return self
 
     def minus(self, other: Vector) -> Vector:
-        return Vector(self.x - other.x, self.y - other.y)
+        return Vector((self.x - other.x), (self.y - other.y))
 
     def scale(self, ratio: float) -> Vector:
         self.x *= ratio
@@ -40,7 +38,7 @@ class Vector:
         return self
 
     def multiply(self, multiplier: float) -> Vector:
-        return Vector(self.x * multiplier, self.y * multiplier)
+        return Vector((self.x * multiplier), (self.y * multiplier))
 
     def divide_by(self, divisor: float) -> Vector:
         self.x /= divisor
@@ -48,11 +46,10 @@ class Vector:
         return self
 
     def divide(self, divisor: float) -> Vector:
-        return Vector(self.x / divisor, self.y / divisor)
+        return Vector((self.x / divisor), (self.y / divisor))
 
-    # Distance from origin
     def dist_origin(self) -> float:
-        return math.sqrt(self.x * self.x + self.y * self.y)
+        return math.sqrt(((self.x * self.x) + (self.y * self.y)))
 
     def to_zero(self) -> Vector:
         self.x = 0.0
@@ -68,10 +65,9 @@ class Vector:
         return self
 
     def minus1(self, other: Vector) -> Vector:
-        return Vector(self.x - other.x, self.y - other.y)
+        return Vector((self.x - other.x), (self.y - other.y))
 
-
-class VectorForTest1:
+class VectorForTest1():
     x: float
     y: float
 
@@ -82,7 +78,7 @@ class VectorForTest1:
     def to_test2(self) -> VectorForTest2:
         return VectorForTest2(self.x, self.y)
 
-class VectorForTest2:
+class VectorForTest2():
     x: float
     y: float
 
@@ -95,7 +91,7 @@ class VectorForTest2:
         self.y -= other.y
         return self
 
-class Body:
+class Body():
     pos: Vector
     vel: Vector
     force: Vector
@@ -109,60 +105,71 @@ class Body:
 
     def Body(self, idx: int):
         DeviceAllocator.rand_init(kSeed, idx, 0)
-        self.pos = Vector(2.0 * DeviceAllocator.rand_uniform() - 1.0,
-                          2.0 * DeviceAllocator.rand_uniform() - 1.0)
+        self.pos = Vector(((2.0 * DeviceAllocator.rand_uniform()) - 1.0), ((2.0 * DeviceAllocator.rand_uniform()) - 1.0))
         self.vel = Vector(0.0, 0.0)
         self.force = Vector(0.0, 0.0)
-        self.mass = (DeviceAllocator.rand_uniform() / 2.0 + 0.5) * kMaxMass
+        self.mass = (((DeviceAllocator.rand_uniform() / 2.0) + 0.5) * kMaxMass)
 
     def compute_force(self):
         self.force.to_zero()
         DeviceAllocator.device_do(Body, Body.apply_force, self)
 
     def apply_force(self, other: Body):
-        if other is not self:
+        if (other is not self):
             d: Vector = self.pos.minus(other.pos)
             dist: float = d.dist_origin()
-            f: float = kGravityConstant * self.mass * other.mass / (dist * dist + kDampeningFactor)
-            other.force.add(d.multiply(f).divide(dist))
+            f: float = (((kGravityConstant * self.mass) * other.mass) / ((dist * dist) + kDampeningFactor))
+            __auto_v0: Vector = d.multiply(f)
+            __auto_v1: Vector = __auto_v0.divide(dist)
+            other.force.add(__auto_v1)
 
     def body_update(self):
-        self.vel.add(self.force.multiply(kDt).divide(self.mass))
-        # self.vel.add(self.force.scale(kDt).divide_by(self.mass))
-        self.pos.add(self.vel.multiply(kDt))
-        # self.pos.add(self.vel.scale(kDt))
-
-        if self.pos.x < -1 or self.pos.x > 1:
-            self.vel.x = -self.vel.x
-        if self.pos.y < -1 or self.pos.y > 1:
-            self.vel.y = -self.vel.y
+        __auto_v0: Vector = self.force.multiply(kDt)
+        __auto_v1: Vector = __auto_v0.divide(self.mass)
+        self.vel.add(__auto_v1)
+        __auto_v2: Vector = self.vel.multiply(kDt)
+        self.pos.add(__auto_v2)
+        if ((self.pos.x < (- 1)) or (self.pos.x > 1)):
+            self.vel.x = (- self.vel.x)
+        if ((self.pos.y < (- 1)) or (self.pos.y > 1)):
+            self.vel.y = (- self.vel.y)
 
     def test_Expr_1(self):
-        self.vel.add(self.force.multiply(kDt).divide(self.mass))
+        __auto_v0: Vector = self.force.multiply(kDt)
+        __auto_v1: Vector = __auto_v0.divide(self.mass)
+        self.vel.add(__auto_v1)
 
     def test_Expr_2(self):
-        self.vel.subtract(self.force.scale(kDt).divide_by(self.mass).to_zero())
+        __auto_v0: Vector = self.force.scale(kDt)
+        __auto_v1: Vector = __auto_v0.divide_by(self.mass)
+        __auto_v2: Vector = __auto_v1.to_zero()
+        self.vel.subtract(__auto_v2)
 
     def test_Expr_3(self):
         self.vel.subtract(self.force)
 
     def test_Expr_4(self, other: Body):
-        other.vel.subtract(self.force).add(self.force)
+        __auto_v0: Vector = other.vel.subtract(self.force)
+        __auto_v0.add(self.force)
 
     def test_annotation(self, other: Body):
-        self.vel.to_test1().to_test2().add(other.vel)
+        __auto_v0: VectorForTest1 = self.vel.to_test1()
+        __auto_v1: VectorForTest2 = __auto_v0.to_test2()
+        __auto_v1.add(other.vel)
 
     def test_Assign(self):
-        a = self.vel.add(self.force.scale(kDt).add(self.force.divide(self.mass)))
+        __auto_v0: Vector = self.force.scale(kDt)
+        __auto_v1: Vector = self.force.divide(self.mass)
+        __auto_v2: Vector = __auto_v0.add(__auto_v1)
+        a = self.vel.add(__auto_v2)
 
     def test_AnnAssign(self):
-        a: Vector = self.vel.add(self.force).minus(self.vel)
+        __auto_v0: Vector = self.vel.add(self.force)
+        a: Vector = __auto_v0.minus(self.vel)
         a.subtract(self.force)
-
 
 def kernel_initialize_bodies():
     DeviceAllocator.device_class(Body)
-
 
 def _update():
     DeviceAllocator.parallel_do(Body, Body.compute_force)
