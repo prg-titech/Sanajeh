@@ -456,7 +456,7 @@ if not gpcgv.mark_device_data(tree):
 
 transform(tree, gpcgv.root)
 
-path_w = './test_output_incliner.py'
+path_w = 'test_output_inliner.py'
 s = astunparse.unparse(tree)
 with open(path_w, mode='w') as f:
     f.write(s)
