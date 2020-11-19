@@ -347,7 +347,6 @@ class Inliner(DeviceCodeVisitor):
         else:
             return node
 
-
     def visit_Assign(self, node):
         ret = []
         node.value = self.visit(node.value)
@@ -421,10 +420,182 @@ class Inliner(DeviceCodeVisitor):
 
 
 class Eliminator(DeviceCodeVisitor):
-    """Remove useless classes and objects and dissemble seld-defined type fields"""
+    """Inlining constructor functions"""
 
-    def __init__(self, root: CallGraph):
+    def __init__(self, root: CallGraph, node, sdef_cls):
         super().__init__(root)
+        self.node = node
+        self.sdef_cls = sdef_cls
+        self.var_dict = {}
+
+    def visit_FunctionDef(self, node):
+        name = node.name
+        func_node = self.node_path[-1].GetFunctionNode(name, self.node_path[-1].name)
+        if func_node is None:
+            # Program shouldn't come to here, which means the function is not analyzed by the marker yet
+            print("The function {} does not exist.".format(name), file=sys.stderr)
+            sys.exit(1)
+        # If it is not a device function just skip
+        if func_node.is_device:
+            self.var_dict = {}
+            self.node_path.append(func_node)
+            node.args = self.visit(node.args)
+            node.body = [self.visit(x) for x in node.body]
+            i = 0
+            for x in range(len(node.body)):
+                if type(node.body[i]) == list:
+                    for n in node.body[i]:
+                        node.body.insert(i, n)
+                        i += 1
+                    del node.body[i]
+                elif node.body[i] is None:
+                    del node.body[i]
+                else:
+                    i += 1
+            self.node_path.pop()
+        return node
+
+    def visit_AnnAssign(self, node):
+        self.generic_visit(node)
+        if node.annotation.id in self.sdef_cls and node.value is not None:
+            if type(node.value) == ast.Call and type(node.value.func) == ast.Name:
+                if node.value.func.id in self.sdef_cls:
+                    func_body_gen = FunctionBodyGenerator(self.node, node.value.func.id)
+                    func_body_gen.GetTransformedNodes(node.target,
+                                                      "__init__",
+                                                      node.value.args)
+                    if len(func_body_gen.new_ast_nodes) != 0:
+                        return func_body_gen.new_ast_nodes
+            else:
+                if type(node.value) is ast.Name:
+                    self.var_dict[node.target.id] = self.var_dict[node.value.id]
+                else:
+                    self.var_dict[node.target.id] = node.value
+                return None
+        return node
+
+    def visit_Assign(self, node):
+        ret = []
+        self.generic_visit(node)
+        for field in node.targets:
+            if type(field) == ast.Attribute and type(self.node_path[-2]) == ClassNode:
+                var_type = None
+                for x in self.node_path[-2].declared_variables:
+                    if x.name == field.attr:
+                        var_type = x.v_type
+                        break
+                if node.value is not None and var_type in self.sdef_cls:
+                    if type(node.value) == ast.Call and type(node.value.func) == ast.Name:
+                        if node.value.func.id in self.sdef_cls:
+                            func_body_gen = FunctionBodyGenerator(self.node, node.value.func.id)
+                            func_body_gen.GetTransformedNodes(field,
+                                                              "__init__",
+                                                              node.value.args)
+                            if len(func_body_gen.new_ast_nodes) != 0:
+                                ret.extend(func_body_gen.new_ast_nodes)
+        if len(ret) != 0:
+            return ret
+        return node
+
+    def visit_Name(self, node):
+        if node.id in self.var_dict:
+            return self.var_dict[node.id]
+        return node
+
+
+class FieldSynthesizer(DeviceCodeVisitor):
+    """Synthesize new fields from the references to the nested objects"""
+
+    def __init__(self, root: CallGraph, sdef_cls):
+        super().__init__(root)
+        self.sdef_cls = sdef_cls
+        self.field_dict = {}
+
+    def visit_ClassDef(self, node):
+        name = node.name
+        class_node = self.node_path[-1].GetClassNode(name)
+        if class_node is None:
+            # Program shouldn't come to here, which means the class is not analyzed by the marker yet
+            print("The class {} does not exist.".format(name), file=sys.stderr)
+            sys.exit(1)
+        # If it is not a device class just skip
+        if class_node.is_device:
+            self.field_dict = {}
+            self.node_path.append(class_node)
+            node.body = [self.visit(x) for x in node.body]
+            i = 0
+            for x in range(len(node.body)):
+                if node.body[i] is None:
+                    del node.body[i]
+                else:
+                    i += 1
+            i = 0
+            for field in self.field_dict:
+                node.body.insert(i, ast.AnnAssign(target=ast.Name(id=field, ctx=ast.Store()),
+                                                  annotation=ast.Name(id=self.field_dict[field], ctx=ast.Load()),
+                                                  simple=1,
+                                                  value=None
+                                                  )
+                                 )
+                i += 1
+            self.node_path.pop()
+        return node
+
+    def visit_FunctionDef(self, node):
+        name = node.name
+        func_node = self.node_path[-1].GetFunctionNode(name, self.node_path[-1].name)
+        if func_node is None:
+            # Program shouldn't come to here, which means the function is not analyzed by the marker yet
+            print("The function {} does not exist.".format(name), file=sys.stderr)
+            sys.exit(1)
+        # If it is not a device function just skip
+        if func_node.is_device:
+            self.node_path.append(func_node)
+            node.args = self.visit(node.args)
+            node.body = [self.visit(x) for x in node.body]
+            i = 0
+            for x in range(len(node.body)):
+                if type(node.body[i]) == list:
+                    for n in node.body[i]:
+                        node.body.insert(i, n)
+                        i += 1
+                    del node.body[i]
+                elif node.body[i] is None:
+                    del node.body[i]
+                else:
+                    i += 1
+            self.node_path.pop()
+        return node
+
+    def visit_Attribute(self, node):
+        ctx = None
+        if type(node.ctx) == ast.Load:
+            ctx = ast.Load()
+        elif type(node.ctx) == ast.Store:
+            ctx = ast.Store()
+        if type(node.value) == ast.Name:
+            if self.node_path[-1].GetVariableType(node.value.id) in self.sdef_cls:
+                return ast.Name(id=node.value.id + "_" + node.attr, ctx=ctx)
+        elif type(node.value) == ast.Attribute and type(self.node_path[-2]) == ClassNode:
+            var_type = None
+            for x in self.node_path[-2].declared_variables:
+                if x.name == node.value.attr:
+                    var_type = x.v_type
+                    break
+            if var_type in self.sdef_cls:
+                return ast.Attribute(attr=node.value.attr + "_" + node.attr, ctx=ctx, value=node.value.value)
+        return node
+
+    def visit_AnnAssign(self, node):
+        self.generic_visit(node)
+        if node.annotation.id in self.sdef_cls:
+            if node.value is None:
+                return None
+        if type(node.target) == ast.Attribute and node.target.value.id == "self":
+            self.field_dict[node.target.attr] = node.annotation.id
+            return ast.Assign(targets=[node.target], value=node.value)
+        node.simple = 1
+        return node
 
 
 def transform(node, call_graph):
@@ -442,7 +613,8 @@ def transform(node, call_graph):
         if cls in scr.sdef_cls:
             scr.sdef_cls.remove(cls)
     ast.fix_missing_locations(Inliner(call_graph, node, scr.sdef_cls).visit(node))
-    # ast.fix_missing_locations(Eliminator(call_graph).visit(node))
+    ast.fix_missing_locations(Eliminator(call_graph, node, scr.sdef_cls).visit(node))
+    ast.fix_missing_locations(FieldSynthesizer(call_graph, scr.sdef_cls).visit(node))
 
 
 tree = ast.parse(open('./benchmarks/nbody_vector_test.py', encoding="utf-8").read())
@@ -456,7 +628,7 @@ if not gpcgv.mark_device_data(tree):
 
 transform(tree, gpcgv.root)
 
-path_w = 'test_output_inliner.py'
+path_w = 'test_output_final.py'
 s = astunparse.unparse(tree)
 with open(path_w, mode='w') as f:
     f.write(s)
