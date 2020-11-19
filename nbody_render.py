@@ -1,28 +1,15 @@
 # -*- coding: utf-8 -*-
-
-from sanajeh import PyAllocator
-import pygame
-from benchmarks.nbody_vector import Body
-import time
 import sys
+from sanajeh import PyAllocator
+from device_code.sanajeh_device_code import Body
+import pygame
+import time
 
 screen_width = 300
 screen_height = 300
 pygame.init()
 screen = pygame.display.set_mode((screen_width, screen_height))
 pygame.display.flip()
-
-start_time = time.perf_counter()
-
-# Compile python code to cpp code
-PyAllocator.compile(py_path='./benchmarks/nbody_vector.py')
-compile_time = time.perf_counter()
-# PyAllocator.printCppAndHpp()
-# PyAllocator.printCdef()
-
-# Compile cpp code to shared library
-PyAllocator.build()
-build_time = time.perf_counter()
 
 # Load shared library and initialize device classes on GPU
 PyAllocator.initialize()

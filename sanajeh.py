@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
 # This is a python version prototype of the AllocatorHandle(host side API) and AllocatorT(device side API) in DynaSOAr
-
+import os
 from typing import Callable
 import sys
 import cffi
 
 # Sanajeh package
 import py2cpp
-import build
 from config import CPP_FILE_PATH, HPP_FILE_PATH, SO_FILE_PATH, CDEF_FILE_PATH
 
 ffi = cffi.FFI()
@@ -72,7 +71,7 @@ class PyAllocator:
         """
         Compile cpp source file to .so file
         """
-        if build.run(cpp_path, so_path) != 0:
+        if os.system("./build.sh " + cpp_path + " -o " + so_path) != 0:
             print("Build failed!", file=sys.stderr)
             sys.exit(1)
 

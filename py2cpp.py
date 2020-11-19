@@ -9,7 +9,7 @@ import sys
 import astunparse
 
 import type_converter
-from config import INDENT, FILE_NAME, CDEF_FILE_PATH, CPP_FILE_PATH, HPP_FILE_PATH
+from config import INDENT, FILE_NAME, CDEF_FILE_PATH, CPP_FILE_PATH, HPP_FILE_PATH, PY_FILE_PATH
 from call_graph import CallGraph, ClassNode, FunctionNode, VariableNode
 from gen_cppast import GenCppAstVisitor
 import build_cpp
@@ -1277,4 +1277,7 @@ def compile(source_code):
         hpp_file.write(hpp_code)
     with open(CDEF_FILE_PATH, mode='w') as cdef_file:
         cdef_file.write(cdef_code)
+    with open(PY_FILE_PATH, mode='w') as py_file:
+        py_file.write(new_py_code)
+
     return cpp_code, hpp_code, cdef_code
