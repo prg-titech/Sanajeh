@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import sys
 from sanajeh import PyAllocator
-from device_code.sanajeh_device_code import Body
+from device_code.sanajeh_device_code_py import Body
 import pygame
 import time
 
