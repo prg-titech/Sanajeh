@@ -11,12 +11,10 @@ kDampeningFactor: float = 0.05  # device
 
 
 class Vector:
-    x: float
-    y: float
 
     def __init__(self, x_: float, y_: float):
-        self.x = x_
-        self.y = y_
+        self.x: float = x_
+        self.y: float = y_
 
     def add(self, other: Vector) -> Vector:
         self.x += other.x

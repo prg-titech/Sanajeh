@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import pygame
 
-from benchmarks.nbody_point2D import Body
+from benchmarks.nbody_vector import Body
 import time
 import sys
 import random

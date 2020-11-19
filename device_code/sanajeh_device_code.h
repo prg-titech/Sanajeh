@@ -35,7 +35,7 @@ class Body : public AllocatorT::Base {
 		void _do(void (*pf)(float, float, float, float, float, float, float));
 };
 
-extern "C" int Body_do_all(void (*pf)(float, float, float, float, float, float, float));
+extern "C" int Body_do_all(void (*pf)(Vector*, Vector*, Vector*, float));
 extern "C" int Body_Body_compute_force();
 extern "C" int Body_Body_body_update();
 extern "C" int parallel_new_Body(int object_num);

@@ -2,7 +2,7 @@
 
 from sanajeh import PyAllocator
 import pygame
-from benchmarks.nbody import Body
+from benchmarks.nbody_vector import Body
 import time
 import sys
 
@@ -15,13 +15,13 @@ pygame.display.flip()
 start_time = time.perf_counter()
 
 # Compile python code to cpp code
-#PyAllocator.compile(py_path='./benchmarks/nbody.py')
-# compile_time = time.perf_counter()
+PyAllocator.compile(py_path='./benchmarks/nbody_vector.py')
+compile_time = time.perf_counter()
 # PyAllocator.printCppAndHpp()
 # PyAllocator.printCdef()
 
 # Compile cpp code to shared library
-#PyAllocator.build()
+PyAllocator.build()
 build_time = time.perf_counter()
 
 # Load shared library and initialize device classes on GPU
