@@ -11,12 +11,10 @@ kDampeningFactor: float = 0.05  # device
 
 
 class Vector:
-    x: float
-    y: float
 
     def __init__(self, x_: float, y_: float):
-        self.x = x_
-        self.y = y_
+        self.x: float = x_
+        self.y: float = y_
 
     def add(self, other: Vector) -> Vector:
         self.x += other.x
@@ -72,23 +70,19 @@ class Vector:
 
 
 class VectorForTest1:
-    x: float
-    y: float
 
     def __init__(self, x_: float, y_: float):
-        self.x = x_
-        self.y = y_
+        self.x: float = x_
+        self.y: float = y_
 
     def to_test2(self) -> VectorForTest2:
         return VectorForTest2(self.x, self.y)
 
 class VectorForTest2:
-    x: float
-    y: float
 
     def __init__(self, x_: float, y_: float):
-        self.x = x_
-        self.y = y_
+        self.x: float = x_
+        self.y: float = y_
 
     def add(self, other: Vector) -> VectorForTest2:
         self.x -= other.x

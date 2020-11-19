@@ -5,7 +5,7 @@ import先の関数の扱い
     ->関数の返り値の型の宣言が必要(ない時はvoidと認識される)
     ->クラスのfieldとその型の宣言が必要
 2 parallel_do can only use functions with specific syntax (for now, "parallel_do" itself) which has been specified in device code
-3 can't use functions with same names in those classes which are used for field types in device classes
+3 for nested objects, fields must be declared in "_init__"
 
 
  ------use eval-------
