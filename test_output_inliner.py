@@ -9,12 +9,10 @@ kGravityConstant: float = 4e-06
 kDampeningFactor: float = 0.05
 
 class Vector():
-    x: float
-    y: float
 
     def __init__(self, x_: float, y_: float):
-        self.x = x_
-        self.y = y_
+        self.x: float = x_
+        self.y: float = y_
 
     def add(self, other: Vector) -> Vector:
         self.x += other.x
@@ -68,23 +66,19 @@ class Vector():
         return Vector((self.x - other.x), (self.y - other.y))
 
 class VectorForTest1():
-    x: float
-    y: float
 
     def __init__(self, x_: float, y_: float):
-        self.x = x_
-        self.y = y_
+        self.x: float = x_
+        self.y: float = y_
 
     def to_test2(self) -> VectorForTest2:
         return VectorForTest2(self.x, self.y)
 
 class VectorForTest2():
-    x: float
-    y: float
 
     def __init__(self, x_: float, y_: float):
-        self.x = x_
-        self.y = y_
+        self.x: float = x_
+        self.y: float = y_
 
     def add(self, other: Vector) -> VectorForTest2:
         self.x -= other.x
@@ -173,18 +167,6 @@ class Body():
         __auto_v1: VectorForTest2 = VectorForTest2(__auto_v0.x, __auto_v0.y)
         __auto_v1.x -= other.vel.x
         __auto_v1.y -= other.vel.y
-
-    def test_Assign(self):
-        self.force.x *= kDt
-        self.force.y *= kDt
-        __auto_v0: Vector = self.force
-        __auto_v1: Vector = Vector((self.force.x / self.mass), (self.force.y / self.mass))
-        __auto_v0.x += __auto_v1.x
-        __auto_v0.y += __auto_v1.y
-        __auto_v2: Vector = __auto_v0
-        self.vel.x += __auto_v2.x
-        self.vel.y += __auto_v2.y
-        a = self.vel
 
     def test_AnnAssign(self):
         self.vel.x += self.force.x

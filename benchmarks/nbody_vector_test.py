@@ -146,9 +146,6 @@ class Body:
     def test_annotation(self, other: Body):
         self.vel.to_test1().to_test2().add(other.vel)
 
-    def test_Assign(self):
-        a = self.vel.add(self.force.scale(kDt).add(self.force.divide(self.mass)))
-
     def test_AnnAssign(self):
         a: Vector = self.vel.add(self.force).minus(self.vel)
         a.subtract(self.force)
