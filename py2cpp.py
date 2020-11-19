@@ -211,22 +211,6 @@ class GenPyCallGraphVisitor(ast.NodeVisitor):
 
 # Find device class in python code and compile parallel_do expressions into c++ ones
 class Preprocessor(ast.NodeVisitor):
-    __root: CallGraph
-    __classes = []
-    __node_path = []
-    has_device_data = False
-    __is_root = True  # the flag of whether visiting the root node of python ast
-    __node_root = None  # the root node of python ast
-    __cpp_parallel_do_codes = []
-    __hpp_parallel_do_codes = []
-    __cdef_parallel_do_codes = []
-    __cpp_parallel_new_codes = []
-    __hpp_parallel_new_codes = []
-    __cdef_parallel_new_codes = []
-    __cpp_do_all_codes = []
-    __hpp_do_all_codes = []
-    __cdef_do_all_codes = []
-    __parallel_do_hashtable = []
 
     @property
     def cpp_parallel_do_codes(self):
@@ -450,8 +434,23 @@ class Preprocessor(ast.NodeVisitor):
             return 'int {}_do_all(void (*pf)({}));'.format(self.__class_name, field_types_str)
 
     def __init__(self, rt: CallGraph):
+        self.__classes = []
+
+        self.has_device_data = False
+        self.__is_root = True  # the flag of whether visiting the root node of python ast
+        self.__node_root = None  # the root node of python ast
+        self.__cpp_parallel_do_codes = []
+        self.__hpp_parallel_do_codes = []
+        self.__cdef_parallel_do_codes = []
+        self.__cpp_parallel_new_codes = []
+        self.__hpp_parallel_new_codes = []
+        self.__cdef_parallel_new_codes = []
+        self.__cpp_do_all_codes = []
+        self.__hpp_do_all_codes = []
+        self.__cdef_do_all_codes = []
+        self.__parallel_do_hashtable = []
         self.__root = rt
-        self.__node_path.append(rt)
+        self.__node_path = [rt]
         self.__current_node = None
 
     def visit(self, node):

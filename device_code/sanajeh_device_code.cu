@@ -65,11 +65,11 @@ __device__ void Body::body_update() {
 	}
 }
 
-void Body::_do(void (*pf)(Vector*, Vector*, Vector*, float)){
-	pf(this->pos, this->vel, this->force, this->mass);
+void Body::_do(void (*pf)(float, float, float, float, float, float, float)){
+	pf(this->pos_x, this->pos_y, this->vel_x, this->vel_y, this->force_x, this->force_y, this->mass);
 }
 
-extern "C" int Body_do_all(void (*pf)(Vector*, Vector*, Vector*, float)){
+extern "C" int Body_do_all(void (*pf)(float, float, float, float, float, float, float)){
 	allocator_handle->template device_do<Body>(&Body::_do, pf);
  	return 0;
 }
