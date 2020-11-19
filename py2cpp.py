@@ -1256,22 +1256,22 @@ def compile(source_code):
     cpp_code = cpp_include_expr \
                + allocator_declaration \
                + cpp_node.buildCpp(ctx) \
-               + gpcgv.build_do_all_cpp() \
-               + gpcgv.build_parallel_do_cpp() \
-               + gpcgv.build_parallel_new_cpp() \
+               + gpcgv1.build_do_all_cpp() \
+               + gpcgv1.build_parallel_do_cpp() \
+               + gpcgv1.build_parallel_new_cpp() \
                + "".join(init_cpp)
     # Header code
     hpp_code = precompile_expr \
                + hpp_include_expr \
                + cpp_node.buildHpp(ctx) \
-               + gpcgv.build_do_all_hpp() \
-               + gpcgv.build_parallel_do_hpp() \
-               + gpcgv.build_parallel_new_hpp() \
+               + gpcgv1.build_do_all_hpp() \
+               + gpcgv1.build_parallel_do_hpp() \
+               + gpcgv1.build_parallel_new_hpp() \
                + init_hpp \
                + endif_expr
 
     # Codes for cffi cdef() function
-    cdef_code = gpcgv.build_parallel_do_cdef() + gpcgv.build_parallel_new_cdef() + init_cdef + gpcgv.build_do_all_cdef()
+    cdef_code = gpcgv1.build_parallel_do_cdef() + gpcgv1.build_parallel_new_cdef() + init_cdef + gpcgv1.build_do_all_cdef()
     with open(CPP_FILE_PATH, mode='w') as cpp_file:
         cpp_file.write(cpp_code)
     with open(HPP_FILE_PATH, mode='w') as hpp_file:
