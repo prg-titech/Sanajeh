@@ -327,24 +327,27 @@ class AnnAssign(CodeStatement):
 
     def buildCpp(self, ctx):
         if self.is_global:
-            return ""
+            return ctx.indent() + "__device__ {} {};".format(
+                type_converter.convert(self.annotation.buildCpp(ctx)),
+                self.target.buildCpp(ctx)
+            )
         else:
             if self.value:
                 return ctx.indent() + "{} {} = {};".format(
-                    self.annotation.buildCpp(ctx),
+                    type_converter.convert(self.annotation.buildCpp(ctx)),
                     self.target.buildCpp(ctx),
                     self.value.buildCpp(ctx)
                 )
             else:
                 return ctx.indent() + "{} {};".format(
-                    self.annotation.buildCpp(ctx),
+                    type_converter.convert(self.annotation.buildCpp(ctx)),
                     self.target.buildCpp(ctx)
                 )
 
     def buildHpp(self, ctx):
         if self.is_global and self.value:
             return ctx.indent() + "static const {} {} = {};".format(
-                self.annotation.buildCpp(ctx),
+                type_converter.convert(self.annotation.buildCpp(ctx)),
                 self.target.buildCpp(ctx),
                 self.value.buildCpp(ctx)
             )
