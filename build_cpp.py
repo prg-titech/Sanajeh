@@ -120,7 +120,9 @@ class Module(Base):
             if not xstr == "":
                 rstr += xstr + "\n"
         class_str = ','.join(self.classes)
-        class_predefine = "\n\nclass " + class_str + ';'
+        class_predefine = "\n\n"
+        for cls in self.classes:
+            class_predefine += "class " + cls + ";\n"
         temp_expr = "\n\nusing AllocatorT = SoaAllocator<" + "KNUMOBJECTS" + ", " + class_str + ">;\n\n"
         return class_predefine + temp_expr + rstr
 
