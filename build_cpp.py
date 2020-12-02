@@ -689,7 +689,7 @@ class Attribute(CodeExpression):
             return self.attr
         return "{}->{}".format(self.value.buildCpp(ctx), self.attr)
 
-
+# array support
 class Subscript(CodeExpression):
     _fields = ["value", "slice"]
 
@@ -699,7 +699,8 @@ class Subscript(CodeExpression):
         self.slice = slice
 
     def buildCpp(self, ctx):
-        return "{}[{}]".format(self.value.buildCpp(ctx), self.slice.buildCpp(ctx))
+        # todo: not sure
+        return "{}*".format(self.slice.buildCpp(ctx))
 
 
 class Name(CodeExpression):

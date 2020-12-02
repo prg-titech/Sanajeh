@@ -138,7 +138,11 @@ class GenPyCallGraphVisitor(ast.NodeVisitor):
     # Create nodes for variables with type annotation
     def visit_AnnAssign(self, node):
         var = node.target
-        ann = node.annotation.id
+        ann = None
+        if type(node.annotation) is ast.Subscript:
+            ann = node.annotation.value.id
+        else:
+            ann = node.annotation.id
 
         if type(var) is ast.Attribute:
             var_name = var.attr
@@ -155,8 +159,6 @@ class GenPyCallGraphVisitor(ast.NodeVisitor):
                 var_node = VariableNode(var_name, ann)
                 self.__current_node.declared_variables.add(var_node)
                 self.__variables[self.__current_node.id].append(var_name)
-            else:
-                var_node = self.__current_node.GetVariableNode(var_name, ann)
         self.generic_visit(node)
 
     def visit_Name(self, node):
@@ -658,9 +660,10 @@ class Searcher(DeviceCodeVisitor):
         return node
 
     def visit_AnnAssign(self, node):
-        ann = node.annotation.id
-        if ann not in ("str", "float", "int"):
-            self.sdef_cls.add(ann)
+        if hasattr(node.annotation, "id"):
+            ann = node.annotation.id
+            if ann not in ("str", "float", "int"):
+                self.sdef_cls.add(ann)
         return node
 
     def visit_arg(self, node):
@@ -1039,7 +1042,7 @@ class Eliminator(DeviceCodeVisitor):
 
     def visit_AnnAssign(self, node):
         self.generic_visit(node)
-        if node.annotation.id in self.sdef_cls and node.value is not None:
+        if hasattr(node.annotation, "id") and node.annotation.id in self.sdef_cls and node.value is not None:
             if type(node.value) == ast.Call and type(node.value.func) == ast.Name:
                 if node.value.func.id in self.sdef_cls:
                     func_body_gen = FunctionBodyGenerator(self.node, node.value.func.id)
@@ -1170,7 +1173,7 @@ class FieldSynthesizer(DeviceCodeVisitor):
 
     def visit_AnnAssign(self, node):
         self.generic_visit(node)
-        if node.annotation.id in self.sdef_cls:
+        if hasattr(node.annotation, "id") and node.annotation.id in self.sdef_cls:
             if node.value is None:
                 return None
         if type(node.target) == ast.Attribute and node.target.value.id == "self":

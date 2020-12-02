@@ -152,10 +152,14 @@ class GenCppAstVisitor(ast.NodeVisitor):
 
     def visit_AnnAssign(self, node):
         var = node.target
-        anno = node.annotation
+        ann = None
+        if type(node.annotation) is ast.Subscript:
+            ann = node.annotation.value.id
+        else:
+            ann = node.annotation.id
         is_global = False
         if type(var) is ast.Name:
-            var_node = self.__node_path[-1].GetVariableNode(var.id, anno.id)
+            var_node = self.__node_path[-1].GetVariableNode(var.id, ann)
             if var_node is None:
                 # Program shouldn't come to here, which means the variable is not analyzed by the marker yet
                 print("The variable {} does not exist.".format(var.id), file=sys.stderr)
@@ -169,7 +173,7 @@ class GenCppAstVisitor(ast.NodeVisitor):
             value = None
         annotation = self.visit(node.annotation)
         if type(self.__node_path[-1]) is ClassNode:
-            self.__field[var.id] = type_converter.convert(anno.id)
+            self.__field[var.id] = type_converter.convert(ann)
         if type(self.__node_path[-1]) is CallGraph:
             is_global = True
         return cpp.AnnAssign(target, value, annotation, is_global)
