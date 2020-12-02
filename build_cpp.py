@@ -250,15 +250,27 @@ class ClassDef(CodeStatement):
                                                                            field)
                                        )
                 i += 1
-            field_predeclaration = new_ctx.indent() \
-                                   + "public:\n" \
-                                   + new_ctx.indent() \
-                                   + INDENT \
-                                   + "declare_field_types({}, {})\n".format(self.name, ", ".join(field_types)) \
-                                   + new_ctx.indent() \
-                                   + "private:\n" \
-                                   + new_ctx.indent() \
-                                   + ("\n" + new_ctx.indent()).join(field_templates)
+            field_predeclaration = ""
+            if len(field_types) == 0:
+                field_predeclaration = new_ctx.indent() \
+                                       + "public:\n" \
+                                       + new_ctx.indent() \
+                                       + INDENT \
+                                       + "declare_field_types({})\n".format(self.name) \
+                                       + new_ctx.indent() \
+                                       + "private:\n" \
+                                       + new_ctx.indent() \
+                                       + ("\n" + new_ctx.indent()).join(field_templates)
+            else:
+                field_predeclaration = new_ctx.indent() \
+                                       + "public:\n" \
+                                       + new_ctx.indent() \
+                                       + INDENT \
+                                       + "declare_field_types({}, {})\n".format(self.name, ", ".join(field_types)) \
+                                       + new_ctx.indent() \
+                                       + "private:\n" \
+                                       + new_ctx.indent() \
+                                       + ("\n" + new_ctx.indent()).join(field_templates)
             _do_function = new_ctx.indent() \
                            + INDENT \
                            + "void _do(void (*pf)({}));".format(", ".join(field_types))
