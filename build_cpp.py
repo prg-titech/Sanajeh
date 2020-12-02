@@ -329,7 +329,8 @@ class AnnAssign(CodeStatement):
         if self.is_global:
             if type(self.annotation) is Subscript:
                 return ctx.indent() + "__device__ {} {};".format(
-                    self.annotation.buildCpp(ctx),
+                    # array support
+                    "{}*".format(type_converter.convert(self.annotation.slice.buildCpp(ctx))),
                     self.target.buildCpp(ctx)
                 )
             return ctx.indent() + "__device__ {} {};".format(
@@ -705,7 +706,7 @@ class Subscript(CodeExpression):
 
     def buildCpp(self, ctx):
         # todo: not sure
-        return "{}*".format(type_converter.convert(self.slice.buildCpp(ctx)))
+        return "{}[{}]".format(self.value.buildCpp(ctx), self.slice.buildCpp(ctx))
 
 
 class Name(CodeExpression):
