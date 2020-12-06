@@ -539,7 +539,7 @@ class Preprocessor(ast.NodeVisitor):
                         self.__cpp_parallel_new_codes.append(pnb.buildCpp())
                         self.__hpp_parallel_new_codes.append(pnb.buildHpp())
                         self.__cdef_parallel_new_codes.append(pnb.buildCdef())
-                        dab = self.DoAllBuilder(self.__root, node.args[0].id)
+                        dab = self.DoAllBuilder(self.__root, cls.id)
                         dab.visit(self.__node_root)
                         self.__cpp_do_all_codes.append(dab.buildCpp())
                         self.__hpp_do_all_codes.append(dab.buildHpp())
@@ -1266,7 +1266,6 @@ def compile(source_code):
                       "\n#define SANAJEH_DEVICE_CODE_H" \
                       "\n#define KNUMOBJECTS 64*64*64*64"
     hpp_include_expr = '\n\n#include <curand_kernel.h>\n#include "dynasoar.h"'
-    b = gpcgv1.build_global_device_variables_unit()
     init_cpp = ['\n\nextern "C" int AllocatorInitialize(){\n',
                 INDENT +
                 "allocator_handle = new AllocatorHandle<AllocatorT>(/* unified_memory= */ true);\n",
