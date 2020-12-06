@@ -6,7 +6,7 @@ import time
 start_time = time.perf_counter()
 
 # Compile python code to cpp code
-PyAllocator.compile(py_path='./benchmarks/nbody_vector.py')
+PyAllocator.compile(py_path='../benchmarks/nbody_vector.py')
 compile_time = time.perf_counter()
 # PyAllocator.printCppAndHpp()
 # PyAllocator.printCdef()
