@@ -119,9 +119,10 @@ class FunctionNode(CallGraphNode):
 
 # Tree node for variable
 class VariableNode(CallGraphNode):
-    def __init__(self, node_name, var_type):
+    def __init__(self, node_name, var_type, element_type=None):
         super(VariableNode, self).__init__(node_name)
         self.v_type: str = var_type  # type of the variable, "None" for untyped variables
+        self.e_type: str = element_type  # type of the element, only for arrays
 
     def MarkDeviceData(self):
         self.is_device = True

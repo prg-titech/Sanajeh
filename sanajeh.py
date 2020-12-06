@@ -44,6 +44,11 @@ class DeviceAllocator:
     def rand_uniform():
         pass
 
+    # dummy array_size
+    # (0,1]
+    @staticmethod
+    def array_size(array, size):
+        pass
 
 # Host side allocator
 class PyAllocator:
@@ -88,6 +93,19 @@ class PyAllocator:
         ffi.cdef(PyAllocator.cdef_code)
         PyAllocator.lib = ffi.dlopen(so_path)
         if PyAllocator.lib.AllocatorInitialize() == 0:
+            pass
+            # print("Successfully initialized the allocator through FFI.")
+        else:
+            print("Initialization failed!", file=sys.stderr)
+            sys.exit(1)
+
+    # Free all of the memory on GPU
+    @staticmethod
+    def uninitialize():
+        """
+        Initialize ffi module
+        """
+        if PyAllocator.lib.AllocatorUninitialize() == 0:
             pass
             # print("Successfully initialized the allocator through FFI.")
         else:

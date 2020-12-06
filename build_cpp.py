@@ -328,15 +328,20 @@ class AnnAssign(CodeStatement):
     def buildCpp(self, ctx):
         if self.is_global:
             if type(self.annotation) is Subscript:
-                return ctx.indent() + "__device__ {} {};".format(
+                return ctx.indent() + "__device__ {}* {};\n".format(
                     # array support
-                    "{}*".format(type_converter.convert(self.annotation.slice.buildCpp(ctx))),
-                    self.target.buildCpp(ctx)
-                )
-            return ctx.indent() + "__device__ {} {};".format(
-                type_converter.convert(self.annotation.buildCpp(ctx)),
-                self.target.buildCpp(ctx)
-            )
+                    type_converter.convert(self.annotation.slice.buildCpp(ctx)),
+                    self.target.buildCpp(ctx)) + ctx.indent() + "{}* host_{};".format(
+                    # array support
+                    type_converter.convert(self.annotation.slice.buildCpp(ctx)),
+                    self.target.buildCpp(ctx))
+            else:
+                # todo
+                return ""
+                # return ctx.indent() + "__device__ {} {};".format(
+                #     type_converter.convert(self.annotation.buildCpp(ctx)),
+                #     self.target.buildCpp(ctx)
+                # )
         else:
             if self.value:
                 return ctx.indent() + "{} {} = {};".format(

@@ -139,8 +139,10 @@ class GenPyCallGraphVisitor(ast.NodeVisitor):
     def visit_AnnAssign(self, node):
         var = node.target
         ann = None
+        e_ann = None
         if type(node.annotation) is ast.Subscript:
             ann = node.annotation.value.id
+            e_ann = node.annotation.slice.value.id
         else:
             ann = node.annotation.id
 
@@ -156,7 +158,7 @@ class GenPyCallGraphVisitor(ast.NodeVisitor):
             self.__variables.setdefault(self.__current_node.id, [])
             # print(self.__variables)
             if var_name not in self.__variables[self.__current_node.id]:
-                var_node = VariableNode(var_name, ann)
+                var_node = VariableNode(var_name, ann, e_ann)
                 self.__current_node.declared_variables.add(var_node)
                 self.__variables[self.__current_node.id].append(var_name)
         self.generic_visit(node)
@@ -209,6 +211,28 @@ class GenPyCallGraphVisitor(ast.NodeVisitor):
 
     def build_parallel_new_cdef(self):
         return '\n' + '\n'.join(self.__pp.cdef_parallel_new_codes)
+
+    def build_global_device_variables_init(self):
+        ret = []
+        for var in self.__pp.global_device_variables:
+            var_node = self.__root.GetVariableNode(var, None)
+            e_type = type_converter.convert(var_node.e_type)
+            n = self.__pp.global_device_variables[var]
+            # Cell ** host_cells;
+            # cudaMalloc( & host_cells, sizeof(Cell *) * dataset.x * dataset.y);
+            # cudaMemcpyToSymbol(cells, & host_cells, sizeof(Cell **), 0,
+            # cudaMemcpyHostToDevice);
+            ret.append(INDENT + "{}* host_{};\n".format(e_type, var) + \
+               INDENT + "cudaMalloc(&host_{}, sizeof({})*{});\n".format(var, e_type, n) + \
+               INDENT + "cudaMemcpyToSymbol({}, &host_{}, sizeof({}*), 0, cudaMemcpyHostToDevice);\n"\
+                   .format(var, var, e_type))
+        return "\n".join(ret)
+
+    def build_global_device_variables_unit(self):
+        ret = []
+        for var in self.__pp.global_device_variables:
+            ret.append(INDENT + "cudaFree(host_{});\n".format(var))
+        return "\n".join(ret)
 
 
 # Find device class in python code and compile parallel_do expressions into c++ ones
@@ -454,6 +478,7 @@ class Preprocessor(ast.NodeVisitor):
         self.__root = rt
         self.__node_path = [rt]
         self.__current_node = None
+        self.global_device_variables = {}
 
     def visit(self, node):
         if self.__is_root:
@@ -531,6 +556,8 @@ class Preprocessor(ast.NodeVisitor):
                     self.__cpp_parallel_do_codes.append(pdb.buildCpp())
                     self.__hpp_parallel_do_codes.append(pdb.buildHpp())
                     self.__cdef_parallel_do_codes.append(pdb.buildCdef())
+            elif node.func.attr == 'array_size':
+                self.global_device_variables[str(node.args[0].id)] = node.args[1].n
 
         # Find device classes through host code
         if type(node.func) is ast.Attribute \
@@ -1239,6 +1266,7 @@ def compile(source_code):
                       "\n#define SANAJEH_DEVICE_CODE_H" \
                       "\n#define KNUMOBJECTS 64*64*64*64"
     hpp_include_expr = '\n\n#include <curand_kernel.h>\n#include "dynasoar.h"'
+    b = gpcgv1.build_global_device_variables_unit()
     init_cpp = ['\n\nextern "C" int AllocatorInitialize(){\n',
                 INDENT +
                 "allocator_handle = new AllocatorHandle<AllocatorT>(/* unified_memory= */ true);\n",
@@ -1246,12 +1274,21 @@ def compile(source_code):
                 "AllocatorT* dev_ptr = allocator_handle->device_pointer();\n",
                 INDENT +
                 "cudaMemcpyToSymbol(device_allocator, &dev_ptr, sizeof(AllocatorT*), 0, cudaMemcpyHostToDevice);\n",
+                gpcgv1.build_global_device_variables_init(),
                 INDENT +
                 "return 0;\n"
                 "}"
                 ]
     init_hpp = '\nextern "C" int AllocatorInitialize();\n'
     init_cdef = '\nint AllocatorInitialize();'
+    unit_cpp = ['\n\nextern "C" int AllocatorUninitialize(){\n',
+                gpcgv1.build_global_device_variables_unit(),
+                INDENT +
+                "return 0;\n"
+                "}"
+                ]
+    unit_hpp = '\nextern "C" int AllocatorUninitialize();\n'
+    unit_cdef = '\nint AllocatorUninitialize();'
     endif_expr = "\n#endif"
 
     # Source code
@@ -1261,7 +1298,8 @@ def compile(source_code):
                + gpcgv1.build_do_all_cpp() \
                + gpcgv1.build_parallel_do_cpp() \
                + gpcgv1.build_parallel_new_cpp() \
-               + "".join(init_cpp)
+               + "".join(init_cpp) \
+               + "".join(unit_cpp)
     # Header code
     hpp_code = precompile_expr \
                + hpp_include_expr \
@@ -1270,10 +1308,14 @@ def compile(source_code):
                + gpcgv1.build_parallel_do_hpp() \
                + gpcgv1.build_parallel_new_hpp() \
                + init_hpp \
+               + unit_hpp \
                + endif_expr
 
     # Codes for cffi cdef() function
-    cdef_code = gpcgv1.build_parallel_do_cdef() + gpcgv1.build_parallel_new_cdef() + init_cdef + gpcgv1.build_do_all_cdef()
+    cdef_code = gpcgv1.build_parallel_do_cdef() \
+                + gpcgv1.build_parallel_new_cdef() \
+                + init_cdef + gpcgv1.build_do_all_cdef() \
+                + unit_cdef
     with open(CPP_FILE_PATH, mode='w') as cpp_file:
         cpp_file.write(cpp_code)
     with open(HPP_FILE_PATH, mode='w') as hpp_file:
