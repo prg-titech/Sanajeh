@@ -218,10 +218,6 @@ class GenPyCallGraphVisitor(ast.NodeVisitor):
             var_node = self.__root.GetVariableNode(var, None)
             e_type = type_converter.convert(var_node.e_type)
             n = self.__pp.global_device_variables[var]
-            # Cell ** host_cells;
-            # cudaMalloc( & host_cells, sizeof(Cell *) * dataset.x * dataset.y);
-            # cudaMemcpyToSymbol(cells, & host_cells, sizeof(Cell **), 0,
-            # cudaMemcpyHostToDevice);
             ret.append(INDENT + "{}* host_{};\n".format(e_type, var) + \
                INDENT + "cudaMalloc(&host_{}, sizeof({})*{});\n".format(var, e_type, n) + \
                INDENT + "cudaMemcpyToSymbol({}, &host_{}, sizeof({}*), 0, cudaMemcpyHostToDevice);\n"\
