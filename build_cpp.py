@@ -285,25 +285,27 @@ class ClassDef(CodeStatement):
                                        )
                 i += 1
             field_predeclaration = ""
+            base = ""
+            # todo does not supports multiple inheritance
+            if len(self.bases) > 0:
+                base = "\n" + new_ctx.indent() + INDENT + "using BaseClass = {};\n\n".format(self.bases[0].
+                                                                                            buildCpp(new_ctx))
             if len(field_types) == 0:
-                field_predeclaration = new_ctx.indent() \
-                                       + "public:\n" \
+                field_predeclaration = new_ctx.indent() + "public:\n" \
                                        + new_ctx.indent() \
                                        + INDENT \
                                        + "declare_field_types({})\n".format(self.name) \
-                                       + new_ctx.indent() \
-                                       + "private:\n" \
+                                       + base \
+                                       + new_ctx.indent() + "private:\n" \
                                        + new_ctx.indent() \
                                        + ("\n" + new_ctx.indent()).join(field_templates)
             else:
-                field_predeclaration = new_ctx.indent() \
-                                       + "public:\n" \
+                field_predeclaration = new_ctx.indent() + "public:\n" \
                                        + new_ctx.indent() \
                                        + INDENT \
                                        + "declare_field_types({}, {})\n".format(self.name, ", ".join(field_types)) \
-                                       + new_ctx.indent() \
-                                       + "private:\n" \
-                                       + new_ctx.indent() \
+                                       + base \
+                                       + new_ctx.indent() + "private:\n" + new_ctx.indent() \
                                        + ("\n" + new_ctx.indent()).join(field_templates)
             _do_function = new_ctx.indent() \
                            + INDENT \
