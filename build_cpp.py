@@ -646,6 +646,9 @@ class Call(CodeExpression):
                 return "curandState rand_state;\n" + \
                        ctx.indent() + \
                        "curand_init({}, &rand_state)".format(args)
+            elif self.func.attr == "new":
+                args = ", ".join([x.buildCpp(ctx) for x in self.args[1:]])
+                return "new(device_allocator) {}({})".format(self.args[0].buildCpp(ctx), args)
             else:
                 # todo: unprovided sanajeh API
                 assert False

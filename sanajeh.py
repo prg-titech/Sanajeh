@@ -50,6 +50,11 @@ class DeviceAllocator:
     def array_size(array, size):
         pass
 
+    # dummy new
+    @staticmethod
+    def new(cls, *args):
+        pass
+
 # Host side allocator
 class PyAllocator:
     cpp_code: str = ""
