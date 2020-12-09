@@ -135,6 +135,17 @@ class CodeStatement(Base):
         self.stmt = stmt
 
 
+class InitializerList:
+    _fields = ["super_class", "args"]
+
+    def __init__(self, super_class, args):
+        self.super_class = super_class
+        self.args = args
+
+    def buildCpp(self, ctx):
+        return "{}({}) ".format(self.super_class, ", ".join([x.buildCpp(ctx) for x in self.args]))
+
+
 class FunctionDef(CodeStatement):
     _fields = ["name", "args", "body", "returns"]
 
@@ -147,12 +158,32 @@ class FunctionDef(CodeStatement):
 
     def buildCpp(self, ctx):
         with BuildContext(ctx, self) as new_ctx:
-            body = [x.buildCpp(new_ctx) for x in self.stmt]
-            while '' in body:
-                body.remove('')
             if ctx.in_class():
+                body = []
+                init_lst = None
+                for x in self.stmt:
+                    if type(x) is InitializerList:
+                        init_lst = x.buildCpp(new_ctx)
+                    else:
+                        body.append(x.buildCpp(new_ctx))
+
+                while '' in body:
+                    body.remove('')
                 # __init__ special case
                 if self.name == "__init__" or self.name == ctx.stack[-1].name:
+                    # class with parent class needs to generate initializer list for calling father constructor
+                    if init_lst is not None:
+                        return "\n".join([
+                            "\n{}__device__ {}::{}({}) : {}{{".format(
+                                ctx.indent(),
+                                ctx.stack[-1].name,
+                                ctx.stack[-1].name,
+                                self.args.buildCpp(new_ctx),
+                                init_lst
+                            ),
+                            "\n".join(body),
+                            ctx.indent() + "}",
+                        ])
                     return "\n".join([
                         "\n{}__device__ {}::{}({}) {{".format(
                             ctx.indent(),
@@ -175,6 +206,9 @@ class FunctionDef(CodeStatement):
                     ctx.indent() + "}",
                 ])
             else:
+                body = [x.buildCpp(new_ctx) for x in self.stmt]
+                while '' in body:
+                    body.remove('')
                 return "\n".join([
                     # todo maybe global
                     "\n{}__device__ {} {}({}) {{".format(
@@ -491,6 +525,8 @@ class Expr(CodeStatement):
         del self.stmt
 
     def buildCpp(self, ctx):
+        if self.value.buildCpp(ctx) == "":
+            return ""
         return ctx.indent() + "{};".format(self.value.buildCpp(ctx))
 
 
@@ -706,6 +742,7 @@ class Attribute(CodeExpression):
         if hasattr(self.value, "id") and self.value.id == "math":
             return self.attr
         return "{}->{}".format(self.value.buildCpp(ctx), self.attr)
+
 
 # array support
 class Subscript(CodeExpression):

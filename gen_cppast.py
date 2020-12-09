@@ -216,7 +216,10 @@ class GenCppAstVisitor(ast.NodeVisitor):
             return cpp.Raise(type=type, inst=inst, tback=tback)
 
     def visit_Expr(self, node):
-        return cpp.Expr(self.visit(node.value))
+        value = self.visit(node.value)
+        if type(value) is cpp.InitializerList:
+            return value
+        return cpp.Expr(value)
 
     def visit_Pass(self, node):
         return cpp.Pass()
@@ -265,6 +268,10 @@ class GenCppAstVisitor(ast.NodeVisitor):
         return cpp.Compare(left=left, ops=ops, comparators=comparators)
 
     def visit_Call(self, node):
+        if hasattr(node.func, "attr") and node.func.attr == "__init__" and hasattr(node.func.value, "func") \
+                and hasattr(node.func.value.func, "id") and node.func.value.func.id == "super":
+            args = [self.visit(x) for x in node.args]
+            return cpp.InitializerList(self.__node_path[-2].super_class, args)
         func = self.visit(node.func)
         args = [self.visit(x) for x in node.args]
         keywords = [self.visit(x) for x in node.keywords]

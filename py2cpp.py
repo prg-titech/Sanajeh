@@ -58,7 +58,11 @@ class GenPyCallGraphVisitor(ast.NodeVisitor):
             # Program shouldn't come to here, which means a class is defined twice
             print("The class {} is defined twice.".format(class_name), file=sys.stderr)
             sys.exit(1)
-        class_node = ClassNode(node.name)
+        base = None
+        # todo does not supports multiple inheritance
+        if len(node.bases) > 0:
+            base = node.bases[0].id
+        class_node = ClassNode(node.name, base)
         self.__current_node.declared_classes.add(class_node)
         self.__node_path.append(class_node)
         self.generic_visit(node)
@@ -219,9 +223,9 @@ class GenPyCallGraphVisitor(ast.NodeVisitor):
             e_type = type_converter.convert(var_node.e_type)
             n = self.__pp.global_device_variables[var]
             ret.append(INDENT + "{}* host_{};\n".format(e_type, var) + \
-               INDENT + "cudaMalloc(&host_{}, sizeof({})*{});\n".format(var, e_type, n) + \
-               INDENT + "cudaMemcpyToSymbol({}, &host_{}, sizeof({}*), 0, cudaMemcpyHostToDevice);\n"\
-                   .format(var, var, e_type))
+                       INDENT + "cudaMalloc(&host_{}, sizeof({})*{});\n".format(var, e_type, n) + \
+                       INDENT + "cudaMemcpyToSymbol({}, &host_{}, sizeof({}*), 0, cudaMemcpyHostToDevice);\n" \
+                       .format(var, var, e_type))
         return "\n".join(ret)
 
     def build_global_device_variables_unit(self):
@@ -614,6 +618,7 @@ class Preprocessor(ast.NodeVisitor):
         self.__current_node.called_functions.add(call_node)
         self.generic_visit(node)
 
+
 class DeviceCodeVisitor(ast.NodeTransformer):
 
     def __init__(self, root: CallGraph):
@@ -822,6 +827,9 @@ class Normalizer(DeviceCodeVisitor):
         if hasattr(node.func, "value") and type(node.func.value) == ast.Call:
             self.has_auto_variables = True
             assign_nodes = self.visit(node.func.value)
+            if hasattr(node.func, "attr") and node.func.attr == "__init__" and hasattr(node.func.value, "func") \
+                    and hasattr(node.func.value.func, "id") and node.func.value.func.id == "super":
+                return node
             new_var_node = ast.Name(id="__auto_v" + str(self.v_counter), ctx=ast.Load())  # change argument
             self.visit(assign_nodes[-1])
             ret.extend(assign_nodes[:-1])

@@ -46,11 +46,12 @@ class CallGraphNode:
 # Tree node for class
 class ClassNode(CallGraphNode):
 
-    def __init__(self, node_name):
+    def __init__(self, node_name, super_class):
         super(ClassNode, self).__init__(node_name)
 
         # functions declared in this class
         self.declared_functions: Set[FunctionNode] = set()
+        self.super_class: str = super_class
 
     # Find the function 'function_name' by recursion
     def GetFunctionNode(self, function_name, class_name):
