@@ -685,14 +685,14 @@ class Searcher(DeviceCodeVisitor):
     def visit_AnnAssign(self, node):
         if hasattr(node.annotation, "id"):
             ann = node.annotation.id
-            if ann not in ("str", "float", "int"):
+            if ann not in type_converter.type_map:
                 self.sdef_cls.add(ann)
         return node
 
     def visit_arg(self, node):
         if hasattr(node.annotation, "id"):
             ann = node.annotation.id
-            if ann not in ("str", "float", "int", None):
+            if ann not in type_converter.type_map and ann is not None:
                 self.sdef_cls.add(ann)
         return node
 
