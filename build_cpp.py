@@ -119,7 +119,7 @@ class Module(Base):
             xstr = x.buildHpp(ctx)
             if not xstr == "":
                 rstr += xstr + "\n"
-        class_str = ','.join(self.classes)
+        class_str = ', '.join(self.classes)
         class_predefine = "\n\n"
         for cls in self.classes:
             class_predefine += "class " + cls + ";\n"
