@@ -684,6 +684,8 @@ class NameConstant(CodeExpression):
         # boolean special case
         if type(self.value) == bool:
             return "true" if self.value else "false"
+        elif self.value is None:
+            return "nullptr"
         return self.value
 
 
