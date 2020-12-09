@@ -649,6 +649,8 @@ class Call(CodeExpression):
             elif self.func.attr == "new":
                 args = ", ".join([x.buildCpp(ctx) for x in self.args[1:]])
                 return "new(device_allocator) {}({})".format(self.args[0].buildCpp(ctx), args)
+            elif self.func.attr == "destroy":
+                return "destroy(device_allocator, {})".format(self.args[0].buildCpp(ctx))
             else:
                 # todo: unprovided sanajeh API
                 assert False

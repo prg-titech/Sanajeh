@@ -55,6 +55,11 @@ class DeviceAllocator:
     def new(cls, *args):
         pass
 
+    # dummy destroy
+    @staticmethod
+    def destroy(obj):
+        pass
+
 # Host side allocator
 class PyAllocator:
     cpp_code: str = ""
