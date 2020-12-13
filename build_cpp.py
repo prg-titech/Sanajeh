@@ -485,10 +485,10 @@ class If(CodeStatement):
             if len(self.orelse) == 1 and self.orelse[0].__class__ == If:
                 lines = self.orelse[0].buildCpp(ctx).split("\n")
                 assert len(lines) > 1
-                result[-1] = "}} else {}".format(lines[0])
+                result[-1] = "{}}} else {}".format(ctx.indent(), lines[0])
                 result.extend(lines[1:])
             elif self.orelse:
-                result[-1] = "} else {"
+                result[-1] = ctx.indent() + "} else {"
                 result.extend([
                               ] + [x.buildCpp(ctx) for x in self.orelse] + [
                                   "}",
