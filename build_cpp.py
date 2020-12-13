@@ -273,7 +273,7 @@ class ClassDef(CodeStatement):
             body = [x.buildHpp(new_ctx) for x in self.stmt]
             while '' in body:
                 body.remove('')
-            body.insert(0, new_ctx.indent() + "public:")
+            body.insert(0, new_ctx.indent())
             field_types = []
             field_templates = []
             i = 0
@@ -296,7 +296,6 @@ class ClassDef(CodeStatement):
                                        + INDENT \
                                        + "declare_field_types({})\n".format(self.name) \
                                        + base \
-                                       + new_ctx.indent() + "private:\n" \
                                        + new_ctx.indent() \
                                        + ("\n" + new_ctx.indent()).join(field_templates)
             else:
@@ -305,7 +304,7 @@ class ClassDef(CodeStatement):
                                        + INDENT \
                                        + "declare_field_types({}, {})\n".format(self.name, ", ".join(field_types)) \
                                        + base \
-                                       + new_ctx.indent() + "private:\n" + new_ctx.indent() \
+                                       + new_ctx.indent() \
                                        + ("\n" + new_ctx.indent()).join(field_templates)
             _do_function = new_ctx.indent() \
                            + INDENT \
