@@ -3,11 +3,7 @@
   <component name="ChangeListManager">
     <list default="true" id="d86895dc-251a-4e36-a9c1-6bb7fe2fb2f3" name="Default Changelist" comment="k">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build.py" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/config.py" beforeDir="false" afterPath="$PROJECT_DIR$/config.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/nbody_render.py" beforeDir="false" afterPath="$PROJECT_DIR$/nbody_render.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/py2cpp.py" beforeDir="false" afterPath="$PROJECT_DIR$/py2cpp.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sanajeh.py" beforeDir="false" afterPath="$PROJECT_DIR$/sanajeh.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -34,21 +30,21 @@
     <option name="showLibraryContents" value="true" />
   </component>
   <component name="PropertiesComponent">
-    <property name="last_opened_file_path" value="$PROJECT_DIR$/build_nbody.py" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/build_scripts/build_wator.py" />
     <property name="settings.editor.selected.configurable" value="editor.preferences.fonts.default" />
   </component>
   <component name="RecentsManager">
-    <key name="MoveFile.RECENT_KEYS">
-      <recent name="C:\Sanajeh" />
-      <recent name="C:\Sanajeh\py2cpp" />
-      <recent name="C:\Sanajeh\justfortest" />
-      <recent name="$PROJECT_DIR$/benchmarks" />
-      <recent name="$PROJECT_DIR$" />
-    </key>
     <key name="CopyFile.RECENT_KEYS">
       <recent name="C:\Sanajeh\benchmarks" />
       <recent name="$PROJECT_DIR$/python2cpp_examples" />
       <recent name="$PROJECT_DIR$/python_examples" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Sanajeh\build_scripts" />
+      <recent name="C:\Sanajeh\benchmarks" />
+      <recent name="C:\Sanajeh" />
+      <recent name="C:\Sanajeh\py2cpp" />
+      <recent name="C:\Sanajeh\justfortest" />
     </key>
   </component>
   <component name="RunManager" selected="Python.build">
@@ -60,11 +56,11 @@
         <env name="PYTHONUNBUFFERED" value="1" />
       </envs>
       <option name="SDK_HOME" value="C:\Users\chenxinjizhe\AppData\Local\Programs\Python\Python37\python.exe" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/build_scripts" />
       <option name="IS_MODULE_SDK" value="false" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/build_nbody.py" />
+      <option name="SCRIPT_NAME" value="C:\Sanajeh\build_scripts\build_gol.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -85,7 +81,7 @@
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/nbody_host.py" />
+      <option name="SCRIPT_NAME" value="C:\Sanajeh\benchmarks\nbody_host.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -116,9 +112,9 @@
       <method v="2" />
     </configuration>
     <list>
+      <item itemvalue="Python.build" />
       <item itemvalue="Python.host" />
       <item itemvalue="Python.test" />
-      <item itemvalue="Python.build" />
     </list>
     <recent_temporary>
       <list>
@@ -187,66 +183,15 @@
     <MESSAGE value="Merge branch 'master' of github.com:prg-titech/Sanajeh&#10;&#10;# Please enter a commit message to explain why this merge is necessary,&#10;# especially if it merges an updated upstream into a topic branch.&#10;#&#10;# Lines starting with '#' will be ignored, and an empty message aborts&#10;# the commit.&#10;&#10;test pycharm git" />
     <option name="LAST_COMMIT_MESSAGE" value="Merge branch 'master' of github.com:prg-titech/Sanajeh&#10;&#10;# Please enter a commit message to explain why this merge is necessary,&#10;# especially if it merges an updated upstream into a topic branch.&#10;#&#10;# Lines starting with '#' will be ignored, and an empty message aborts&#10;# the commit.&#10;&#10;test pycharm git" />
   </component>
-  <component name="WindowStateProjectService">
-    <state x="414" y="176" width="1092" height="810" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1605808819296">
-      <screen x="0" y="0" width="1920" height="1040" />
-    </state>
-    <state x="414" y="176" width="1092" height="810" key="#com.intellij.execution.impl.EditConfigurationsDialog/0.0.1920.1040/-1920.0.1536.824@0.0.1920.1040" timestamp="1605808819296" />
-    <state x="721" y="322" key="#com.intellij.fileTypes.FileTypeChooser" timestamp="1605808164607">
-      <screen x="0" y="0" width="1920" height="1040" />
-    </state>
-    <state x="721" y="322" key="#com.intellij.fileTypes.FileTypeChooser/0.0.1920.1040/-1920.0.1536.824@0.0.1920.1040" timestamp="1605808164607" />
-    <state x="690" y="267" key="#com.intellij.refactoring.safeDelete.UnsafeUsagesDialog" timestamp="1605805298585">
-      <screen x="0" y="0" width="1920" height="1040" />
-    </state>
-    <state x="690" y="267" key="#com.intellij.refactoring.safeDelete.UnsafeUsagesDialog/0.0.1920.1040/-1920.0.1536.824@0.0.1920.1040" timestamp="1605805298585" />
-    <state x="591" y="89" key="CommitChangelistDialog2" timestamp="1604571802162">
-      <screen x="0" y="0" width="1920" height="1040" />
-    </state>
-    <state x="591" y="89" key="CommitChangelistDialog2/0.0.1920.1040/-1920.0.1536.824@0.0.1920.1040" timestamp="1604571802162" />
-    <state x="740" y="276" key="FileChooserDialogImpl" timestamp="1605808817593">
-      <screen x="0" y="0" width="1920" height="1040" />
-    </state>
-    <state x="740" y="276" key="FileChooserDialogImpl/0.0.1920.1040/-1920.0.1536.824@0.0.1920.1040" timestamp="1605808817593" />
-    <state width="1899" height="297" key="GridCell.Tab.0.bottom" timestamp="1605807954931">
-      <screen x="0" y="0" width="1920" height="1040" />
-    </state>
-    <state width="1899" height="297" key="GridCell.Tab.0.bottom/0.0.1920.1040/-1920.0.1536.824@0.0.1920.1040" timestamp="1605807954931" />
-    <state width="1899" height="297" key="GridCell.Tab.0.center" timestamp="1605807954931">
-      <screen x="0" y="0" width="1920" height="1040" />
-    </state>
-    <state width="1899" height="297" key="GridCell.Tab.0.center/0.0.1920.1040/-1920.0.1536.824@0.0.1920.1040" timestamp="1605807954931" />
-    <state width="1899" height="297" key="GridCell.Tab.0.left" timestamp="1605807954931">
-      <screen x="0" y="0" width="1920" height="1040" />
-    </state>
-    <state width="1899" height="297" key="GridCell.Tab.0.left/0.0.1920.1040/-1920.0.1536.824@0.0.1920.1040" timestamp="1605807954931" />
-    <state width="1899" height="297" key="GridCell.Tab.0.right" timestamp="1605807954931">
-      <screen x="0" y="0" width="1920" height="1040" />
-    </state>
-    <state width="1899" height="297" key="GridCell.Tab.0.right/0.0.1920.1040/-1920.0.1536.824@0.0.1920.1040" timestamp="1605807954931" />
-    <state width="1899" height="297" key="GridCell.Tab.1.bottom" timestamp="1605807957247">
-      <screen x="0" y="0" width="1920" height="1040" />
-    </state>
-    <state width="1899" height="297" key="GridCell.Tab.1.bottom/0.0.1920.1040/-1920.0.1536.824@0.0.1920.1040" timestamp="1605807957247" />
-    <state width="1899" height="297" key="GridCell.Tab.1.center" timestamp="1605807957247">
-      <screen x="0" y="0" width="1920" height="1040" />
-    </state>
-    <state width="1899" height="297" key="GridCell.Tab.1.center/0.0.1920.1040/-1920.0.1536.824@0.0.1920.1040" timestamp="1605807957247" />
-    <state width="1899" height="297" key="GridCell.Tab.1.left" timestamp="1605807957247">
-      <screen x="0" y="0" width="1920" height="1040" />
-    </state>
-    <state width="1899" height="297" key="GridCell.Tab.1.left/0.0.1920.1040/-1920.0.1536.824@0.0.1920.1040" timestamp="1605807957247" />
-    <state width="1899" height="297" key="GridCell.Tab.1.right" timestamp="1605807957247">
-      <screen x="0" y="0" width="1920" height="1040" />
-    </state>
-    <state width="1899" height="297" key="GridCell.Tab.1.right/0.0.1920.1040/-1920.0.1536.824@0.0.1920.1040" timestamp="1605807957247" />
-    <state x="-1920" y="0" width="1550" height="773" key="dock-window-1" timestamp="1604902738048">
-      <screen x="-1920" y="0" width="1536" height="824" />
-    </state>
-    <state x="-1920" y="0" width="1550" height="773" key="dock-window-1/0.0.1920.1040/-1920.0.1536.824@0.0.1920.1040" timestamp="1604902738048" />
-  </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/py2cpp.py</url>
+          <line>151</line>
+          <option name="timeStamp" value="3" />
+        </line-breakpoint>
+      </breakpoints>
       <default-breakpoints>
         <breakpoint type="python-exception">
           <properties notifyOnTerminate="true" exception="BaseException">
@@ -255,10 +200,5 @@
         </breakpoint>
       </default-breakpoints>
     </breakpoint-manager>
-    <watches-manager>
-      <configuration name="PythonConfigurationType">
-        <watch expression="node.value.args" />
-      </configuration>
-    </watches-manager>
   </component>
 </project>
