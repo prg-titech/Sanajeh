@@ -11,9 +11,9 @@ DeviceAllocator.array_size(cells, 1000)
 class Cell():
     agent_: Agent
 
-    def __init__(self):
+    def __init__(self, idx: int):
         self.agent_ = None
-
+        cells[idx] = self
 
     def agent(self) -> Agent:
         return self.agent_

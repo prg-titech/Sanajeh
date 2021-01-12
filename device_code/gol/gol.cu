@@ -5,8 +5,9 @@ __device__ AllocatorT* device_allocator;
 __device__ Cell** cells;
 Cell** host_cells;
 
-__device__ Cell::Cell() {
+__device__ Cell::Cell(int idx) {
 	this->agent_ = nullptr;
+	cells[idx] = this;
 }
 
 __device__ Agent* Cell::agent() {

@@ -21,7 +21,7 @@ class Cell : public AllocatorT::Base {
 		declare_field_types(Cell, Agent*)
 		Field<Cell, 0> agent_;
 	
-		__device__ Cell();
+		__device__ Cell(int idx);
 		__device__ Agent* agent();
 		__device__ bool is_empty();
 		void _do(void (*pf)(Agent*));

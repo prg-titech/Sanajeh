@@ -16,9 +16,9 @@ DeviceAllocator.array_size(cells, 1000)
 class Cell:
     agent_: Agent
 
-
-    def __init__(self):
+    def __init__(self, idx: int):
         self.agent_ = None
+        cells[idx] = self
         # todo cell[], alive cell
 
     def agent(self) -> Agent:
@@ -113,7 +113,7 @@ class Alive(Agent):
                         alive: Alive = cells[ny * SIZE_X + nx].agent()
                         if alive.is_new:
                             if alive is self:
-                                cells[y * SIZE_X + x].agent_ = DeviceAllocator.new(Candidate, y*SIZE_X + x)
+                                cells[y * SIZE_X + x].agent_ = DeviceAllocator.new(Candidate, y * SIZE_X + x)
                             return
                 dy += 1
             dx += 1
