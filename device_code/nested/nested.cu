@@ -15,37 +15,46 @@ __device__ Vector* Vector::add(Vector* other) {
 }
 
 __device__ Vector* Vector::plus(Vector* other) {
-	return &Vector(this->x + other->x, this->y + other->y);
+    Vector v = Vector(this->x + other->x, this->y + other->y);
+	return &v;
 }
 
 __device__ Vector* Vector::subtract(Vector* other) {
 	this->x -= other->x;
 	this->y -= other->y;
-	return &this;
+	Vector *v = this;
+	return v;
 }
 
 __device__ Vector* Vector::minus(Vector* other) {
-	return &Vector(this->x - other->x, this->y - other->y);
+    Vector v = Vector(this->x - other->x, this->y - other->y);
+	return &v;
 }
 
 __device__ Vector* Vector::scale(float ratio) {
 	this->x *= ratio;
 	this->y *= ratio;
-	return &this;
+	Vector *v = this;
+	return v;
+}
 }
 
 __device__ Vector* Vector::multiply(float multiplier) {
-	return &Vector(this->x * multiplier, this->y * multiplier);
+    Vector v = Vector(this->x * multiplier, this->y * multiplier);
+	return &v;
 }
 
 __device__ Vector* Vector::divide_by(float divisor) {
 	this->x /= divisor;
 	this->y /= divisor;
-	return &this;
+	Vector *v = this;
+	return v;
+}
 }
 
 __device__ Vector* Vector::divide(float divisor) {
-	return &Vector(this->x / divisor, this->y / divisor);
+    Vector v = VVector(this->x / divisor, this->y / divisor);
+	return &v;
 }
 
 __device__ float Vector::dist_origin() {
@@ -55,7 +64,8 @@ __device__ float Vector::dist_origin() {
 __device__ Vector* Vector::to_zero() {
 	this->x = 0.0;
 	this->y = 0.0;
-	return &this;
+	Vector *v = this;
+	return v;
 }
 
 __device__ Body::Body(float px, float py, float vx, float vy, float fx, float fy, float m) {
