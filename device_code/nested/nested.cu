@@ -11,7 +11,8 @@ __device__ Vector::Vector(float x_, float y_) {
 __device__ Vector* Vector::add(Vector* other) {
 	this->x += other->x;
 	this->y += other->y;
-	return &this;
+	Vector *v = this;
+	return v;
 }
 
 __device__ Vector* Vector::plus(Vector* other) {
@@ -51,7 +52,7 @@ __device__ Vector* Vector::divide_by(float divisor) {
 }
 
 __device__ Vector* Vector::divide(float divisor) {
-    Vector v = VVector(this->x / divisor, this->y / divisor);
+    Vector v = Vector(this->x / divisor, this->y / divisor);
 	return &v;
 }
 
@@ -67,9 +68,9 @@ __device__ Vector* Vector::to_zero() {
 }
 
 __device__ Body::Body(float px, float py, float vx, float vy, float fx, float fy, float m) {
-	this->pos = Vector(px, py);
-	this->vel = Vector(vx, vy);
-	this->force = Vector(fx, fy);
+	this->pos = new Vector(px, py);
+	this->vel = new Vector(vx, vy);
+	this->force = new Vector(fx, fy);
 	this->mass = m;
 }
 
