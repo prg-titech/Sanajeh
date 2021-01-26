@@ -4,48 +4,48 @@ AllocatorHandle<AllocatorT>* allocator_handle;
 __device__ AllocatorT* device_allocator;
 
 __device__ Vector::Vector(float x_, float y_) {
-	float this->x = x_;
-	float this->y = y_;
+	this->x = x_;
+	this->y = y_;
 }
 
 __device__ Vector* Vector::add(Vector* other) {
 	this->x += other->x;
 	this->y += other->y;
-	return this;
+	return &this;
 }
 
 __device__ Vector* Vector::plus(Vector* other) {
-	return Vector(this->x + other->x, this->y + other->y);
+	return &Vector(this->x + other->x, this->y + other->y);
 }
 
 __device__ Vector* Vector::subtract(Vector* other) {
 	this->x -= other->x;
 	this->y -= other->y;
-	return this;
+	return &this;
 }
 
 __device__ Vector* Vector::minus(Vector* other) {
-	return Vector(this->x - other->x, this->y - other->y);
+	return &Vector(this->x - other->x, this->y - other->y);
 }
 
 __device__ Vector* Vector::scale(float ratio) {
 	this->x *= ratio;
 	this->y *= ratio;
-	return this;
+	return &this;
 }
 
 __device__ Vector* Vector::multiply(float multiplier) {
-	return Vector(this->x * multiplier, this->y * multiplier);
+	return &Vector(this->x * multiplier, this->y * multiplier);
 }
 
 __device__ Vector* Vector::divide_by(float divisor) {
 	this->x /= divisor;
 	this->y /= divisor;
-	return this;
+	return &this;
 }
 
 __device__ Vector* Vector::divide(float divisor) {
-	return Vector(this->x / divisor, this->y / divisor);
+	return &Vector(this->x / divisor, this->y / divisor);
 }
 
 __device__ float Vector::dist_origin() {
@@ -55,7 +55,7 @@ __device__ float Vector::dist_origin() {
 __device__ Vector* Vector::to_zero() {
 	this->x = 0.0;
 	this->y = 0.0;
-	return this;
+	return &this;
 }
 
 __device__ Body::Body(float px, float py, float vx, float vy, float fx, float fy, float m) {
