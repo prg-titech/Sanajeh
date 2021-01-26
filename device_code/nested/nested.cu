@@ -8,6 +8,11 @@ __device__ Vector::Vector(float x_, float y_) {
 	this->y = y_;
 }
 
+__device__ Vector::Vector(int idx)) {
+	this->x = 0.0;
+	this->y = 0.0;
+}
+
 __device__ Vector* Vector::add(Vector* other) {
 	this->x += other->x;
 	this->y += other->y;
