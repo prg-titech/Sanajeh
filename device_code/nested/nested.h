@@ -24,6 +24,7 @@ class Vector : public AllocatorT::Base {
 		Field<Vector, 1> y;
 	
 		__device__ Vector(float x_, float y_);
+		__device__ Vector(int idx);
 		__device__ Vector* add(Vector* other);
 		__device__ Vector* plus(Vector* other);
 		__device__ Vector* subtract(Vector* other);
