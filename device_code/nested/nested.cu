@@ -49,7 +49,6 @@ __device__ Vector* Vector::divide_by(float divisor) {
 	Vector *v = this;
 	return v;
 }
-}
 
 __device__ Vector* Vector::divide(float divisor) {
     Vector v = VVector(this->x / divisor, this->y / divisor);
