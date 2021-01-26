@@ -68,18 +68,18 @@ __device__ Vector* Vector::to_zero() {
 }
 
 __device__ Body::Body(float px, float py, float vx, float vy, float fx, float fy, float m) {
-	this->pos = new Vector(px, py);
-	this->vel = new Vector(vx, vy);
-	this->force = new Vector(fx, fy);
+	this->pos = new(device_allocator) Vector(px, py);
+	this->vel = new(device_allocator) Vector(vx, vy);
+	this->force = new(device_allocator) Vector(fx, fy);
 	this->mass = m;
 }
 
 __device__ Body::Body(int idx) {
 	curandState rand_state;
 	curand_init(kSeed, idx, 0, &rand_state);
-	this->pos = Vector((2.0 * curand_uniform(&rand_state)) - 1.0, (2.0 * curand_uniform(&rand_state)) - 1.0);
-	this->vel = Vector(0.0, 0.0);
-	this->force = Vector(0.0, 0.0);
+	this->pos = new(device_allocator) Vector((2.0 * curand_uniform(&rand_state)) - 1.0, (2.0 * curand_uniform(&rand_state)) - 1.0);
+	this->vel = new(device_allocator) Vector(0.0, 0.0);
+	this->force = new(device_allocator) Vector(0.0, 0.0);
 	this->mass = ((curand_uniform(&rand_state) / 2.0) + 0.5) * kMaxMass;
 }
 
