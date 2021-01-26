@@ -8,7 +8,7 @@ __device__ Vector::Vector(float x_, float y_) {
 	this->y = y_;
 }
 
-__device__ Vector::Vector(int idx)) {
+__device__ Vector::Vector(int idx) {
 	this->x = 0.0;
 	this->y = 0.0;
 }
