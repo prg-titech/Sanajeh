@@ -4,6 +4,5 @@ int Body_Body_body_update();
 int parallel_new_Body(int object_num);
 int parallel_new_Vector(int object_num);
 int AllocatorInitialize();
-int Body_do_all(void (*pf)(Vector*, Vector*, Vector*, float));
 int Vector_do_all(void (*pf)());
 int AllocatorUninitialize();
