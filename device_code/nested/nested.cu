@@ -37,7 +37,6 @@ __device__ Vector* Vector::scale(float ratio) {
 	Vector *v = this;
 	return v;
 }
-}
 
 __device__ Vector* Vector::multiply(float multiplier) {
     Vector v = Vector(this->x * multiplier, this->y * multiplier);
