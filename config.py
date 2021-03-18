@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 # configuration of sanajeh
 
-FILE_NAME: str = "gol"
-DIC_NAME: str = "../device_code/{}".format(FILE_NAME)
+FILE_NAME: str = "nested"
+DIC_NAME: str = "device_code/{}".format(FILE_NAME)
 INDENT: str = "\t"
 
 CPP_FILE_PATH: str = '{}/{}.cu'.format(DIC_NAME, FILE_NAME)
