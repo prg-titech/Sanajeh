@@ -40,11 +40,12 @@ class Vector : public AllocatorT::Base {
 
 class Body : public AllocatorT::Base {
 	public:
-		declare_field_types(Body, Vector, Vector, Vector, float)
-		Field<Body, 0> pos;
-		Field<Body, 1> vel;
-		Field<Body, 2> force;
-		Field<Body, 3> mass;
+		declare_field_types(Body, float, Vector, Vector, Vector)
+		Field<Body, 0> mass;
+		Field<Body, 1> pos;
+		Field<Body, 2> vel;
+		Field<Body, 3> force;
+
 
 		__device__ Body(float px, float py, float vx, float vy, float fx, float fy, float m);
 		__device__ Body(int idx);
