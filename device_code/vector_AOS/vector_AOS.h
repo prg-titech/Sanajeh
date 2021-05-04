@@ -40,7 +40,7 @@ class Vector : public AllocatorT::Base {
 
 class Body : public AllocatorT::Base {
 	public:
-		declare_field_types(Body, Vector*, Vector*, Vector*, float)
+		declare_field_types(Body, Vector, Vector, Vector, float)
 		Field<Body, 0> pos;
 		Field<Body, 1> vel;
 		Field<Body, 2> force;

@@ -73,63 +73,44 @@ __device__ Vector* Vector::to_zero() {
 }
 
 __device__ Body::Body(float px, float py, float vx, float vy, float fx, float fy, float m) {
-	this->pos = new(device_allocator) Vector(px, py);
-	this->vel = new(device_allocator) Vector(vx, vy);
-	this->force = new(device_allocator) Vector(fx, fy);
+	this->pos = Vector(px, py);
+	this->vel = Vector(vx, vy);
+	this->force = Vector(fx, fy);
 	this->mass = m;
 }
 
 __device__ Body::Body(int idx) {
 	curandState rand_state;
 	curand_init(kSeed, idx, 0, &rand_state);
-	this->pos = new(device_allocator) Vector((2.0 * curand_uniform(&rand_state)) - 1.0, (2.0 * curand_uniform(&rand_state)) - 1.0);
-	this->vel = new(device_allocator) Vector(0.0, 0.0);
-	this->force = new(device_allocator) Vector(0.0, 0.0);
+	this->pos = Vector((2.0 * curand_uniform(&rand_state)) - 1.0, (2.0 * curand_uniform(&rand_state)) - 1.0);
+	this->vel = Vector(0.0, 0.0);
+	this->force = Vector(0.0, 0.0);
 	this->mass = ((curand_uniform(&rand_state) / 2.0) + 0.5) * kMaxMass;
 }
 
 __device__ void Body::compute_force() {
-	this->force->to_zero();
+	this->force.to_zero();
 	device_allocator->template device_do<Body>(&Body::apply_force, this);
 }
 
 __device__ void Body::apply_force(Body* other) {
 	if (other != this) {
-		Vector* d = this->pos->minus(other->pos);
-		float dist = d->dist_origin();
+		Vector d = this->pos.minus(&other->pos);
+		float dist = d.dist_origin();
 		float f = ((kGravityConstant * this->mass) * other->mass) / ((dist * dist) + kDampeningFactor);
-		other->force->add(d->multiply(f)->divide(dist));
+		other->force.add(&(d.multiply(f).divide(dist)));
 	}
 }
 
 __device__ void Body::body_update() {
-	this->vel->add(this->force->multiply(kDt)->divide(this->mass));
-	this->pos->add(this->vel->multiply(kDt));
+	this->vel.add(&(this->force.multiply(kDt).divide(this->mass)));
+	this->pos.add(&(this->vel.multiply(kDt)));
 	if (this->pos->x < -1 || this->pos->x > 1) {
 		this->vel->x = -this->vel->x;
 	}
 	if (this->pos->y < -1 || this->pos->y > 1) {
 		this->vel->y = -this->vel->y;
 	}
-}
-
-void Body::_do(void (*pf)(Vector*, Vector*, Vector*, float)){
-	pf(this->pos, this->vel, this->force, this->mass);
-}
-
-extern "C" int Body_do_all(void (*pf)(Vector*, Vector*, Vector*, float)){
-	allocator_handle->template device_do<Body>(&Body::_do, pf);
- 	return 0;
-}
-
-
-void Vector::_do(void (*pf)()){
-	pf();
-}
-
-extern "C" int Vector_do_all(void (*pf)()){
-	allocator_handle->template device_do<Vector>(&Vector::_do, pf);
- 	return 0;
 }
 
 extern "C" int Body_Body_compute_force(){
