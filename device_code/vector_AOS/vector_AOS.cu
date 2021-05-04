@@ -105,11 +105,11 @@ __device__ void Body::apply_force(Body* other) {
 __device__ void Body::body_update() {
 	this->vel.add(&(this->force.multiply(kDt).divide(this->mass)));
 	this->pos.add(&(this->vel.multiply(kDt)));
-	if (this->pos->x < -1 || this->pos->x > 1) {
-		this->vel->x = -this->vel->x;
+	if (this->pos.x < -1 || this->pos.x > 1) {
+		this->vel.x = -this->vel.x;
 	}
-	if (this->pos->y < -1 || this->pos->y > 1) {
-		this->vel->y = -this->vel->y;
+	if (this->pos.y < -1 || this->pos.y > 1) {
+		this->vel.y = -this->vel.y;
 	}
 }
 
