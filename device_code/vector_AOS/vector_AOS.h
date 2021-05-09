@@ -17,7 +17,7 @@ static const float kDt = 0.01;
 static const float kGravityConstant = 4e-06;
 static const float kDampeningFactor = 0.05;
 
-class Vector : public AllocatorT::Base {
+class Vector{
 	public:
 		declare_field_types(Vector, float, float)
 		Field<Vector, 0> x;
