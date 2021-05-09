@@ -19,9 +19,8 @@ static const float kDampeningFactor = 0.05;
 
 class Vector{
 	public:
-		declare_field_types(Vector, float, float)
-		Field<Vector, 0> x;
-		Field<Vector, 1> y;
+		float x;
+		float y;
 
 		__device__ Vector(float x_, float y_);
 		__device__ Vector(int idx);
