@@ -146,7 +146,7 @@ class GenPyCallGraphVisitor(ast.NodeVisitor):
         e_ann = None
         if type(node.annotation) is ast.Subscript:
             ann = node.annotation.value.id
-            e_ann = node.annotation.slice.value.id
+            e_ann = node.annotation.slice.id
         else:
             ann = node.annotation.id
 
