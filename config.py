@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # configuration of sanajeh
 
-FILE_NAME: str = "vector_AOS"
+FILE_NAME: str = "nbody"
 DIC_NAME: str = "device_code/{}".format(FILE_NAME)
 INDENT: str = "\t"
 
