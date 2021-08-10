@@ -10,8 +10,7 @@ import astunparse
 
 import type_converter
 
-from config import INDENT, FILE_NAME, DIC_NAME, CDEF_FILE_PATH, CPP_FILE_PATH, HPP_FILE_PATH, PY_FILE_PATH
-#from config import INDENT
+from config import INDENT
 
 from call_graph import CallGraph, ClassNode, FunctionNode, VariableNode
 from gen_cppast import GenCppAstVisitor

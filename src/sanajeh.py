@@ -1,5 +1,5 @@
 import os, sys
-import py2cpp_
+import py2cpp
 
 # Device side allocator
 class DeviceAllocator:
@@ -65,7 +65,7 @@ class PyCompiler:
 
   def compile(self):
     source = open(self.file_path, encoding="utf-8").read()
-    codes = py2cpp_.compile(source, self.dir_path, self.file_name)
+    codes = py2cpp.compile(source, self.dir_path, self.file_name)
     self.cpp_code = codes[0]
     self.hpp_code = codes[1]
     self.cdef_code = codes[2]

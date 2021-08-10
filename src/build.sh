@@ -12,4 +12,3 @@ args="${args} -gencode arch=compute_50,code=sm_50 -gencode arch=compute_61,code=
 args="${args} -maxrregcount=64 -Idynasoar -I. -Idynasoar/lib/cub"
 
 nvcc --shared -Xcudafe "--diag_suppress=1427" -Xcompiler -fPIC ${args} "$@"
-

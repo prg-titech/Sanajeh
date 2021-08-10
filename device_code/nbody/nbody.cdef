@@ -1,0 +1,7 @@
+
+int Body_Body_compute_force();
+int Body_Body_body_update();
+int parallel_new_Body(int object_num);
+int AllocatorInitialize();
+int Body_do_all(void (*pf)(float, float, float, float, float, float, float));
+int AllocatorUninitialize();
