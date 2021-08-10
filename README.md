@@ -25,7 +25,9 @@ from sanajeh import PyCompiler
 compiler: PyCompiler = PyCompiler("examples/nbody/nbody.py", "nbody")
 ````
 
-The build script needs to specify the path of the file to be compiled. The result of the compilation is put in `/device_code/(dir_name)` where `dir_name` is also specified by the script. The class `PyCompiler` can be found in `src/sanajeh.py`.
+The build script needs to specify the path of the file to be compiled. The result of the compilation is put in `/device_code/(dir_name)` where `dir_name` is also specified by the script. 
+
+The class `PyCompiler` can be found in `/src/sanajeh.py`. It uses definitions in `/src/py2cpp.py` to do the compilation.
 
 ## DeviceAllocator
 
@@ -49,7 +51,26 @@ def compute_force(self):
 
 The *main* function for nbody is defined in `/example/nbody/main_norender.py`. It uses the class `PyAllocator` which is also defined in `sanajeh.py`. `PyAllocator` works by calling the FFI.
 
+`initialize()` sets up the FFI.
+
 ````
+from sanajeh import PyAllocator
+from nbody import Body
 allocator: PyAllocator = PyAllocator("nbody")
 allocator.initialize()
+````
+
+`parallel_new(...)` instantiates the objects.
+
+````
+obn = int(sys.argv[1])
+itr = int(sys.argv[2])
+allocator.parallel_new(Body, obn)
+````
+
+`parallel_do(...)` runs the SMMO. There are two methods here: compute_force and body_update.
+
+````
+allocator.parallel_do(Body, Body.compute_force)
+allocator.parallel_do(Body, Body.body_update)
 ````
