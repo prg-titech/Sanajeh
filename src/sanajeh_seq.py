@@ -8,7 +8,6 @@ class DeviceAllocator:
 
   @staticmethod
   def device_do(cls, func, *arg):
-    global objects
     for obj in objects:
       getattr(obj, func.__name__)(*arg)
 
@@ -51,7 +50,6 @@ class PyAllocator:
     pass
 
   def parallel_do(self, cls, func, *arg):
-    global objects
     for obj in objects:
       getattr(obj, func.__name__)(*arg)
 
@@ -62,6 +60,5 @@ class PyAllocator:
       getattr(objects[i], cls.__name__)(i)
 
   def do_all(self, cls, func):
-    global objects
     for obj in objects:
       func(obj)

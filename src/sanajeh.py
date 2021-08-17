@@ -1,57 +1,58 @@
 import os, sys
 import py2cpp
 import cffi
+import random
 from typing import Callable
 
 ffi = cffi.FFI()
 
+cpu_flag = False
+objects = None
+
 # Device side allocator
 class DeviceAllocator:
-    """
-    Includes no implementations. The only purpose of this class is to provide special syntax for python device codes
-    """
+  @staticmethod
+  def device_do(cls, func, *args):
+    if cpu_flag:
+      for obj in objects:
+        getattr(obj, func.__name__)(*args)
+    else:
+      pass
 
-    # dummy device_do
-    @staticmethod
-    def device_do(cls, func, *args):
-        pass
+  @staticmethod
+  def device_class(*cls):
+    pass
 
-    # dummy for recognizing device classes
-    @staticmethod
-    def device_class(*cls):
-        pass
+  @staticmethod
+  def parallel_do(cls, func, *args):
+    pass
 
-    # dummy for recognizing parallel_do
-    @staticmethod
-    def parallel_do(cls, func, *args):
-        pass
+  @staticmethod
+  def rand_init(seed, sequence, offset):
+    if cpu_flag:
+      random.seed(sequence)
+    else:
+      pass
 
-    # dummy rand_init
-    @staticmethod
-    def rand_init(seed, sequence, offset):
-        pass
+  # (0,1]
+  @staticmethod
+  def rand_uniform():
+    if cpu_flag:
+      return random.uniform(0,1)
+    else:
+      pass
 
-    # dummy rand_uniform
-    # (0,1]
-    @staticmethod
-    def rand_uniform():
-        pass
+  @staticmethod
+  def array_size(array, size):
+    pass
 
-    # dummy array_size
-    # (0,1]
-    @staticmethod
-    def array_size(array, size):
-        pass
+  @staticmethod
+  def new(cls, *args):
+    pass
 
-    # dummy new
-    @staticmethod
-    def new(cls, *args):
-        pass
-
-    # dummy destroy
-    @staticmethod
-    def destroy(obj):
-        pass
+  @staticmethod
+  def destroy(obj):
+    pass
 
 class PyCompiler:
   file_path: str = ""
@@ -98,81 +99,103 @@ class PyAllocator:
   cdef_code: str = ""
   lib = None
 
-  def __init__(self, name: str):
+  def __init__(self, name: str, flag: bool):
     self.file_name = name
+    global cpu_flag    
+    cpu_flag = flag
 
   # load the shared library and initialize the allocator on GPU
   def initialize(self):
-    """
-    Initialize ffi module
-    """
-    self.cpp_code = open("device_code/{}/{}.cu".format(self.file_name, self.file_name), mode="r").read()
-    self.hpp_code = open("device_code/{}/{}.h".format(self.file_name, self.file_name), mode="r").read()
-    self.cdef_code = open("device_code/{}/{}.cdef".format(self.file_name, self.file_name), mode="r").read()
-
-    ffi.cdef(self.cdef_code)
-    self.lib = ffi.dlopen("device_code/{}/{}.so".format(self.file_name, self.file_name))
-    if self.lib.AllocatorInitialize() == 0:
+    if cpu_flag:
       pass
-      #print("Successfully initialized the allocator through FFI.")
     else:
-      print("Initialization failed!", file=sys.stderr)
-      sys.exit(1)
+      """
+      Initialize ffi module
+      """
+      self.cpp_code = open("device_code/{}/{}.cu".format(self.file_name, self.file_name), mode="r").read()
+      self.hpp_code = open("device_code/{}/{}.h".format(self.file_name, self.file_name), mode="r").read()
+      self.cdef_code = open("device_code/{}/{}.cdef".format(self.file_name, self.file_name), mode="r").read()
+
+      ffi.cdef(self.cdef_code)
+      self.lib = ffi.dlopen("device_code/{}/{}.so".format(self.file_name, self.file_name))
+      if self.lib.AllocatorInitialize() == 0:
+        pass
+        #print("Successfully initialized the allocator through FFI.")
+      else:
+        print("Initialization failed!", file=sys.stderr)
+        sys.exit(1)
 
   # Free all of the memory on GPU
   def uninitialize():
-    """
-    Initialize ffi module
-    """
-    if self.lib.AllocatorUninitialize() == 0:
-      pass
-      # print("Successfully uninitialized the allocator through FFI.")
+    if cpu_flag:
+      """
+      Initialize ffi module
+      """
+      if self.lib.AllocatorUninitialize() == 0:
+        pass
+        # print("Successfully uninitialized the allocator through FFI.")
+      else:
+        print("Initialization failed!", file=sys.stderr)
+        sys.exit(1)
     else:
-      print("Initialization failed!", file=sys.stderr)
-      sys.exit(1)
+      pass
 
   def parallel_do(self, cls, func, *args):
-    """
-    Parallelly run a function on all objects of a class.
-    """
-    object_class_name = cls.__name__
-    func_str = func.__qualname__.split(".")
-    # todo nested class exception
-    func_class_name = func_str[0]
-    func_name = func_str[1]
-    # todo args
-    if eval("self.lib.{}_{}_{}".format(object_class_name, func_class_name, func_name))() == 0:
-      pass
-      # print("Successfully called parallel_do {} {} {}".format(object_class_name, func_class_name, func_name))
+    if cpu_flag:
+      for obj in objects:
+        getattr(obj, func.__name__)(*args)
     else:
-      print("Parallel_do expression failed!", file=sys.stderr)
-      sys.exit(1)
+      """
+      Parallelly run a function on all objects of a class.
+      """
+      object_class_name = cls.__name__
+      func_str = func.__qualname__.split(".")
+      # todo nested class exception
+      func_class_name = func_str[0]
+      func_name = func_str[1]
+      # todo args
+      if eval("self.lib.{}_{}_{}".format(object_class_name, func_class_name, func_name))() == 0:
+        pass
+        # print("Successfully called parallel_do {} {} {}".format(object_class_name, func_class_name, func_name))
+      else:
+        print("Parallel_do expression failed!", file=sys.stderr)
+        sys.exit(1)
 
   def parallel_new(self, cls, object_num):
-    """
-    Parallelly create objects of a class
-    """
-    object_class_name = cls.__name__
-    if eval("self.lib.parallel_new_{}".format(object_class_name))(object_num) == 0:
-      pass
-      # print("Successfully called parallel_new {} {}".format(object_class_name, object_num))
+    if cpu_flag:
+      global objects
+      objects = [cls() for _ in range(object_num)]
+      for i in range(object_num):
+        getattr(objects[i], cls.__name__)(i)
     else:
-      print("Parallel_new expression failed!", file=sys.stderr)
-      sys.exit(1)
+      """
+      Parallelly create objects of a class
+      """
+      object_class_name = cls.__name__
+      if eval("self.lib.parallel_new_{}".format(object_class_name))(object_num) == 0:
+        pass
+        # print("Successfully called parallel_new {} {}".format(object_class_name, object_num))
+      else:
+        print("Parallel_new expression failed!", file=sys.stderr)
+        sys.exit(1)
 
   def do_all(self, cls, func):
-    """
-    Run a function which is used to received the fields on all object of a class.
-    """
-    class_name = cls.__name__
-    callback_types = "void({})".format(", ".join(cls.__dict__['__annotations__'].values()))
-    fields = ", ".join(cls.__dict__['__annotations__'])
-    lambda_for_create_host_objects = eval("lambda {}: func(cls({}))".format(fields, fields), locals())
-    lambda_for_callback = ffi.callback(callback_types, lambda_for_create_host_objects)
-
-    if eval("self.lib.{}_do_all".format(class_name))(lambda_for_callback) == 0:
-      pass
-      # print("Successfully called parallel_new {} {}".format(object_class_name, object_num))
+    if cpu_flag:
+      for obj in objects:
+        func(obj)
     else:
-      print("Do_all expression failed!", file=sys.stderr)
-      sys.exit(1)
+      """
+      Run a function which is used to received the fields on all object of a class.
+      """
+      class_name = cls.__name__
+      callback_types = "void({})".format(", ".join(cls.__dict__['__annotations__'].values()))
+      fields = ", ".join(cls.__dict__['__annotations__'])
+      lambda_for_create_host_objects = eval("lambda {}: func(cls({}))".format(fields, fields), locals())
+      lambda_for_callback = ffi.callback(callback_types, lambda_for_create_host_objects)
+
+      if eval("self.lib.{}_do_all".format(class_name))(lambda_for_callback) == 0:
+        pass
+        # print("Successfully called parallel_new {} {}".format(object_class_name, object_num))
+      else:
+        print("Do_all expression failed!", file=sys.stderr)
+        sys.exit(1)
