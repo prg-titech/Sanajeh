@@ -9,6 +9,44 @@ ffi = cffi.FFI()
 cpu_flag = False
 objects = None
 
+class PyCompiler:
+  file_path: str = ""
+  file_name: str = ""
+  dir_path: str = ""
+
+  cpp_code: str = ""
+  hpp_code: str = ""
+  cdef_code: str = ""
+
+  def __init__(self, pth: str, nme: str):
+    self.file_path = pth
+    self.file_name = nme
+    self.dir_path = "device_code/{}".format(self.file_name)
+
+  def compile(self):
+    source = open(self.file_path, encoding="utf-8").read()
+    codes = py2cpp.compile(source, self.dir_path, self.file_name)
+    self.cpp_code = codes[0]
+    self.hpp_code = codes[1]
+    self.cdef_code = codes[2]
+
+  def build(self):
+    """
+    Compile cpp source file to .so file
+    """
+    so_path: str = "{}/{}.so".format(self.dir_path, self.file_name)
+    if os.system("src/build.sh " + "{}/{}.cu".format(self.dir_path, self.file_name) + " -o " + so_path) != 0:
+      print("Build failed!", file=sys.stderr)
+      sys.exit(1)
+
+  def printCppAndHpp(self):
+    print(self.cpp_code)
+    print("--------------------------------")
+    print(self.hpp_code)
+
+  def printCdef(self):
+    print(self.cdef_code)
+
 # Device side allocator
 class DeviceAllocator:
   @staticmethod
@@ -54,53 +92,17 @@ class DeviceAllocator:
   def destroy(obj):
     pass
 
-class PyCompiler:
-  file_path: str = ""
-  file_name: str = ""
-  dir_path: str = ""
-
-  cpp_code: str = ""
-  hpp_code: str = ""
-  cdef_code: str = ""
-
-  def __init__(self, pth: str, nme: str):
-    self.file_path = pth
-    self.file_name = nme
-    self.dir_path = "device_code/{}".format(self.file_name)
-
-  def compile(self):
-    source = open(self.file_path, encoding="utf-8").read()
-    codes = py2cpp.compile(source, self.dir_path, self.file_name)
-    self.cpp_code = codes[0]
-    self.hpp_code = codes[1]
-    self.cdef_code = codes[2]
-
-  def build(self):
-    """
-    Compile cpp source file to .so file
-    """
-    so_path: str = "{}/{}.so".format(self.dir_path, self.file_name)
-    if os.system("src/build.sh " + "{}/{}.cu".format(self.dir_path, self.file_name) + " -o " + so_path) != 0:
-      print("Build failed!", file=sys.stderr)
-      sys.exit(1)
-
-  def printCppAndHpp(self):
-    print(self.cpp_code)
-    print("--------------------------------")
-    print(self.hpp_code)
-
-  def printCdef(self):
-    print(self.cdef_code)
-
 class PyAllocator:
+  file_path: str = ""
   file_name: str = ""
   cpp_code: str = ""
   hpp_code: str = ""
   cdef_code: str = ""
   lib = None
 
-  def __init__(self, name: str, flag: bool):
+  def __init__(self, name: str, flag: bool, path: str):
     self.file_name = name
+    self.file_path = path
     global cpu_flag    
     cpu_flag = flag
 
@@ -109,6 +111,13 @@ class PyAllocator:
     if cpu_flag:
       pass
     else:
+      """
+      Compilation before initializing ffi
+      """
+      compiler: PyCompiler = PyCompiler(self.file_path, self.file_name)
+      compiler.compile()
+      compiler.build()
+
       """
       Initialize ffi module
       """
@@ -128,6 +137,8 @@ class PyAllocator:
   # Free all of the memory on GPU
   def uninitialize():
     if cpu_flag:
+      pass
+    else:
       """
       Initialize ffi module
       """
@@ -137,8 +148,6 @@ class PyAllocator:
       else:
         print("Initialization failed!", file=sys.stderr)
         sys.exit(1)
-    else:
-      pass
 
   def parallel_do(self, cls, func, *args):
     if cpu_flag:
