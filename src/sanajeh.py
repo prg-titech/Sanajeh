@@ -100,7 +100,7 @@ class PyAllocator:
   cdef_code: str = ""
   lib = None
 
-  def __init__(self, name: str, flag: bool, path: str):
+  def __init__(self, path: str, name: str, flag: bool):
     self.file_name = name
     self.file_path = path
     global cpu_flag    

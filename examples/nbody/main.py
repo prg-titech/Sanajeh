@@ -1,29 +1,34 @@
 import os, sys
-currentdir = os.path.dirname(os.path.realpath(__file__))
-parentdir = os.path.dirname(os.path.dirname(currentdir))
+parentdir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 sys.path.append(parentdir + "/src")
 
 from sanajeh import PyAllocator
 from nbody import Body
 import time
 
-obn = int(sys.argv[1])
-itr = int(sys.argv[2])
-flag = int(sys.argv[3])
+"""
+Options parser
+"""
+import argparse
+parser = argparse.ArgumentParser()
+parser.add_argument("number", help="number of bodies", type=int)
+parser.add_argument("iter", help="number of iteration", type=int)
+parser.add_argument("--cpu", help="process sequentially", action="store_true")
+args = parser.parse_args()
 
-allocator: PyAllocator = PyAllocator("nbody", flag, "examples/nbody/nbody.py")
+allocator: PyAllocator = PyAllocator("examples/nbody/nbody.py", "nbody", args.cpu)
 
 allocator.initialize()
 initialize_time = time.perf_counter()
 
-allocator.parallel_new(Body, obn)
+allocator.parallel_new(Body, args.number)
 parallel_new_time = time.perf_counter()
 
-for x in range(itr):
+for x in range(args.iter):
   allocator.parallel_do(Body, Body.compute_force)
   allocator.parallel_do(Body, Body.body_update)
 end_time = time.perf_counter()
 
-print("parallel new time(%-5d objects): %.dµs" % (obn, ((parallel_new_time - initialize_time) * 1000000)))
-print("average computation time: %dµs" % ((end_time - parallel_new_time) * 1000000 / itr))
-print("overall computation time(%-4d iterations): %dµs" % (itr, ((end_time - parallel_new_time) * 1000000)))  
+print("parallel new time(%-5d objects): %.dµs" % (args.number, ((parallel_new_time - initialize_time) * 1000000)))
+print("average computation time: %dµs" % ((end_time - parallel_new_time) * 1000000 / args.iter))
+print("overall computation time(%-4d iterations): %dµs" % (args.iter, ((end_time - parallel_new_time) * 1000000)))  
