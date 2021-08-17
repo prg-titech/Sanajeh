@@ -1,5 +1,9 @@
 import os, sys
 import py2cpp
+import cffi
+from typing import Callable
+
+ffi = cffi.FFI()
 
 # Device side allocator
 class DeviceAllocator:
@@ -87,11 +91,6 @@ class PyCompiler:
   def printCdef(self):
     print(self.cdef_code)
 
-import cffi
-ffi = cffi.FFI()
-
-from typing import Callable
-
 class PyAllocator:
   file_name: str = ""
   cpp_code: str = ""
@@ -127,7 +126,7 @@ class PyAllocator:
     """
     if self.lib.AllocatorUninitialize() == 0:
       pass
-      # print("Successfully initialized the allocator through FFI.")
+      # print("Successfully uninitialized the allocator through FFI.")
     else:
       print("Initialization failed!", file=sys.stderr)
       sys.exit(1)
@@ -161,7 +160,7 @@ class PyAllocator:
       print("Parallel_new expression failed!", file=sys.stderr)
       sys.exit(1)
 
-  def do_all(cls, func):
+  def do_all(self, cls, func):
     """
     Run a function which is used to received the fields on all object of a class.
     """

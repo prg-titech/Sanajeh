@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import math
-from sanajeh import DeviceAllocator
+#from sanajeh import DeviceAllocator
+from sanajeh_seq import DeviceAllocator
 
 kSeed: int = 45  # device
 kMaxMass: float = 1000.0  # device
@@ -69,7 +70,7 @@ class Body:
         self.vel = Vector(0,0)
         self.force = Vector(0,0)
         self.mass = 0
-        
+    
     def Body(self, idx: int):
         DeviceAllocator.rand_init(kSeed, idx, 0)
         self.pos = Vector(2.0 * DeviceAllocator.rand_uniform() - 1.0,
@@ -88,12 +89,10 @@ class Body:
             dist: float = d.dist_origin()
             f: float = kGravityConstant * self.mass * other.mass / (dist * dist + kDampeningFactor)
             other.force.add(d.multiply(f).divide(dist))
-
+        
     def body_update(self):
         self.vel.add(self.force.multiply(kDt).divide(self.mass))
-        # self.vel.add(self.force.scale(kDt).divide_by(self.mass))
         self.pos.add(self.vel.multiply(kDt))
-        # self.pos.add(self.vel.scale(kDt))
 
         if self.pos.x < -1 or self.pos.x > 1:
             self.vel.x = -self.vel.x

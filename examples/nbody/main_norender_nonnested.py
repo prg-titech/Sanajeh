@@ -7,7 +7,6 @@ sys.path.append(parentdir + '/src')
 from sanajeh import PyAllocator
 from nbody import Body
 import time
-import sys
 
 # Load shared library and initialize device classes on GPU
 PyAllocator.initialize()
