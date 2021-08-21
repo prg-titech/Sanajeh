@@ -11,6 +11,8 @@ kDampeningFactor: float = 0.05  # device
 
 
 class Vector:
+    x: float
+    y: float
 
     def __init__(self, x_: float, y_: float):
         self.x: float = x_
@@ -69,7 +71,15 @@ class Body:
         self.vel = Vector(0,0)
         self.force = Vector(0,0)
         self.mass = 0
-        
+    
+    """
+    def __init__(self, px: float, py: float, vx: float, vy: float, fx: float, fy: float, m: float):
+        self.pos = Vector(0,0)
+        self.vel = Vector(0,0)
+        self.force = Vector(0,0)
+        self.mass = 0        
+    """
+
     def Body(self, idx: int):
         DeviceAllocator.rand_init(kSeed, idx, 0)
         self.pos = Vector(2.0 * DeviceAllocator.rand_uniform() - 1.0,

@@ -193,11 +193,11 @@ class PyAllocator:
       for obj in objects:
         func(obj)
     else:
-      def expand():
+      def expand(name):
         field_map = {}
-        module = cls.__dict__["__module__"]
-        if "__annotations__" in cls.__dict__.keys():
-          for field, ftype in cls.__dict__["__annotations__"].items():
+        module = name.__dict__["__module__"]
+        if "__annotations__" in name.__dict__.keys():
+          for field, ftype in name.__dict__["__annotations__"].items():
             if ftype in ["int", "float", "bool"]: 
               field_map[field] = ftype
             else:
@@ -213,10 +213,8 @@ class PyAllocator:
       Run a function which is used to received the fields on all object of a class.
       """
       class_name = cls.__name__
-      #callback_types = "void({})".format(", ".join(cls.__dict__['__annotations__'].values()))
-      #fields = ", ".join(cls.__dict__['__annotations__'])
-      callback_types = "void({})".format(", ".join(expand().values()))
-      fields = ", ".join(expand)
+      callback_types = "void({})".format(", ".join(cls.__dict__['__annotations__'].values()))
+      fields = ", ".join(cls.__dict__['__annotations__'])
       lambda_for_create_host_objects = eval("lambda {}: func(cls({}))".format(fields, fields), locals())
       lambda_for_callback = ffi.callback(callback_types, lambda_for_create_host_objects)
 
