@@ -59,6 +59,8 @@ for x in range(args.iter):
     clear_screen()    
 end_time = time.perf_counter()
 
+"""
 print("parallel new time(%-5d objects): %.dµs" % (args.number, ((parallel_new_time - initialize_time) * 1000000)))
 print("average computation time: %dµs" % ((end_time - parallel_new_time) * 1000000 / args.iter))
 print("overall computation time(%-4d iterations): %dµs" % (args.iter, ((end_time - parallel_new_time) * 1000000)))  
+"""

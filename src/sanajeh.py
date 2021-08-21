@@ -193,12 +193,30 @@ class PyAllocator:
       for obj in objects:
         func(obj)
     else:
+      def expand():
+        field_map = {}
+        module = cls.__dict__["__module__"]
+        if "__annotations__" in cls.__dict__.keys():
+          for field, ftype in cls.__dict__["__annotations__"].items():
+            if ftype in ["int", "float", "bool"]: 
+              field_map[field] = ftype
+            else:
+              """
+              Expand the nested classes on the assumptions that the field type
+              is defined in the same module as the parent class.
+              """
+              for nested_field, nested_ftype in expand(getattr(__import__(module), ftype)).items():
+                field_map[field + "_" + nested_field] = nested_ftype
+        return field_map    
+  
       """
       Run a function which is used to received the fields on all object of a class.
       """
       class_name = cls.__name__
-      callback_types = "void({})".format(", ".join(cls.__dict__['__annotations__'].values()))
-      fields = ", ".join(cls.__dict__['__annotations__'])
+      #callback_types = "void({})".format(", ".join(cls.__dict__['__annotations__'].values()))
+      #fields = ", ".join(cls.__dict__['__annotations__'])
+      callback_types = "void({})".format(", ".join(expand().values()))
+      fields = ", ".join(expand)
       lambda_for_create_host_objects = eval("lambda {}: func(cls({}))".format(fields, fields), locals())
       lambda_for_callback = ffi.callback(callback_types, lambda_for_create_host_objects)
 
