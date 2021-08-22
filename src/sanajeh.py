@@ -7,16 +7,16 @@ from typing import Callable
 ffi = cffi.FFI()
 
 cpu_flag = False
-objects = None
+objects = None  
 
 class PyCompiler:
   file_path: str = ""
   file_name: str = ""
   dir_path: str = ""
 
-  cpp_code: str = ""
-  hpp_code: str = ""
-  cdef_code: str = ""
+  #cpp_code: str = ""
+  #hpp_code: str = ""
+  #cdef_code: str = ""
 
   def __init__(self, pth: str, nme: str):
     self.file_path = pth
@@ -26,9 +26,9 @@ class PyCompiler:
   def compile(self):
     source = open(self.file_path, encoding="utf-8").read()
     codes = py2cpp.compile(source, self.dir_path, self.file_name)
-    self.cpp_code = codes[0]
-    self.hpp_code = codes[1]
-    self.cdef_code = codes[2]
+    #self.cpp_code = codes[0]
+    #self.hpp_code = codes[1]
+    #self.cdef_code = codes[2]
 
   def build(self):
     """
@@ -173,7 +173,7 @@ class PyAllocator:
   def parallel_new(self, cls, object_num):
     if cpu_flag:
       global objects
-      objects = [cls() for _ in range(object_num)]
+      objects = [cls.__new__(cls) for _ in range(object_num)]
       for i in range(object_num):
         getattr(objects[i], cls.__name__)(i)
     else:
@@ -187,7 +187,7 @@ class PyAllocator:
       else:
         print("Parallel_new expression failed!", file=sys.stderr)
         sys.exit(1)
-
+  
   def do_all(self, cls, func):
     if cpu_flag:
       for obj in objects:
@@ -207,14 +207,15 @@ class PyAllocator:
               """
               for nested_field, nested_ftype in expand(getattr(__import__(module), ftype)).items():
                 field_map[field + "_" + nested_field] = nested_ftype
-        return field_map    
-  
+        return field_map        
       """
       Run a function which is used to received the fields on all object of a class.
       """
       class_name = cls.__name__
-      callback_types = "void({})".format(", ".join(cls.__dict__['__annotations__'].values()))
-      fields = ", ".join(cls.__dict__['__annotations__'])
+      #callback_types = "void({})".format(", ".join(cls.__dict__['__annotations__'].values()))
+      #fields = ", ".join(cls.__dict__['__annotations__'])      
+      callback_types = "void({})".format(", ".join(expand(cls).values()))
+      fields = ", ".join(expand(cls))
       lambda_for_create_host_objects = eval("lambda {}: func(cls({}))".format(fields, fields), locals())
       lambda_for_callback = ffi.callback(callback_types, lambda_for_create_host_objects)
 

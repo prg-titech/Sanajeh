@@ -65,21 +65,25 @@ class Body:
     vel: Vector
     force: Vector
     mass: float
-
+    
+    """
     def __init__(self):
         self.pos = Vector(0,0)
         self.vel = Vector(0,0)
         self.force = Vector(0,0)
         self.mass = 0
+    """
     
     """
-    def __init__(self, px: float, py: float, vx: float, vy: float, fx: float, fy: float, m: float):
-        self.pos = Vector(0,0)
-        self.vel = Vector(0,0)
-        self.force = Vector(0,0)
-        self.mass = 0        
+    Constructor must have all the expanded fields as parameters.
+    This is necessary for do_all callback.
     """
-
+    def __init__(self, px: float, py: float, vx: float, vy: float, fx: float, fy: float, m: float):
+        self.pos = Vector(px,py)
+        self.vel = Vector(vx,vy)
+        self.force = Vector(fx,fy)
+        self.mass = m
+    
     def Body(self, idx: int):
         DeviceAllocator.rand_init(kSeed, idx, 0)
         self.pos = Vector(2.0 * DeviceAllocator.rand_uniform() - 1.0,
