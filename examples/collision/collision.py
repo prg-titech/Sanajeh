@@ -37,6 +37,11 @@ class Body:
     self.has_incoming_merge = incoming
     self.successful_merge = success
 
+  def compute_force(self):
+    self.force_x = 0.0
+    self.force_y = 0.0
+    DeviceAllocator.device_do(Body, Body.apply_force, self)
+
   def Body(self, idx: int):
     DeviceAllocator.rand_init(kSeed, idx, 0)
     self.merge_target = None
@@ -49,11 +54,6 @@ class Body:
     self.force_y = 0.0
     self.has_incoming_merge = False
     self.successful_merge = False
-
-  def compute_force(self):
-    self.force_x = 0.0
-    self.force_y = 0.0
-    DeviceAllocator.device_do(Body, Body.apply_force, self)
 
   def apply_force(self, other: Body):
     if other is not self:
@@ -83,15 +83,15 @@ class Body:
         self.merge_target = other
         other.has_incoming_merge = True
 
-  def initialize_merge():
+  def initialize_merge(self):
     self.merge_target = None
     self.has_incoming_merge = False
     self.successful_merge = False
 
-  def prepare_merge():
+  def prepare_merge(self):
     DeviceAllocator.device_do(Body, Body.check_merge_into_this, self)
 
-  def update_merge():
+  def update_merge(self):
     m: Body = self.merge_target
     if m is not None:
       if m.merge_target is not None:
@@ -105,11 +105,18 @@ class Body:
         m.pos_y = (self.pos_y + m.pos_y) / 2
 
         self.successful_merge = True
+  
+  def delete_merged(self):
+    if (self.successful_merge):
+      DeviceAllocator.destroy(self)
 
 def kernel_initialize_bodies():
   DeviceAllocator.device_class(Body)
 
-
 def _update():
   DeviceAllocator.parallel_do(Body, Body.compute_force)
   DeviceAllocator.parallel_do(Body, Body.body_update)
+  DeviceAllocator.parallel_do(Body, Body.initialize_merge)
+  DeviceAllocator.parallel_do(Body, Body.prepare_merge)
+  DeviceAllocator.parallel_do(Body, Body.update_merge)
+  DeviceAllocator.parallel_do(Body, Body.delete_merged)

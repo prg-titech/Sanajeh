@@ -9,7 +9,6 @@ kDt: float = 0.01  # device
 kGravityConstant: float = 4e-6  # device
 kDampeningFactor: float = 0.05  # device
 
-
 class Vector:
     x: float
     y: float

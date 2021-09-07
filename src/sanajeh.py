@@ -90,7 +90,10 @@ class DeviceAllocator:
 
   @staticmethod
   def destroy(obj):
-    pass
+    if cpu_flag:
+      del obj
+    else:
+      pass
 
 class PyAllocator:
   file_path: str = ""
