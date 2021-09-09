@@ -281,7 +281,7 @@ class ClassDef(CodeStatement):
             for field in self.fields:
                 field_types.append(self.fields[field])
                 # different list for the _do function
-                do_field_types.append(type_converter.do_all_convert(self.fields[field]))
+                do_field_types.append(type_converter.do_all_convert(self.fields[field])[0])
                 field_templates.append(INDENT + "Field<{}, {}> {};".format(self.name,
                                                                            i,
                                                                            field)

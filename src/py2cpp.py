@@ -392,6 +392,7 @@ class Preprocessor(ast.NodeVisitor):
             self.__current_node = None
             self.__class_name = class_name
             self.__field = {}
+            self.__field_kind = {}
 
         def visit(self, node):
             self.__current_node = self.__node_path[-1]
@@ -425,12 +426,15 @@ class Preprocessor(ast.NodeVisitor):
             if type(self.__current_node) is ClassNode:
                 var = node.target
                 anno = node.annotation
-                self.__field[var.id] = type_converter.do_all_convert(anno.id)
-                #self.__field[var.id] = type_converter.convert(anno.id)
+                type_kind = type_converter.do_all_convert(anno.id)
+                self.__field[var.id] = type_kind[0]
+                self.__field_kind[var.id] = type_kind[1]
+                # self.__field[var.id] = type_converter.convert(anno.id)
 
         def buildCpp(self):
             fields_str = ""
             field_types_str = ""
+            """
             for i, field in enumerate(self.__field):
                 if i != len(self.__field) - 1:
                     fields_str += "this->{}, ".format(field)
@@ -438,6 +442,20 @@ class Preprocessor(ast.NodeVisitor):
                 else:
                     fields_str += "this->{}".format(field)
                     field_types_str += "{}".format(self.__field[field])
+            """
+            for i, field in enumerate(self.__field):
+                if i != len(self.__field) - 1:
+                    if self.__field[field] == "int" and self.__field_kind[field] == "class":
+                        fields_str += "0, "
+                    else:
+                        fields_str += "this->{}, ".format(field)  
+                    field_types_str += "{}, ".format(self.__field[field])
+                else:
+                    if self.__field[field] == "int" and self.__field_kind[field] == "class":
+                        fields_str += "0"
+                    else:
+                        fields_str += "this->{}".format(field)
+                    field_types_str += "{}".format(self.__field[field])  
             func_exprs = ['\n' +
                           'void {}::_do(void (*pf)({})){{\n'.format(self.__class_name, field_types_str) +
                           INDENT +
