@@ -16,6 +16,12 @@ def convert(type_str):
         return type_str + "*"
     return type_map[type_str]
 
+# Added this to handle do_all conversion
+def do_all_convert(type_str):
+    if type_str not in type_map:
+        return "int"
+    return type_map[type_str]
+
 
 register("bool", "bool")
 register("int", "int")

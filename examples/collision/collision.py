@@ -37,11 +37,6 @@ class Body:
     self.has_incoming_merge = incoming
     self.successful_merge = success
 
-  def compute_force(self):
-    self.force_x = 0.0
-    self.force_y = 0.0
-    DeviceAllocator.device_do(Body, Body.apply_force, self)
-
   def Body(self, idx: int):
     DeviceAllocator.rand_init(kSeed, idx, 0)
     self.merge_target = None
@@ -54,6 +49,11 @@ class Body:
     self.force_y = 0.0
     self.has_incoming_merge = False
     self.successful_merge = False
+
+  def compute_force(self):
+    self.force_x = 0.0
+    self.force_y = 0.0
+    DeviceAllocator.device_do(Body, Body.apply_force, self)
 
   def apply_force(self, other: Body):
     if other is not self:

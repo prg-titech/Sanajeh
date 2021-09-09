@@ -196,18 +196,19 @@ class PyAllocator:
       for obj in objects:
         func(obj)
     else:
+      """
+      Expand the nested classes on the assumptions that the field type
+      is defined in the same module as the parent class and cycle only
+      to the original class. Needs to be modified later.
+      """
       def expand(name):
         field_map = {}
         module = name.__dict__["__module__"]
         if "__annotations__" in name.__dict__.keys():
           for field, ftype in name.__dict__["__annotations__"].items():
-            if ftype in ["int", "float", "bool"]: 
+            if ftype in ["int", "float", "bool", cls.__name__]: 
               field_map[field] = ftype
             else:
-              """
-              Expand the nested classes on the assumptions that the field type
-              is defined in the same module as the parent class.
-              """
               for nested_field, nested_ftype in expand(getattr(__import__(module), ftype)).items():
                 field_map[field + "_" + nested_field] = nested_ftype
         return field_map        

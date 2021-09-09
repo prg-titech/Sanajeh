@@ -275,10 +275,13 @@ class ClassDef(CodeStatement):
                 body.remove('')
             body.insert(0, new_ctx.indent())
             field_types = []
+            do_field_types = []
             field_templates = []
             i = 0
             for field in self.fields:
                 field_types.append(self.fields[field])
+                # different list for the _do function
+                do_field_types.append(type_converter.do_all_convert(self.fields[field]))
                 field_templates.append(INDENT + "Field<{}, {}> {};".format(self.name,
                                                                            i,
                                                                            field)
@@ -308,7 +311,7 @@ class ClassDef(CodeStatement):
                                        + ("\n" + new_ctx.indent()).join(field_templates)
             _do_function = new_ctx.indent() \
                            + INDENT \
-                           + "void _do(void (*pf)({}));".format(", ".join(field_types))
+                           + "void _do(void (*pf)({}));".format(", ".join(do_field_types))
             return "\n".join([
                 "\n{}class {}{} {{".format(
                     ctx.indent(),

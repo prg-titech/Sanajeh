@@ -374,7 +374,8 @@ class Preprocessor(ast.NodeVisitor):
         def buildCdef(self):
             arg_strs = []
             for arg_ in self.__args:
-                arg_strs.append("{} {}".format(type_converter.convert(self.__args[arg_]), arg_))
+                # arg_strs.append("{} {}".format(type_converter.convert(self.__args[arg_]), arg_))
+                args_strs.append("{} {}".format(type_converter.cdef_convert(self.__args[arg_]). arg_))
 
             return 'int {}_{}_{}({});'.format(
                 self.__object_class_name,
@@ -403,7 +404,7 @@ class Preprocessor(ast.NodeVisitor):
             class_node = self.__current_node.GetClassNode(class_name)
             if class_node is None:
                 # Program shouldn't come to here, which means the class does not exist
-                print("The class {} is not exist.".format(class_name), file=sys.stderr)
+                print("The class {} does not exist.".format(class_name), file=sys.stderr)
                 sys.exit(1)
             self.__node_path.append(class_node)
             self.generic_visit(node)
@@ -424,7 +425,8 @@ class Preprocessor(ast.NodeVisitor):
             if type(self.__current_node) is ClassNode:
                 var = node.target
                 anno = node.annotation
-                self.__field[var.id] = type_converter.convert(anno.id)
+                self.__field[var.id] = type_converter.do_all_convert(anno.id)
+                #self.__field[var.id] = type_converter.convert(anno.id)
 
         def buildCpp(self):
             fields_str = ""

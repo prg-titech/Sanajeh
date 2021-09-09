@@ -8,7 +8,7 @@ import time
 
 """
 Options parser
-"""
+
 import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument("number", help="number of bodies", type=int)
@@ -16,10 +16,11 @@ parser.add_argument("iter", help="number of iteration", type=int)
 parser.add_argument("--cpu", help="process sequentially", action="store_true")
 parser.add_argument("--r", help="rendering option", action="store_true")
 args = parser.parse_args()
+"""
 
 """
 Rendering setting
-"""
+
 import pygame
 os.environ["SDL_VIDEODRIVER"] = "windib"
 
@@ -38,11 +39,19 @@ if (args.r):
   pygame.init()
   screen = pygame.display.set_mode((screen_width, screen_height))
   pygame.display.flip()
+"""
 
+"""
+Compile only
+"""
+from sanajeh import PyCompiler
+
+compiler: PyCompiler = PyCompiler("examples/collision/collision.py", "collision")
+compiler.compile()
 
 """
 Main program
-"""
+
 allocator: PyAllocator = PyAllocator("examples/collision/collision.py", "collision", args.cpu)
 allocator.initialize()
 initialize_time = time.perf_counter()
@@ -66,3 +75,4 @@ end_time = time.perf_counter()
 print("parallel new time(%-5d objects): %.dµs" % (args.number, ((parallel_new_time - initialize_time) * 1000000)))
 print("average computation time: %dµs" % ((end_time - parallel_new_time) * 1000000 / args.iter))
 print("overall computation time(%-4d iterations): %dµs" % (args.iter, ((end_time - parallel_new_time) * 1000000)))
+"""
