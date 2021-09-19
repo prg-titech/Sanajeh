@@ -1,12 +1,11 @@
-# import builtins
-# builtin_types = [getattr(builtins, d) for d in dir(builtins) if isinstance(getattr(builtins, d), type)]
-
 type_map = {}
-
 
 def register(pytype, cpptype):
     type_map[pytype] = cpptype
 
+register("bool", "bool")
+register("int", "int")
+register("float", "float")    
 
 def convert(type_str):
     if type_str is None:
@@ -16,12 +15,8 @@ def convert(type_str):
         return type_str + "*"
     return type_map[type_str]
 
-# Added this to handle do_all conversion
+# This also needs to know about class declared in kernel_initialize_bodies.
 def do_all_convert(type_str):
     if type_str not in type_map:
         return ["int", "class"]
     return [type_map[type_str], "primitive"]
-
-register("bool", "bool")
-register("int", "int")
-register("float", "float")

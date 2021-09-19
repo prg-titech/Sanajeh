@@ -3,6 +3,7 @@ import py2cpp
 import cffi
 import random
 from typing import Callable
+from expander import RuntimeExpander
 
 ffi = cffi.FFI()
 
@@ -95,6 +96,48 @@ class DeviceAllocator:
     else:
       pass
 
+class RuntimeDoAll:
+
+  built = {}
+
+  def __init__(self):
+    pass
+
+  def rebuild_function(self, cls):
+    module = cls.__dict__["__module__"]    
+    flattened = self.flatten(cls)
+    for field, ftype in cls.__dict__["__annotations__"].items():
+      if field.split("_")[-1] != "ref" and ftype not in ["int", "float", "bool"] and ftype not in self.built.keys():
+        self.rebuild_function(getattr(__import__(module), ftype))
+    new_function = "def rebuild_{}({}):\n".format(cls.__name__, ", ".join(flattened[0]))
+    new_function += "\t" + "new_object: {} = {}.__new__({})\n".format(cls.__name__, cls.__name__, cls.__name__)
+    for field, ftype in cls.__dict__["__annotations__"].items():
+      if field in flattened[1].keys():
+        nested_build = ", ".join([nested_field for nested_field in flattened[1][field]])
+        new_function += "\t" + "new_object.{} = {}({})\n".format(field, ftype, nested_build)
+      else:
+        new_function += "\t" + "new_object.{} = {}\n".format(field, field)
+    new_function += "\t" + "return new_object"
+    self.built[cls.__name__] = new_function
+
+  def flatten(self, cls):
+    field_map = {}
+    nested_map = {}
+    module = cls.__dict__["__module__"]
+    if "__annotations__" in cls.__dict__.keys():
+      for field, ftype in cls.__dict__["__annotations__"].items():
+        if field.split("_")[-1] == "ref":
+          field_map[field] = "int"
+        elif ftype in ["int", "float", "bool"]:
+          field_map[field] = ftype
+        else:
+          nested_map[field] = {}
+          nested_result = self.flatten(getattr(__import__(module), ftype))
+          for nested_field, nested_ftype in nested_result[0].items():
+              field_map[field + "_" + nested_field] = nested_ftype
+              nested_map[field][field + "_" + nested_field] = nested_ftype
+    return [field_map, nested_map]        
+
 class PyAllocator:
   file_path: str = ""
   file_name: str = ""
@@ -116,10 +159,10 @@ class PyAllocator:
     else:
       """
       Compilation before initializing ffi
-      """
       compiler: PyCompiler = PyCompiler(self.file_path, self.file_name)
       compiler.compile()
       compiler.build()
+      """
 
       """
       Initialize ffi module
@@ -191,41 +234,45 @@ class PyAllocator:
         print("Parallel_new expression failed!", file=sys.stderr)
         sys.exit(1)
   
+  expander: RuntimeExpander = RuntimeExpander()
+
   def do_all(self, cls, func):
     if cpu_flag:
       for obj in objects:
         func(obj)
     else:
-      """
-      Expand the nested classes on the assumptions that the field type
-      is defined in the same module as the parent class and cycle only
-      to the original class. Needs to be modified later.
-      """
-      def expand(name):
-        field_map = {}
-        module = name.__dict__["__module__"]
-        if "__annotations__" in name.__dict__.keys():
-          for field, ftype in name.__dict__["__annotations__"].items():
-            if ftype in ["int", "float", "bool", cls.__name__]: 
-              field_map[field] = ftype
-            else:
-              for nested_field, nested_ftype in expand(getattr(__import__(module), ftype)).items():
-                field_map[field + "_" + nested_field] = nested_ftype
-        return field_map        
-      """
-      Run a function which is used to received the fields on all object of a class.
-      """
-      class_name = cls.__name__
-      #callback_types = "void({})".format(", ".join(cls.__dict__['__annotations__'].values()))
-      #fields = ", ".join(cls.__dict__['__annotations__'])      
-      callback_types = "void({})".format(", ".join(expand(cls).values()))
-      fields = ", ".join(expand(cls))
+      name = cls.__name__
+      if name not in self.expander.built.keys():
+        self.expander.build_function(cls)
+      callback_types = "void({})".format(", ".join(self.expander.flattened[cls].values()))
+      fields = ", ".join(self.expander.flattened[cls])
       lambda_for_create_host_objects = eval("lambda {}: func(cls({}))".format(fields, fields), locals())
       lambda_for_callback = ffi.callback(callback_types, lambda_for_create_host_objects)
+      if eval("self.lib.{}_do_all".format(name))(lambda_for_callback) == 0:
+        pass
+        # print("Successfully called parallel_new {} {}".format(object_class_name, object_num))
+      else:
+        print("Do_all expression failed!", file=sys.stderr)
+        sys.exit(1)   
 
+  """
+  def do_all(self, cls, func):
+    if cpu_flag:
+      for obj in objects:
+        func(obj)
+    else:
+      class_name = cls.__name__
+      callback_types = "void({})".format(", ".join(self.handler.flatten(cls)[0].values()))
+      if class_name not in self.handler.built.keys():
+        self.handler.rebuild_function(cls)
+      fields = ", ".join(self.handler.flatten(cls)[0])
+      lambda_for_create_host_objects = eval("lambda {}: func(cls({}))".format(fields, fields), locals())
+      # lambda_for_create_host_objects = eval("lambda {}: func(rebuild_{}({}))".format(fields, class_name, fields), locals())
+      lambda_for_callback = ffi.callback(callback_types, lambda_for_create_host_objects)
       if eval("self.lib.{}_do_all".format(class_name))(lambda_for_callback) == 0:
         pass
         # print("Successfully called parallel_new {} {}".format(object_class_name, object_num))
       else:
         print("Do_all expression failed!", file=sys.stderr)
         sys.exit(1)
+  """

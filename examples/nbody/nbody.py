@@ -73,10 +73,6 @@ class Body:
         self.mass = 0
     """
     
-    """
-    Constructor must have all the expanded fields as parameters.
-    This is necessary for do_all callback.
-    """
     def __init__(self, px: float, py: float, vx: float, vy: float, fx: float, fy: float, m: float):
         self.pos = Vector(px,py)
         self.vel = Vector(vx,vy)

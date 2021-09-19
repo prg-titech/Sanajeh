@@ -446,13 +446,13 @@ class Preprocessor(ast.NodeVisitor):
             for i, field in enumerate(self.__field):
                 if i != len(self.__field) - 1:
                     if self.__field[field] == "int" and self.__field_kind[field] == "class":
-                        fields_str += "0, "
+                        fields_str += "(int) this->{}, ".format(field)
                     else:
                         fields_str += "this->{}, ".format(field)  
                     field_types_str += "{}, ".format(self.__field[field])
                 else:
                     if self.__field[field] == "int" and self.__field_kind[field] == "class":
-                        fields_str += "0"
+                        fields_str += "(int) this->{}, ".format(field)
                     else:
                         fields_str += "this->{}".format(field)
                     field_types_str += "{}".format(self.__field[field])  
