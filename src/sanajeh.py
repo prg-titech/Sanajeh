@@ -244,9 +244,9 @@ class PyAllocator:
       name = cls.__name__
       if name not in self.expander.built.keys():
         self.expander.build_function(cls)
-      callback_types = "void({})".format(", ".join(self.expander.flattened[cls].values()))
-      fields = ", ".join(self.expander.flattened[cls])
-      lambda_for_create_host_objects = eval("lambda {}: func(cls({}))".format(fields, fields), locals())
+      callback_types = "void({})".format(", ".join(self.expander.flattened[name].values()))
+      fields = ", ".join(self.expander.flattened[name])
+      lambda_for_create_host_objects = eval("lambda {}: func(cls.__rebuild_{}({}))".format(fields, name, fields), locals())
       lambda_for_callback = ffi.callback(callback_types, lambda_for_create_host_objects)
       if eval("self.lib.{}_do_all".format(name))(lambda_for_callback) == 0:
         pass
@@ -254,25 +254,3 @@ class PyAllocator:
       else:
         print("Do_all expression failed!", file=sys.stderr)
         sys.exit(1)   
-
-  """
-  def do_all(self, cls, func):
-    if cpu_flag:
-      for obj in objects:
-        func(obj)
-    else:
-      class_name = cls.__name__
-      callback_types = "void({})".format(", ".join(self.handler.flatten(cls)[0].values()))
-      if class_name not in self.handler.built.keys():
-        self.handler.rebuild_function(cls)
-      fields = ", ".join(self.handler.flatten(cls)[0])
-      lambda_for_create_host_objects = eval("lambda {}: func(cls({}))".format(fields, fields), locals())
-      # lambda_for_create_host_objects = eval("lambda {}: func(rebuild_{}({}))".format(fields, class_name, fields), locals())
-      lambda_for_callback = ffi.callback(callback_types, lambda_for_create_host_objects)
-      if eval("self.lib.{}_do_all".format(class_name))(lambda_for_callback) == 0:
-        pass
-        # print("Successfully called parallel_new {} {}".format(object_class_name, object_num))
-      else:
-        print("Do_all expression failed!", file=sys.stderr)
-        sys.exit(1)
-  """
