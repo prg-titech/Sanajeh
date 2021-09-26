@@ -11,7 +11,7 @@ class RuntimeExpander:
     args = {}
     func = "\t" + "new_object = cls.__new__(cls)\n"
     for field, ftype in cls.__dict__["__annotations__"].items():
-      if field.split("_")[-1] != "ref" and ftype not in ["int", "float", "bool"]:
+      if field.split("_")[-1] != "REF" and ftype not in ["int", "float", "bool"]:
         if ftype not in self.built.keys():
           self.build_function(getattr(__import__(module), ftype))
         nested_args = []

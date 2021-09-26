@@ -16,7 +16,8 @@ from call_graph import CallGraph, ClassNode, FunctionNode, VariableNode
 from gen_cppast import GenCppAstVisitor
 import build_cpp
 
-#FILE_NAME: str = ""
+def pprint(node):
+    print(astunparse.unparse(node))
 
 # Generate python call graph
 class GenPyCallGraphVisitor(ast.NodeVisitor):
@@ -156,7 +157,7 @@ class GenPyCallGraphVisitor(ast.NodeVisitor):
         if type(var) is ast.Attribute:
             var_name = var.attr
             # print(var_name, var.value.id)
-            if var.value.id == 'self':
+            if hasattr(var.value, "id") and var.value.id == "self":
                 pass
             # todo Attribute variables(self should refer to the class not in the current block),
             # todo haven't thought about other occasions
@@ -1148,6 +1149,7 @@ class FieldSynthesizer(DeviceCodeVisitor):
     def __init__(self, root: CallGraph, sdef_cls):
         super().__init__(root)
         self.sdef_cls = sdef_cls
+        # self.ast_cls = {}
         self.field_dict = {}
 
     def visit_ClassDef(self, node):
@@ -1161,22 +1163,23 @@ class FieldSynthesizer(DeviceCodeVisitor):
         if class_node.is_device:
             self.field_dict = {}
             self.node_path.append(class_node)
-            node.body = [self.visit(x) for x in node.body]
-            i = 0
-            for x in range(len(node.body)):
-                if node.body[i] is None:
-                    del node.body[i]
+            # Visit body to trigger rewriting and build field_dict
+            node_body = [self.visit(body) for body in node.body]
+            node.body = []
+            for body in node_body:
+                # If nested, then expands
+                if hasattr(body, "annotation") and hasattr(body.annotation, "id") \
+                and hasattr(body.target, "id") and body.value is None \
+                and body.target.id in self.field_dict:
+                    for nested_field, nested_type in self.field_dict[body.target.id].items():
+                        node.body.append(ast.AnnAssign(
+                            target=ast.Name(id=body.target.id+"_"+nested_field, ctx=ast.Store()),
+                            annotation=ast.Name(id=nested_type, ctx=ast.Load()),
+                            simple=1,
+                            value=None
+                        ))
                 else:
-                    i += 1
-            i = 0
-            for field in self.field_dict:
-                node.body.insert(i, ast.AnnAssign(target=ast.Name(id=field, ctx=ast.Store()),
-                                                  annotation=ast.Name(id=self.field_dict[field], ctx=ast.Load()),
-                                                  simple=1,
-                                                  value=None
-                                                  )
-                                 )
-                i += 1
+                    node.body.append(body)
             self.node_path.pop()
         return node
 
@@ -1222,20 +1225,44 @@ class FieldSynthesizer(DeviceCodeVisitor):
                     var_type = x.v_type
                     break
             if var_type in self.sdef_cls:
-                return ast.Attribute(attr=node.value.attr + "_" + node.attr, ctx=ctx, value=node.value.value)
+                # If the field has _ref then no expansion
+                if node.value.attr.split("_")[-1] != "REF":
+                    return ast.Attribute(attr=node.value.attr + "_" + node.attr, ctx=ctx, value=node.value.value)
+                else:
+                    return node
         return node
 
     def visit_AnnAssign(self, node):
+        """
+        Current ad-hoc fix for the unstable fields expansion.
+        Actual fix needs to dig into Inliner, Eliminator as well.
+        """
+        # Build field_dict
+        if type(node.target) == ast.Attribute and type(node.target.value) == ast.Attribute \
+        and hasattr(node.target.value.value, "id") and node.target.value.value.id == "self":
+            if (node.target.value.attr.split("_")[-1] != "REF"):
+                if node.target.value.attr not in self.field_dict:
+                    self.field_dict[node.target.value.attr] = {node.target.attr: node.annotation.id}
+                else:
+                    if node.target.attr not in self.field_dict[node.target.value.attr]:
+                        self.field_dict[node.target.value.attr][node.target.attr] = node.annotation.id
+        # Replaces nested field access into a single field access
         self.generic_visit(node)
-        if hasattr(node.annotation, "id") and node.annotation.id in self.sdef_cls:
-            if node.value is None:
-                return None
-        if type(node.target) == ast.Attribute and node.target.value.id == "self":
-            self.field_dict[node.target.attr] = node.annotation.id
+        # Remove type annotations from variable assignments
+        if type(node.target) == ast.Attribute and hasattr(node.target.value, "id") \
+        and node.target.value.id == "self":
             return ast.Assign(targets=[node.target], value=node.value)
+        if type(node.target) == ast.Attribute:
+            # Remove from self.x_y
+            if hasattr(node.target.value, "id") and node.target.value.id == "self":
+                return ast.Assign(targets=[node.target], value=node.value)
+            # Remove from self.x.y
+            if type(node.target.value) == ast.Attribute and hasattr(node.target.value.value, "id") \
+            and node.target.value.value.id == "self":
+                return ast.Assign(targets=[node.target], value=node.value)
+        # If found field, do nothing
         node.simple = 1
         return node
-
 
 def transform(node, call_graph):
     """Replace all self-defined type fields with specific implementation"""
