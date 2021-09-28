@@ -14,8 +14,8 @@ class Vector:
   y: float
 
   def __init__(self, x_: float, y_: float):
-    self.x = x_
-    self.y = y_
+    self.x: float = x_
+    self.y: float = y_
 
   def add(self, other: Vector) -> Vector:
     self.x += other.x
@@ -59,7 +59,7 @@ class Vector:
     return self
 
 class Body:
-  merge_target_REF: Body
+  merge_target_ref: Body
   pos: Vector
   vel: Vector
   force: Vector
@@ -72,7 +72,7 @@ class Body:
 
   def Body(self, idx: int):
     DeviceAllocator.rand_init(kSeed, idx, 0)
-    self.merge_target_REF = None
+    self.merge_target_ref = None
     self.pos = Vector(2.0 * DeviceAllocator.rand_uniform() - 1.0,
                       2.0 * DeviceAllocator.rand_uniform() - 1.0)
     self.vel = Vector((DeviceAllocator.rand_uniform() - 0.5) / 1000,
@@ -95,9 +95,7 @@ class Body:
 
   def body_update(self):
     self.vel.add(self.force.multiply(kTimeInterval).divide(self.mass))
-    # self.vel.add(self.force.scale(kDt).divide_by(self.mass))
     self.pos.add(self.vel.multiply(kTimeInterval))
-    # self.pos.add(self.vel.scale(kDt))
 
     if self.pos.x < -1 or self.pos.x > 1:
       self.vel.x = -self.vel.x
@@ -109,11 +107,11 @@ class Body:
       d: Vector = self.pos.minus(other.pos)
       dist_square: float = d.dist_origin()
       if dist_square < kMergeThreshold*kMergeThreshold:
-        self.merge_target_REF = other
+        self.merge_target_ref = other
         other.has_incoming_merge = True
 
   def initialize_merge():
-    self.merge_target_REF = None
+    self.merge_target_ref = None
     self.has_incoming_merge = False
     self.successful_merge = False
 
@@ -121,9 +119,9 @@ class Body:
     DeviceAllocator.device_do(Body, Body.check_merge_into_this, self)
 
   def update_merge():
-    m: Body = self.merge_target_REF
+    m: Body = self.merge_target_ref
     if m is not None:
-      if m.merge_target_REF is not None:
+      if m.merge_target_ref is not None:
         new_mass: float = self.mass + m.mass
         new_vel: Vector = self.vel.multiply(self.mass).plus(m.vel.multiply(m.mass)).divide(new_mass)
         m.mass = new_mass

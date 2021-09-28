@@ -970,11 +970,6 @@ class Inliner(DeviceCodeVisitor):
         if func_node.is_device:
             self.node_path.append(func_node)
             node.args = self.visit(node.args)
-            """
-            for body in node.body:
-                print(type(body))
-                pprint(body)
-            """
             node.body = [self.visit(x) for x in node.body]
             i = 0
             for x in range(len(node.body)):
@@ -1084,13 +1079,19 @@ class Eliminator(DeviceCodeVisitor):
     -- other.force.x = new_force.x
     -- other.force.y = new_force.y
     // Solved by hijacking the else in visit_AnnAssign and visit_Assign
+    3. Assigning method call to attributes get annotations added although unnecessary
+    -- m.pos = Vector((__auto_v3.x / 2), (__auto_v3.y / 2))
+       is converted into
+    -- m.pos.x: float = (__auto_v3.x / 2)
+    -- m.pos.y: float = (__auto_v3.y / 2)
+    // Solved by removing annotation during field synthesizing
     """
 
     def __init__(self, root: CallGraph, node, sdef_cls):
         super().__init__(root)
         self.node = node
         self.sdef_cls = sdef_cls
-        self.var_dict = {}
+        # self.var_dict = {}
 
     def visit_FunctionDef(self, node):
         name = node.name
@@ -1101,7 +1102,7 @@ class Eliminator(DeviceCodeVisitor):
             sys.exit(1)
         # If it is not a device function just skip
         if func_node.is_device:
-            self.var_dict = {}
+            # self.var_dict = {}
             self.node_path.append(func_node)
             node.args = self.visit(node.args)
             node.body = [self.visit(x) for x in node.body]
@@ -1191,8 +1192,10 @@ class Eliminator(DeviceCodeVisitor):
         return node
 
     def visit_Name(self, node):
+        """
         if node.id in self.var_dict:
             return self.var_dict[node.id]
+        """
         return node
     
     """
@@ -1267,6 +1270,8 @@ class FieldSynthesizer(DeviceCodeVisitor):
             self.node_path.append(func_node)
             node.args = self.visit(node.args)
             node.body = [self.visit(x) for x in node.body]
+            self.node_path.pop()
+            """
             i = 0
             for x in range(len(node.body)):
                 if type(node.body[i]) == list:
@@ -1279,6 +1284,7 @@ class FieldSynthesizer(DeviceCodeVisitor):
                 else:
                     i += 1
             self.node_path.pop()
+            """
         return node
 
     def visit_Attribute(self, node):
@@ -1298,7 +1304,7 @@ class FieldSynthesizer(DeviceCodeVisitor):
                     break
             if var_type in self.sdef_cls:
                 # If the field has _ref then no expansion
-                if node.value.attr.split("_")[-1] != "REF":
+                if node.value.attr.split("_")[-1] != "ref":
                     return ast.Attribute(attr=node.value.attr + "_" + node.attr, ctx=ctx, value=node.value.value)
                 else:
                     return node
@@ -1312,7 +1318,7 @@ class FieldSynthesizer(DeviceCodeVisitor):
         # Build field_dict
         if type(node.target) == ast.Attribute and type(node.target.value) == ast.Attribute \
         and hasattr(node.target.value.value, "id") and node.target.value.value.id == "self":
-            if (node.target.value.attr.split("_")[-1] != "REF"):
+            if (node.target.value.attr.split("_")[-1] != "ref"):
                 if node.target.value.attr not in self.field_dict:
                     self.field_dict[node.target.value.attr] = {node.target.attr: node.annotation.id}
                 else:
@@ -1321,17 +1327,8 @@ class FieldSynthesizer(DeviceCodeVisitor):
         # Replaces nested field access into a single field access
         self.generic_visit(node)
         # Remove type annotations from variable assignments
-        if type(node.target) == ast.Attribute and hasattr(node.target.value, "id") \
-        and node.target.value.id == "self":
-            return ast.Assign(targets=[node.target], value=node.value)
         if type(node.target) == ast.Attribute:
-            # Remove from self.x_y
-            if hasattr(node.target.value, "id") and node.target.value.id == "self":
-                return ast.Assign(targets=[node.target], value=node.value)
-            # Remove from self.x.y
-            if type(node.target.value) == ast.Attribute and hasattr(node.target.value.value, "id") \
-            and node.target.value.value.id == "self":
-                return ast.Assign(targets=[node.target], value=node.value)
+            return ast.Assign(targets=[node.target], value=node.value)
         # If found field, do nothing
         node.simple = 1
         return node
