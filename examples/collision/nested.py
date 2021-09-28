@@ -125,7 +125,7 @@ class Body:
         new_mass: float = self.mass + m.mass
         new_vel: Vector = self.vel.multiply(self.mass).plus(m.vel.multiply(m.mass)).divide(new_mass)
         m.mass = new_mass
-        m.vel = other.vel
+        m.vel = new_vel
         m.pos = self.pos.add(m.pos).divide(2)
         self.successful_merge = True
 

@@ -20,6 +20,7 @@ args = parser.parse_args()
 
 """
 Rendering setting
+"""
 import pygame
 os.environ["SDL_VIDEODRIVER"] = "windib"
 
@@ -38,15 +39,12 @@ if (args.r):
   pygame.init()
   screen = pygame.display.set_mode((screen_width, screen_height))
   pygame.display.flip()
-"""
 
 
 """
 Main program
 """
-
-
-allocator: PyAllocator = PyAllocator("examples/collision/non-nested.py", "non-nested", args.cpu)
+allocator: PyAllocator = PyAllocator("examples/collision/nested.py", "collision", args.cpu)
 allocator.initialize()
 initialize_time = time.perf_counter()
 
@@ -69,4 +67,3 @@ end_time = time.perf_counter()
 print("parallel new time(%-5d objects): %.dµs" % (args.number, ((parallel_new_time - initialize_time) * 1000000)))
 print("average computation time: %dµs" % ((end_time - parallel_new_time) * 1000000 / args.iter))
 print("overall computation time(%-4d iterations): %dµs" % (args.iter, ((end_time - parallel_new_time) * 1000000)))
-"""

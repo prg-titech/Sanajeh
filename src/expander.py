@@ -10,9 +10,9 @@ class RuntimeExpander:
     name = cls.__name__
     args = {}
     func = "\t" + "new_object = cls.__new__(cls)\n"
-    if hasattr(cls.__dict__, "annotations"):
+    if "__annotations__" in cls.__dict__:
       for field, ftype in cls.__dict__["__annotations__"].items():
-        if field.split("_")[-1] != "REF" and ftype not in ["int", "float", "bool"]:
+        if field.split("_")[-1] != "ref" and ftype not in ["int", "float", "bool"]:
           if ftype not in self.built.keys():
             self.build_function(getattr(__import__(module), ftype))
           nested_args = []
@@ -21,7 +21,7 @@ class RuntimeExpander:
             args[field + "_" + nested_field] = nested_ftype
           func += "\t" + "new_object.{} = getattr(__import__(cls.__dict__[\"__module__\"]), \"{}\")({})\n".format(field, ftype, ", ".join(nested_args))
         else:
-          if field.split("_")[-1] == "REF":
+          if field.split("_")[-1] == "ref":
             args[field] = "int"
           else:
             args[field] = ftype
@@ -31,6 +31,5 @@ class RuntimeExpander:
            + "def __rebuild_{}(cls, {}):\n".format(name, ", ".join(args)) + func
     self.built[name] = func
     self.flattened[name] = args
-    getattr(__import__(module), "Vector")(1,2)
     exec(func, globals())
     setattr(cls, "__rebuild_{}".format(name), eval("__rebuild_{}".format(name)))
