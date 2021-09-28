@@ -435,25 +435,18 @@ class Preprocessor(ast.NodeVisitor):
         def buildCpp(self):
             fields_str = ""
             field_types_str = ""
-            """
-            for i, field in enumerate(self.__field):
-                if i != len(self.__field) - 1:
-                    fields_str += "this->{}, ".format(field)
-                    field_types_str += "{}, ".format(self.__field[field])
-                else:
-                    fields_str += "this->{}".format(field)
-                    field_types_str += "{}".format(self.__field[field])
-            """
             for i, field in enumerate(self.__field):
                 if i != len(self.__field) - 1:
                     if self.__field[field] == "int" and self.__field_kind[field] == "class":
-                        fields_str += "(int) this->{}, ".format(field)
+                        # fields_str += "(int) this->{}, ".format(field)
+                        fields_str += "0, ".format(field)
                     else:
                         fields_str += "this->{}, ".format(field)  
                     field_types_str += "{}, ".format(self.__field[field])
                 else:
                     if self.__field[field] == "int" and self.__field_kind[field] == "class":
-                        fields_str += "(int) this->{}, ".format(field)
+                        # fields_str += "(int) this->{}, ".format(field)
+                        fields_str += "0, ".format(field)
                     else:
                         fields_str += "this->{}".format(field)
                     field_types_str += "{}".format(self.__field[field])  
@@ -727,7 +720,15 @@ class Searcher(DeviceCodeVisitor):
 
 
 class Normalizer(DeviceCodeVisitor):
-    """Use variables to rewrite nested expressions"""
+    """
+    Declare new variables to replace method calls nested inside other expressions.
+
+    -- self.vel.add(self.force.multiply(kDt).divide(self.mass))
+    
+    -- __auto_v0: Vector = self.force.multiply(kDt)
+    -- __auto_v1: Vector = __auto_v0.divide(self.mass)
+    -- self.vel.add(__auto_v1)
+    """
 
     def __init__(self, root: CallGraph):
         super().__init__(root)
@@ -890,7 +891,7 @@ class Normalizer(DeviceCodeVisitor):
 
 
 class FunctionBodyGenerator(ast.NodeTransformer):
-    """Gernerate new ast nodes which are used by the Inliner to inline functions"""
+    """Generate new ast nodes which are used by the Inliner to inline functions"""
 
     def __init__(self, node, caller_type):
         self.func_name = None
@@ -944,7 +945,14 @@ class FunctionBodyGenerator(ast.NodeTransformer):
 
 
 class Inliner(DeviceCodeVisitor):
-    """Replace function callings with specific implementation"""
+    """
+    Replace function call on non-device classes with the specific implementations
+    ISSUE: Inlined variable declarations are not uniquely renamed
+
+    -- __auto_v0: Vector = self.force.multiply(kDt)
+
+    -- __auto_v0: Vector = Vector((self.force.x * kDt), (self.force.y * kDt))
+    """
 
     def __init__(self, root: CallGraph, node, sdef_cls):
         super().__init__(root)
@@ -962,6 +970,11 @@ class Inliner(DeviceCodeVisitor):
         if func_node.is_device:
             self.node_path.append(func_node)
             node.args = self.visit(node.args)
+            """
+            for body in node.body:
+                print(type(body))
+                pprint(body)
+            """
             node.body = [self.visit(x) for x in node.body]
             i = 0
             for x in range(len(node.body)):
@@ -1060,7 +1073,18 @@ class Inliner(DeviceCodeVisitor):
 
 
 class Eliminator(DeviceCodeVisitor):
-    """Inlining constructor functions"""
+    """
+    ISSUE: 
+    1. The following line causes problem, passes when there is no type annotation
+    -- other.force: Vector = new_force
+    // Solved by removing the part using var_dict in visit_AnnAssign //
+    2. Reference type's nested fields are not expanded
+    -- other.force = new_force
+       is not converted into
+    -- other.force.x = new_force.x
+    -- other.force.y = new_force.y
+    // Solved by hijacking the else in visit_AnnAssign and visit_Assign
+    """
 
     def __init__(self, root: CallGraph, node, sdef_cls):
         super().__init__(root)
@@ -1107,11 +1131,30 @@ class Eliminator(DeviceCodeVisitor):
                     if len(func_body_gen.new_ast_nodes) != 0:
                         return func_body_gen.new_ast_nodes
             else:
+                """
+                L: Deal with assignment by non-method/constructor calls.
+                """
+                new_nodes = []
+                expand_type = self.node_path[0].GetClassNode(node.annotation.id)
+                for nested_var in expand_type.declared_variables:
+                    new_node = ast.AnnAssign(
+                        annotation=ast.Name(id=nested_var.v_type, ctx=node.annotation.ctx),
+                        simple=node.simple,
+                        value=ast.Attribute(value=node.value, attr=nested_var.name, ctx=node.value.ctx),
+                        target=ast.Attribute(value=node.target, attr=nested_var.name, ctx=node.value.ctx)
+                    )
+                    new_nodes.append(new_node)
+                if len(new_nodes) > 0:
+                    return new_nodes
+            # Can't figure out what var_dict is even for
+            """
+            else:
                 if type(node.value) is ast.Name:
                     self.var_dict[node.target.id] = self.var_dict[node.value.id]
                 else:
                     self.var_dict[node.target.id] = node.value
                 return None
+            """
         return node
 
     def visit_Assign(self, node):
@@ -1133,6 +1176,16 @@ class Eliminator(DeviceCodeVisitor):
                                                               node.value.args)
                             if len(func_body_gen.new_ast_nodes) != 0:
                                 ret.extend(func_body_gen.new_ast_nodes)
+                    else:
+                        """
+                        L: Added to handle assignments where the value is not a method call, for example:
+                        -- other.force = new_force
+                        """
+                        for nested_var in self.node_path[0].GetClassNode(self.attribute_type(field)).declared_variables:
+                            ret.append(ast.Assign(
+                                value=ast.Attribute(value=node.value, attr=nested_var.name, ctx=node.value.ctx),
+                                targets=[ast.Attribute(value=field, attr=nested_var.name, ctx=field.ctx)]
+                            ))
         if len(ret) != 0:
             return ret
         return node
@@ -1141,15 +1194,34 @@ class Eliminator(DeviceCodeVisitor):
         if node.id in self.var_dict:
             return self.var_dict[node.id]
         return node
-
+    
+    """
+    Type a possibly nested attribute
+    """
+    def attribute_type(self, attribute):
+        rec_type = None
+        if type(attribute.value) == ast.Name:
+            if attribute.value.id == "self":
+                rec_type = self.node_path[-2].name
+            else:
+                rec_type = self.node_path[-1].GetVariableType(attribute.value.id)
+        elif type(attribute.value) == ast.Attribute:
+            rec_type = self.receiver_type(attribute.value)
+        if rec_type is not None and rec_type not in ["int", "bool", "float"]:
+            rec_class = self.node_path[0].GetClassNode(rec_type)
+            for rec_var in rec_class.declared_variables:
+                if rec_var.name == attribute.attr:
+                    return rec_var.v_type
+        return None
 
 class FieldSynthesizer(DeviceCodeVisitor):
-    """Synthesize new fields from the references to the nested objects"""
+    """
+    Convert fields into its nested fields, attached with '_' and convert field access originally with '.' into '_'
+    """
 
     def __init__(self, root: CallGraph, sdef_cls):
         super().__init__(root)
         self.sdef_cls = sdef_cls
-        # self.ast_cls = {}
         self.field_dict = {}
 
     def visit_ClassDef(self, node):
@@ -1231,10 +1303,10 @@ class FieldSynthesizer(DeviceCodeVisitor):
                 else:
                     return node
         return node
-
+    
     def visit_AnnAssign(self, node):
         """
-        Current ad-hoc fix for the unstable fields expansion.
+        L: Current ad-hoc fix for the unstable fields expansion.
         Actual fix needs to dig into Inliner, Eliminator as well.
         """
         # Build field_dict
@@ -1281,7 +1353,6 @@ def transform(node, call_graph):
     ast.fix_missing_locations(Inliner(call_graph, node, scr.sdef_cls).visit(node))
     ast.fix_missing_locations(Eliminator(call_graph, node, scr.sdef_cls).visit(node))
     ast.fix_missing_locations(FieldSynthesizer(call_graph, scr.sdef_cls).visit(node))
-
 
 def compile(source_code, dir_path, file_name):
     """

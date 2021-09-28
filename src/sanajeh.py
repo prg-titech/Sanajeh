@@ -159,10 +159,10 @@ class PyAllocator:
     else:
       """
       Compilation before initializing ffi
+      """
       compiler: PyCompiler = PyCompiler(self.file_path, self.file_name)
       compiler.compile()
       compiler.build()
-      """
 
       """
       Initialize ffi module

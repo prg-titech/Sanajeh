@@ -10,9 +10,12 @@ kMergeThreshold: float = 0.005
 kTimeInterval: float = 0.05
 
 class Vector:
+  x: float
+  y: float
+
   def __init__(self, x_: float, y_: float):
-    self.x: float = x_
-    self.y: float = y_
+    self.x = x_
+    self.y = y_
 
   def add(self, other: Vector) -> Vector:
     self.x += other.x
@@ -56,27 +59,20 @@ class Vector:
     return self
 
 class Body:
-  merge_target: Body
+  merge_target_REF: Body
   pos: Vector
   vel: Vector
   force: Vector
   mass: float
   has_incoming_merge: bool
   successful_merge: bool
-
-  def __init__(self, merge_target_: Body, pos_x_: float, pos_y_: float, vel_x_: float, vel_y_: float,
-      force_x_: float, force_y_: float, mass_: float, has_incoming_merge_: bool, successful_merge_: bool):
-    self.merge_target = None
-    self.pos = Vector(pos_x_, pos_y_)
-    self.vel = Vector(vel_x_, vel_y_)
-    self.force = Vector(0.0, 0.0)
-    self.mass = mass_
-    self.has_incoming_merge = False
-    self.successful_merge = False
+  
+  def __init__(self):
+    pass
 
   def Body(self, idx: int):
     DeviceAllocator.rand_init(kSeed, idx, 0)
-    self.merge_target = None
+    self.merge_target_REF = None
     self.pos = Vector(2.0 * DeviceAllocator.rand_uniform() - 1.0,
                       2.0 * DeviceAllocator.rand_uniform() - 1.0)
     self.vel = Vector((DeviceAllocator.rand_uniform() - 0.5) / 1000,
@@ -97,7 +93,7 @@ class Body:
       f: float = kGravityConstant * self.mass * other.mass / (dist * dist + kDampeningFactor)
       other.force.add(d.multiply(f).divide(dist))
 
-  def update(self):
+  def body_update(self):
     self.vel.add(self.force.multiply(kTimeInterval).divide(self.mass))
     # self.vel.add(self.force.scale(kDt).divide_by(self.mass))
     self.pos.add(self.vel.multiply(kTimeInterval))
@@ -113,11 +109,11 @@ class Body:
       d: Vector = self.pos.minus(other.pos)
       dist_square: float = d.dist_origin()
       if dist_square < kMergeThreshold*kMergeThreshold:
-        self.merge_target = other
+        self.merge_target_REF = other
         other.has_incoming_merge = True
 
   def initialize_merge():
-    self.merge_target = None
+    self.merge_target_REF = None
     self.has_incoming_merge = False
     self.successful_merge = False
 
@@ -125,13 +121,13 @@ class Body:
     DeviceAllocator.device_do(Body, Body.check_merge_into_this, self)
 
   def update_merge():
-    m: Body = self.merge_target
+    m: Body = self.merge_target_REF
     if m is not None:
-      if m.merge_target is not None:
+      if m.merge_target_REF is not None:
         new_mass: float = self.mass + m.mass
         new_vel: Vector = self.vel.multiply(self.mass).plus(m.vel.multiply(m.mass)).divide(new_mass)
         m.mass = new_mass
-        m.vel = new_vel
+        m.vel = other.vel
         m.pos = self.pos.add(m.pos).divide(2)
         self.successful_merge = True
 
@@ -141,3 +137,11 @@ class Body:
 
 def kernel_initialize_bodies():
   DeviceAllocator.device_class(Body)
+
+def _update():
+  DeviceAllocator.parallel_do(Body, Body.compute_force)
+  DeviceAllocator.parallel_do(Body, Body.body_update)
+  DeviceAllocator.parallel_do(Body, Body.initialize_merge)
+  DeviceAllocator.parallel_do(Body, Body.prepare_merge)
+  DeviceAllocator.parallel_do(Body, Body.update_merge)
+  DeviceAllocator.parallel_do(Body, Body.delete_merged)

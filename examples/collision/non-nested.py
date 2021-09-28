@@ -24,18 +24,8 @@ class Body:
   has_incoming_merge: bool
   successful_merge: bool
 
-  def __init__(self, tgt: Body, px: float, py: float, vx: float, vy: float, fx: float, fy: float,
-      m: float, incoming: bool, success: bool):
-    self.merge_target = tgt
-    self.pos_x = px
-    self.pos_y = py
-    self.vel_x = vx
-    self.vel_y = vy
-    self.force_x = fx
-    self.force_y = fy
-    self.mass = m
-    self.has_incoming_merge = incoming
-    self.successful_merge = success
+  def __init__(self):
+    pass
 
   def Body(self, idx: int):
     DeviceAllocator.rand_init(kSeed, idx, 0)

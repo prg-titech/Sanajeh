@@ -3,12 +3,12 @@ parentdir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__f
 sys.path.append(parentdir + "/src")
 
 from sanajeh import PyAllocator
-from collision import Body
+from nested import Body
 import time
 
 """
 Options parser
-
+"""
 import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument("number", help="number of bodies", type=int)
@@ -16,11 +16,10 @@ parser.add_argument("iter", help="number of iteration", type=int)
 parser.add_argument("--cpu", help="process sequentially", action="store_true")
 parser.add_argument("--r", help="rendering option", action="store_true")
 args = parser.parse_args()
-"""
+
 
 """
 Rendering setting
-
 import pygame
 os.environ["SDL_VIDEODRIVER"] = "windib"
 
@@ -41,18 +40,13 @@ if (args.r):
   pygame.display.flip()
 """
 
-"""
-Compile only
-"""
-from sanajeh import PyCompiler
-
-compiler: PyCompiler = PyCompiler("examples/collision/collision.py", "collision")
-compiler.compile()
 
 """
 Main program
+"""
 
-allocator: PyAllocator = PyAllocator("examples/collision/collision.py", "collision", args.cpu)
+
+allocator: PyAllocator = PyAllocator("examples/collision/non-nested.py", "non-nested", args.cpu)
 allocator.initialize()
 initialize_time = time.perf_counter()
 
