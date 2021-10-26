@@ -93,6 +93,16 @@ class FunctionNode(CallGraphNode):
         self.arguments: Set[VariableNode] = set()
         self.ret_type = return_type
         self.c_name = class_name
+        self.declared_functions: Set[FunctionNode] = set()
+
+    def GetFunctionNode(self, function_name, class_name):
+        if class_name is None:
+            for x in self.declared_functions:
+                if x.name == function_name:
+                    return x
+        for x in self.declared_functions:
+            if x.name == function_name and x.c_name == class_name:
+                return x
 
     def GetVariableNode(self, variable_name, variable_type):
         # find the variable in this function
@@ -116,7 +126,6 @@ class FunctionNode(CallGraphNode):
             for x in self.arguments:
                 if x.name == variable_name:
                     return x.v_type
-
 
 # Tree node for variable
 class VariableNode(CallGraphNode):

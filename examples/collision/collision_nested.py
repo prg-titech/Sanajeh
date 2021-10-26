@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import os, time, math
+import os, time, math, pygame
 from sanajeh import DeviceAllocator
 
 kSeed: int = 42
@@ -144,20 +144,19 @@ def _update():
   DeviceAllocator.parallel_do(Body, Body.update_merge)
   DeviceAllocator.parallel_do(Body, Body.delete_merged)
 
-def render(b):
-    size = pow(b.mass/5, 0.125)
-    px = int((b.pos.x/2 + 0.5) * 500 - size/2)
-    py = int((b.pos.y/2 + 0.5) * 500 - size/2)
-    pygame.draw.circle(screen, (255, 255, 255), (px, py), size)
-
 def main(allocator, do_render):
   """
   Rendering settings
   """
-  import pygame
-  os.environ["SDL_VIDEODRIVER"] = "windib"
+
+  def render(b):
+    size = pow(b.mass/5, 0.125)
+    px = int((b.pos.x/2 + 0.5) * 500 - size/2)
+    py = int((b.pos.y/2 + 0.5) * 500 - size/2)
+    pygame.draw.circle(screen, (255, 255, 255), (px, py), size)  
 
   if (do_render):
+    os.environ["SDL_VIDEODRIVER"] = "windib"
     screen_width = 500
     screen_height = 500
     pygame.init()

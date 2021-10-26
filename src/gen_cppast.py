@@ -181,16 +181,14 @@ class GenCppAstVisitor(ast.NodeVisitor):
         """
         if type(self.__node_path[-1]) == FunctionNode and self.__node_path[-1].name == "__init__" \
         and node.target.value.id == "self":
-            ann = node.annotation.attr if type(node.annotation) is ast.Attribute else node.annotation.id
-            if ann == "list":
-                if node.value.func.value.id == "DeviceAllocator" and node.value.func.attr == "array":
-                    self.__field[node.target.attr] = \
-                        "DeviceArray<{}, {}>".format(
-                            type_converter.convert(node.value.args[0].id), 
-                            str(node.value.args[1].value))
-                else:
-                    assert False
+            if type(node.annotation) == ast.Subscript and node.annotation.value.id == "list" \
+            and hasattr(node.value, "right") and type(node.value.right) == ast.Constant:
+                self.__field[node.target.attr] = \
+                    "DeviceArray<{}, {}>".format(
+                        type_converter.convert(node.annotation.slice.value.id),
+                        str(node.value.right.n))
             else:
+                ann = node.annotation.attr if type(node.annotation) is ast.Attribute else node.annotation.id
                 self.__field[node.target.attr] = type_converter.convert(ann)
         if type(self.__node_path[-1]) is CallGraph:
             is_global = True

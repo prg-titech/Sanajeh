@@ -22,30 +22,53 @@ class RuntimeExpander:
     for body in init.body:
       if type(body) == ast.AnnAssign \
       and hasattr(body.target.value, "id") and body.target.value.id == "self":
-        result[body.target.attr] = body.annotation.id    
+        ann = None
+        if type(body.annotation) == ast.Subscript and node.annotation.value == "list":
+          ann = "list"
+        elif type(body.annotation) == ast.Attribute:
+          ann = body.annotation.attr
+        else:
+          ann = body.annotation.id
+        result[body.target.attr] = ann    
     return result
 
-  def build_function(self, cls):
+  def has_random_state(self, cls, py_code):
+    tree = ast.parse(py_code)
+    for body in tree.body:
+      if type(body) == ast.ClassDef and body.name == cls.__name__:
+        for class_body in body.body:
+          if type(class_body) == ast.FunctionDef and class_body.name == "__init__":
+            for init_body in class_body.body:
+              if type(init_body) == ast.AnnAssign and hasattr(init_body.target, "attr") \
+              and init_body.target.attr == "random_state_":
+                return True
+    return False
+
+  def build_function(self, cls, py_code):
     module = cls.__dict__["__module__"]
     name = cls.__name__
     args = {}
     func = "\t" + "new_object = cls.__new__(cls)\n"
     field_dict = self.get_dict(self.get_init(cls))
+    if self.has_random_state(cls, py_code):
+      args["random_state"] = "int"
+      func += "\t" + "new_object.random_state_ = random_state\n"
     for field, ftype in field_dict.items():
-      if field.split("_")[-1] != "ref" and ftype not in ["int", "float", "bool"]:
-        if ftype not in self.built.keys():
-          self.build_function(getattr(__import__(module), ftype))
-        nested_args = []
-        for nested_field, nested_ftype in self.flattened[ftype].items():
-          nested_args.append(field + "_" + nested_field)
-          args[field + "_" + nested_field] = nested_ftype
-        func += "\t" + "new_object.{} = getattr(__import__(cls.__dict__[\"__module__\"]), \"{}\")({})\n".format(field, ftype, ", ".join(nested_args))
-      else:
-        if field.split("_")[-1] == "ref":
-          args[field] = "int"
+      if ftype != "RandomState":
+        if field.split("_")[-1] != "ref" and ftype not in ["int", "float", "bool"]:
+          if ftype not in self.built.keys():
+            self.build_function(getattr(__import__(module), ftype), py_code)
+          nested_args = []
+          for nested_field, nested_ftype in self.flattened[ftype].items():
+            nested_args.append(field + "_" + nested_field)
+            args[field + "_" + nested_field] = nested_ftype
+          func += "\t" + "new_object.{} = getattr(__import__(cls.__dict__[\"__module__\"]), \"{}\")({})\n".format(field, ftype, ", ".join(nested_args))
         else:
-          args[field] = ftype
-        func += "\t" + "new_object.{} = {}\n".format(field, field)
+          if field.split("_")[-1] == "ref":
+            args[field] = "int"
+          else:
+            args[field] = ftype
+          func += "\t" + "new_object.{} = {}\n".format(field, field)
     func += "\t" + "return new_object"
     func = "@classmethod\n" \
            + "def __rebuild_{}(cls, {}):\n".format(name, ", ".join(args)) + func
@@ -53,4 +76,4 @@ class RuntimeExpander:
     self.flattened[name] = args
     exec(func, globals())
     setattr(cls, "__rebuild_{}".format(name), eval("__rebuild_{}".format(name)))
-    
+  

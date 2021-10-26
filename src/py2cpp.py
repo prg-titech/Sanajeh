@@ -74,8 +74,9 @@ class GenPyCallGraphVisitor(ast.NodeVisitor):
 
     # Create nodes for all functions declared
     def visit_FunctionDef(self, node):
-        func_name = node.name
-        if type(self.__current_node) is not CallGraph and type(self.__current_node) is not ClassNode:
+        func_name = node.name           
+        if type(self.__current_node) is not CallGraph and type(self.__current_node) is not ClassNode \
+        and self.__current_node.name != "main":
             print("Doesn't support nested functions", file=sys.stderr)
             sys.exit(1)
         func_node = self.__current_node.GetFunctionNode(func_name, self.__current_node.name)
@@ -425,7 +426,9 @@ class Preprocessor(ast.NodeVisitor):
         def visit_AnnAssign(self, node):
             if type(self.__current_node) is FunctionNode and self.__current_node.name == "__init__":
                 var = node.target.attr
-                if hasattr(node.annotation, "attr"):
+                if type(node.annotation) is ast.Subscript and node.annotation.value.id == "list":
+                    var_type = "list"
+                elif hasattr(node.annotation, "attr"):
                     var_type = type_converter.convert(node.annotation.attr)
                 else:
                     var_type = type_converter.convert(node.annotation.id)
@@ -772,7 +775,9 @@ class Checker(DeviceCodeVisitor):
         # Check if the assignment done on self        
         if type(node.target) == ast.Attribute and hasattr(node.target.value, "id") \
         and node.target.value.id == "self":
-            if type(node.annotation) is ast.Attribute:
+            if type(node.annotation) is ast.Subscript and node.annotation.value.id == "list":
+                self.original[class_name][node.target.attr] = "list"
+            elif type(node.annotation) is ast.Attribute:
                 self.original[class_name][node.target.attr] = node.annotation.attr
             else:    
                 self.original[class_name][node.target.attr] = node.annotation.id

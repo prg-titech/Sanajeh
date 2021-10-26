@@ -58,10 +58,6 @@ class DeviceAllocator:
       return new_object
     else:
       pass
-
-  @staticmethod
-  def array(cls, size):
-    return [None]*size
   
   @staticmethod
   def destroy(obj):
@@ -122,9 +118,11 @@ class SeqAllocator:
       func(obj)
 
 class PyCompiler:
+  """
   file_path: str = ""
   file_name: str = ""
   dir_path: str = ""
+  """
 
   def __init__(self, pth: str, nme: str):
     self.file_path = pth
@@ -159,11 +157,13 @@ class PyAllocator:
   hpp_code: str = ""
   cdef_code: str = ""
   lib = None
+
   expander: RuntimeExpander = RuntimeExpander()
 
   def __init__(self, path: str, name: str):
     self.file_name = name
     self.file_path = path
+    self.py_code = ""
 
   # load the shared library and initialize the allocator on GPU
   def initialize(self):
@@ -178,6 +178,7 @@ class PyAllocator:
     """
     Initialize ffi module
     """
+    self.py_code = open("device_code/{}/{}_py.py".format(self.file_name, self.file_name), mode="r").read()
     self.cpp_code = open("device_code/{}/{}.cu".format(self.file_name, self.file_name), mode="r").read()
     self.hpp_code = open("device_code/{}/{}.h".format(self.file_name, self.file_name), mode="r").read()
     self.cdef_code = open("device_code/{}/{}.cdef".format(self.file_name, self.file_name), mode="r").read()
@@ -235,7 +236,7 @@ class PyAllocator:
   def do_all(self, cls, func):
     name = cls.__name__
     if name not in self.expander.built.keys():
-      self.expander.build_function(cls)
+      self.expander.build_function(cls, self.py_code)
     callback_types = "void({})".format(", ".join(self.expander.flattened[name].values()))
     fields = ", ".join(self.expander.flattened[name])
     lambda_for_create_host_objects = eval("lambda {}: func(cls.__rebuild_{}({}))".format(fields, name, fields), locals())

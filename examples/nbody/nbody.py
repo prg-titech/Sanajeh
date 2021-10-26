@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os, math, time
+import pygame
 from sanajeh import DeviceAllocator
 
 kSeed: int = 45
@@ -99,17 +100,16 @@ def _update():
   DeviceAllocator.parallel_do(Body, Body.compute_force)
   DeviceAllocator.parallel_do(Body, Body.update)
 
-def render(b):
-    px = int((b.pos.x + 1) * 150)
-    py = int((b.pos.y + 1) * 150)
-    pygame.draw.circle(screen, (255, 255, 255), (px, py), b.mass/10000*20)
-
 def main(allocator, do_render):
   """
   Rendering setting
   """
+  def render(b):
+    px = int((b.pos.x + 1) * 150)
+    py = int((b.pos.y + 1) * 150)
+    pygame.draw.circle(screen, (255, 255, 255), (px, py), b.mass/10000*20)
+
   if (do_render):
-    import pygame
     os.environ["SDL_VIDEODRIVER"] = "windib"
     screen_width = 300
     screen_height = 300
@@ -119,6 +119,7 @@ def main(allocator, do_render):
 
   num: int = 10
   iter: int = 5000
+
   allocator.initialize()
   initialize_time = time.perf_counter()
   allocator.parallel_new(Body, num)
@@ -136,3 +137,5 @@ def main(allocator, do_render):
   print("parallel new time(%-5d objects): %.dµs" % (num, ((parallel_new_time - initialize_time) * 1000000)))
   print("average computation time: %dµs" % ((end_time - parallel_new_time) * 1000000 / iter))
   print("overall computation time(%-4d iterations): %dµs" % (iter, ((end_time - parallel_new_time) * 1000000)))  
+
+

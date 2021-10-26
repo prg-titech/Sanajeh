@@ -15,7 +15,7 @@ args = parser.parse_args()
 def compile_prog(file_name):
     compiler: PyCompiler = sanajeh.PyCompiler(file_name, file_name.split("/")[-1].split(".")[0])
     compiler.compile()
-    compiler.build()
+    # compiler.build()
 
 def run_prog(file_name):
     split_file = file_name.split("/")
