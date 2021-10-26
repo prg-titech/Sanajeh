@@ -1,17 +1,17 @@
 from __future__ import annotations
+
+import os, time, math
 from sanajeh import DeviceAllocator
 
-kSeed: int = 45
-kMaxMass: float = 1000.0
+kSeed: int = 42
+kMaxMass: float = 500
 kDt: float = 0.01
 kGravityConstant: float = 4e-6
 kDampeningFactor: float = 0.05
-kMergeThreshold: float = 0.005
+kMergeThreshold: float = 0.1
 kTimeInterval: float = 0.05
 
 class Vector:
-  x: float
-  y: float
 
   def __init__(self, x_: float, y_: float):
     self.x: float = x_
@@ -59,26 +59,25 @@ class Vector:
     return self
 
 class Body:
-  merge_target_ref: Body
-  pos: Vector
-  vel: Vector
-  force: Vector
-  mass: float
-  has_incoming_merge: bool
-  successful_merge: bool
   
   def __init__(self):
-    pass
+    self.merge_target_ref: Body = None
+    self.pos: Vector = Vector(0,0)
+    self.vel: Vector = Vector(0,0)
+    self.force: Vector = Vector(0,0)
+    self.mass: float = 0
+    self.has_incoming_merge: bool = False
+    self.successful_merge: bool = False
 
   def Body(self, idx: int):
-    DeviceAllocator.rand_init(kSeed, idx, 0)
+    DeviceAllocator.curand_init(kSeed, idx, 0)
     self.merge_target_ref = None
-    self.pos = Vector(2.0 * DeviceAllocator.rand_uniform() - 1.0,
-                      2.0 * DeviceAllocator.rand_uniform() - 1.0)
-    self.vel = Vector((DeviceAllocator.rand_uniform() - 0.5) / 1000,
-                      (DeviceAllocator.rand_uniform() - 0.5) / 1000)
+    self.pos = Vector(2.0 * DeviceAllocator.curand_uniform() - 1.0,
+                      2.0 * DeviceAllocator.curand_uniform() - 1.0)
+    self.vel = Vector((DeviceAllocator.curand_uniform() - 0.5) / 1000,
+                      (DeviceAllocator.curand_uniform() - 0.5) / 1000)
     self.force = Vector(0.0, 0.0)
-    self.mass = (DeviceAllocator.rand_uniform()/2 + 0.5) * kMaxMass
+    self.mass = (DeviceAllocator.curand_uniform()/2 + 0.5) * kMaxMass
     self.has_incoming_merge = False
     self.successful_merge = False
 
@@ -110,15 +109,15 @@ class Body:
         self.merge_target_ref = other
         other.has_incoming_merge = True
 
-  def initialize_merge():
+  def initialize_merge(self):
     self.merge_target_ref = None
     self.has_incoming_merge = False
     self.successful_merge = False
 
-  def prepare_merge():
+  def prepare_merge(self):
     DeviceAllocator.device_do(Body, Body.check_merge_into_this, self)
 
-  def update_merge():
+  def update_merge(self):
     m: Body = self.merge_target_ref
     if m is not None:
       if m.merge_target_ref is not None:
@@ -129,8 +128,9 @@ class Body:
         m.pos = self.pos.add(m.pos).divide(2)
         self.successful_merge = True
 
-  def delete_merged():
+  def delete_merged(self):
     if self.successful_merge:
+      print("deleted")
       DeviceAllocator.destroy(self)
 
 def kernel_initialize_bodies():
@@ -143,3 +143,49 @@ def _update():
   DeviceAllocator.parallel_do(Body, Body.prepare_merge)
   DeviceAllocator.parallel_do(Body, Body.update_merge)
   DeviceAllocator.parallel_do(Body, Body.delete_merged)
+
+def render(b):
+    size = pow(b.mass/5, 0.125)
+    px = int((b.pos.x/2 + 0.5) * 500 - size/2)
+    py = int((b.pos.y/2 + 0.5) * 500 - size/2)
+    pygame.draw.circle(screen, (255, 255, 255), (px, py), size)
+
+def main(allocator, do_render):
+  """
+  Rendering settings
+  """
+  import pygame
+  os.environ["SDL_VIDEODRIVER"] = "windib"
+
+  if (do_render):
+    screen_width = 500
+    screen_height = 500
+    pygame.init()
+    screen = pygame.display.set_mode((screen_width, screen_height))
+    pygame.display.flip()  
+
+  num: int = 100
+  iter: int = 5000
+
+  allocator.initialize()
+  initialize_time = time.perf_counter()
+
+  allocator.parallel_new(Body, num)
+  parallel_new_time = time.perf_counter()
+
+  for x in range(iter):
+    allocator.parallel_do(Body, Body.compute_force)
+    allocator.parallel_do(Body, Body.body_update)
+    allocator.parallel_do(Body, Body.initialize_merge)
+    allocator.parallel_do(Body, Body.prepare_merge)
+    allocator.parallel_do(Body, Body.update_merge)
+    allocator.parallel_do(Body, Body.delete_merged)
+    if (do_render):
+      allocator.do_all(Body, render)
+      pygame.display.flip()
+      screen.fill((0, 0, 0)) 
+  end_time = time.perf_counter()
+
+  print("parallel new time(%-5d objects): %.dµs" % (num, ((parallel_new_time - initialize_time) * 1000000)))
+  print("average computation time: %dµs" % ((end_time - parallel_new_time) * 1000000 / iter))
+  print("overall computation time(%-4d iterations): %dµs" % (iter, ((end_time - parallel_new_time) * 1000000)))

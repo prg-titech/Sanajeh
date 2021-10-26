@@ -170,7 +170,8 @@ class FunctionDef(CodeStatement):
                 while '' in body:
                     body.remove('')
                 # __init__ special case
-                if self.name == "__init__" or self.name == ctx.stack[-1].name:
+                # if self.name == "__init__" or self.name == ctx.stack[-1].name:
+                if self.name == ctx.stack[-1].name:
                     # class with parent class needs to generate initializer list for calling father constructor
                     if init_lst is not None:
                         return "\n".join([
@@ -263,7 +264,8 @@ class ClassDef(CodeStatement):
     def buildCpp(self, ctx):
         with BuildContext(ctx, self) as new_ctx:
             new_ctx.indent_level -= 1
-            body = [x.buildCpp(new_ctx) for x in self.stmt if type(x) is FunctionDef]
+            # body = [x.buildCpp(new_ctx) for x in self.stmt if type(x) is FunctionDef]
+            body = [x.buildCpp(new_ctx) for x in self.stmt if type(x) is FunctionDef and x.name != "__init__"]
             while '' in body:
                 body.remove('')
             return "\n".join(body)
@@ -281,7 +283,7 @@ class ClassDef(CodeStatement):
             for field in self.fields:
                 field_types.append(self.fields[field])
                 # different list for the _do function
-                do_field_types.append(type_converter.do_all_convert(self.fields[field])[0])
+                do_field_types.append(type_converter.do_all_convert(self.fields[field]))
                 field_templates.append(INDENT + "Field<{}, {}> {};".format(self.name,
                                                                            i,
                                                                            field)
@@ -382,11 +384,28 @@ class AnnAssign(CodeStatement):
                 # )
         else:
             if self.value:
-                return ctx.indent() + "{} {} = {};".format(
-                    type_converter.convert(self.annotation.buildCpp(ctx)),
-                    self.target.buildCpp(ctx),
-                    self.value.buildCpp(ctx)
-                )
+                if type(ctx.stack[-1]) == FunctionDef and ctx.stack[-1].name == "__init__":
+                    return ctx.indent() + "{} = {};".format(
+                        self.target.buildCpp(ctx),
+                        self.value.buildCpp(ctx)
+                    )                    
+                else:
+                    if self.annotation.id == "list":
+                        if self.value.func.value.id == "DeviceAllocator" \
+                        and self.value.func.attr == "array":
+                            return ctx.indent() + "{} {}[{}];".format(
+                                type_converter.convert(self.value.args[0].id),
+                                self.target.buildCpp(ctx),
+                                str(self.value.args[1].n)
+                            )
+                        else:
+                            assert False
+                    else:
+                        return ctx.indent() + "{} {} = {};".format(
+                            type_converter.convert(self.annotation.buildCpp(ctx)),
+                            self.target.buildCpp(ctx),
+                            self.value.buildCpp(ctx)
+                        )
             else:
                 return ctx.indent() + "{} {};".format(
                     type_converter.convert(self.annotation.buildCpp(ctx)),
@@ -681,6 +700,7 @@ class Call(CodeExpression):
                     ", ".join([x.buildCpp(ctx) for x in self.args[2:]]))
             elif self.func.attr == "rand_uniform":
                 return "curand_uniform(&rand_state)"
+            # TODO: rand_init adds field to the class definition
             elif self.func.attr == "rand_init":
                 args = ", ".join([x.buildCpp(ctx) for x in self.args])
                 return "curandState rand_state;\n" + \
@@ -691,6 +711,13 @@ class Call(CodeExpression):
                 return "new(device_allocator) {}({})".format(self.args[0].buildCpp(ctx), args)
             elif self.func.attr == "destroy":
                 return "destroy(device_allocator, {})".format(self.args[0].buildCpp(ctx))
+            elif self.func.attr == "curand_init":
+                args = ", ".join([x.buildCpp(ctx) for x in self.args])
+                return "curand_init({}, &random_state_)".format(args)
+            elif self.func.attr == "curand_uniform":
+                return "curand_uniform(&random_state_)"
+            elif self.func.attr == "curand":
+                return "curand(&random_state_)"
             else:
                 # todo: unprovided sanajeh API
                 assert False

@@ -3,7 +3,6 @@ parentdir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__f
 sys.path.append(parentdir + "/src")
 
 from sanajeh import PyCompiler
-from nested import Body
 
-compiler: PyCompiler = PyCompiler("examples/collision/nested.py", "collision-nested")
+compiler: PyCompiler = PyCompiler("examples/wa-tor/wator.py", "wa-tor")
 compiler.compile()

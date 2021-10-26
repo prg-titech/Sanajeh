@@ -5,7 +5,7 @@ import ast
 import sys
 
 import type_converter
-from call_graph import CallGraph, ClassNode
+from call_graph import CallGraph, ClassNode, FunctionNode
 import build_cpp as cpp
 import six
 
@@ -156,7 +156,10 @@ class GenCppAstVisitor(ast.NodeVisitor):
         if type(node.annotation) is ast.Subscript:
             ann = node.annotation.value.id
         else:
-            ann = node.annotation.id
+            if type(node.annotation) is ast.Attribute:
+                ann = node.annotation.attr
+            else:
+                ann = node.annotation.id
         is_global = False
         if type(var) is ast.Name:
             var_node = self.__node_path[-1].GetVariableNode(var.id, ann)
@@ -172,8 +175,23 @@ class GenCppAstVisitor(ast.NodeVisitor):
         else:
             value = None
         annotation = self.visit(node.annotation)
+        """
         if type(self.__node_path[-1]) is ClassNode:
             self.__field[var.id] = type_converter.convert(ann)
+        """
+        if type(self.__node_path[-1]) == FunctionNode and self.__node_path[-1].name == "__init__" \
+        and node.target.value.id == "self":
+            ann = node.annotation.attr if type(node.annotation) is ast.Attribute else node.annotation.id
+            if ann == "list":
+                if node.value.func.value.id == "DeviceAllocator" and node.value.func.attr == "array":
+                    self.__field[node.target.attr] = \
+                        "DeviceArray<{}, {}>".format(
+                            type_converter.convert(node.value.args[0].id), 
+                            str(node.value.args[1].value))
+                else:
+                    assert False
+            else:
+                self.__field[node.target.attr] = type_converter.convert(ann)
         if type(self.__node_path[-1]) is CallGraph:
             is_global = True
         return cpp.AnnAssign(target, value, annotation, is_global)

@@ -103,7 +103,7 @@ class GenPyCallGraphVisitor(ast.NodeVisitor):
             annotation = None
             if arg.arg == "self":
                 continue
-            if hasattr(arg, "annotation"):
+            if hasattr(arg, "annotation") and arg.annotation is not None:
                 annotation = arg.annotation.id
             var_node = VariableNode(arg.arg, annotation)
             self.__current_node.arguments.add(var_node)
@@ -135,7 +135,6 @@ class GenPyCallGraphVisitor(ast.NodeVisitor):
             elif type(var) is ast.Name:
                 var_name = var.id
                 self.__variables.setdefault(self.__current_node.id, [])
-                # print(self.__variables)
                 if var_name not in self.__variables[self.__current_node.id]:
                     var_node = VariableNode(var_name, None)
                     self.__current_node.declared_variables.add(var_node)
@@ -152,11 +151,13 @@ class GenPyCallGraphVisitor(ast.NodeVisitor):
             ann = node.annotation.value.id
             e_ann = node.annotation.slice.value.id
         else:
-            ann = node.annotation.id
+            if hasattr(node.annotation, "attr"):
+                ann = node.annotation.attr
+            else:
+                ann = node.annotation.id
 
         if type(var) is ast.Attribute:
             var_name = var.attr
-            # print(var_name, var.value.id)
             if hasattr(var.value, "id") and var.value.id == "self":
                 pass
             # todo Attribute variables(self should refer to the class not in the current block),
@@ -164,7 +165,6 @@ class GenPyCallGraphVisitor(ast.NodeVisitor):
         elif type(var) is ast.Name:
             var_name = var.id
             self.__variables.setdefault(self.__current_node.id, [])
-            # print(self.__variables)
             if var_name not in self.__variables[self.__current_node.id]:
                 var_node = VariableNode(var_name, ann, e_ann)
                 self.__current_node.declared_variables.add(var_node)
@@ -393,7 +393,6 @@ class Preprocessor(ast.NodeVisitor):
             self.__current_node = None
             self.__class_name = class_name
             self.__field = {}
-            self.__field_kind = {}
 
         def visit(self, node):
             self.__current_node = self.__node_path[-1]
@@ -424,32 +423,35 @@ class Preprocessor(ast.NodeVisitor):
             self.__node_path.pop()
 
         def visit_AnnAssign(self, node):
-            if type(self.__current_node) is ClassNode:
-                var = node.target
-                anno = node.annotation
-                type_kind = type_converter.do_all_convert(anno.id)
-                self.__field[var.id] = type_kind[0]
-                self.__field_kind[var.id] = type_kind[1]
-                # self.__field[var.id] = type_converter.convert(anno.id)
+            if type(self.__current_node) is FunctionNode and self.__current_node.name == "__init__":
+                var = node.target.attr
+                if hasattr(node.annotation, "attr"):
+                    var_type = type_converter.convert(node.annotation.attr)
+                else:
+                    var_type = type_converter.convert(node.annotation.id)
+                self.__field[var] = var_type
 
         def buildCpp(self):
             fields_str = ""
             field_types_str = ""
+            
             for i, field in enumerate(self.__field):
+                field_type = self.__field[field]
                 if i != len(self.__field) - 1:
-                    if self.__field[field] == "int" and self.__field_kind[field] == "class":
+                    if field_type not in ["int", "float", "bool"]:
                         # fields_str += "(int) this->{}, ".format(field)
                         fields_str += "0, ".format(field)
+                        field_types_str += "{}, ".format("int")
                     else:
-                        fields_str += "this->{}, ".format(field)  
-                    field_types_str += "{}, ".format(self.__field[field])
+                        fields_str += "this->{}, ".format(field)
+                        field_types_str += "{}, ".format(field_type)
                 else:
-                    if self.__field[field] == "int" and self.__field_kind[field] == "class":
-                        # fields_str += "(int) this->{}, ".format(field)
+                    if self.__field[field] not in ["int", "float", "bool"]:
                         fields_str += "0, ".format(field)
+                        field_types_str += "{}".format("int") 
                     else:
                         fields_str += "this->{}".format(field)
-                    field_types_str += "{}".format(self.__field[field])  
+                        field_types_str += "{}".format(field_type) 
             func_exprs = ['\n' +
                           'void {}::_do(void (*pf)({})){{\n'.format(self.__class_name, field_types_str) +
                           INDENT +
@@ -470,10 +472,11 @@ class Preprocessor(ast.NodeVisitor):
         def buildCdef(self):
             field_types_str = ""
             for i, field in enumerate(self.__field):
+                field_type = self.__field[field] if self.__field[field] in ["int", "bool", "float"] else "int"
                 if i != len(self.__field) - 1:
-                    field_types_str += "{}, ".format(self.__field[field])
+                    field_types_str += "{}, ".format(field_type)
                 else:
-                    field_types_str += "{}".format(self.__field[field])
+                    field_types_str += "{}".format(field_type)
             return 'int {}_do_all(void (*pf)({}));'.format(self.__class_name, field_types_str)
 
     def __init__(self, rt: CallGraph):
@@ -635,7 +638,6 @@ class Preprocessor(ast.NodeVisitor):
         self.__current_node.called_functions.add(call_node)
         self.generic_visit(node)
 
-
 class DeviceCodeVisitor(ast.NodeTransformer):
 
     def __init__(self, root: CallGraph):
@@ -643,9 +645,9 @@ class DeviceCodeVisitor(ast.NodeTransformer):
         self.node_path = [self.root]
 
     def visit_Module(self, node):
-        for x in node.body:
-            if type(x) in [ast.FunctionDef, ast.ClassDef, ast.AnnAssign]:
-                self.visit(x)
+        for node_body in node.body:
+            if type(node_body) in [ast.ClassDef, ast.FunctionDef, ast.AnnAssign]:
+                self.visit(node_body)
         return node
 
     def visit_ClassDef(self, node):
@@ -685,8 +687,8 @@ class Searcher(DeviceCodeVisitor):
 
     def __init__(self, root: CallGraph):
         super().__init__(root)
-        self.dev_cls = set()  # device classes
-        self.sdef_cls = set()  # classes that are used for fields or variables types
+        self.dev_cls = set()    # device classes
+        self.sdef_cls = set()   # classes that are used for fields or variables types
 
     def visit_ClassDef(self, node):
         name = node.name
@@ -718,6 +720,109 @@ class Searcher(DeviceCodeVisitor):
                 self.sdef_cls.add(ann)
         return node
 
+class Checker(DeviceCodeVisitor):
+    original = {}
+    expanded = {}
+    has_random = []
+
+    def __init__(self, root: CallGraph):
+        super().__init__(root)
+    
+    def visit_Module(self, node):
+        for node_body in node.body:
+            if type(node_body) == ast.ClassDef:
+                self.visit(node_body)
+        self.expand()
+        return node
+    
+    def visit_ClassDef(self, node):
+        class_node = self.node_path[-1].GetClassNode(node.name)
+        if class_node is None:
+            # Program shouldn't come to here, which means the class is not analyzed by the marker yet
+            print("The class {} does not exist.".format(node.name), file=sys.stderr)
+            sys.exit(1)
+        self.node_path.append(class_node)
+        for node_body in node.body:
+            # Check constructor
+            if type(node_body) == ast.FunctionDef and node_body.name == "__init__":
+                # Add the current class to the dictionary's key set
+                self.original[node.name] = {}
+                self.visit_Init(node_body)
+            else:
+                self.visit(node_body)
+        self.node_path.pop()
+        return node
+    
+    def visit_Init(self, node):
+        class_name = self.node_path[-1].name
+        func_node = self.node_path[-1].GetFunctionNode(node.name, class_name)
+        if func_node is None:
+            # Program shouldn't come to here, which means the function is not analyzed by the marker yet
+            print("The function {} does not exist.".format(name), file=sys.stderr)
+            sys.exit(1)
+        self.node_path.append(func_node)
+        for node_body in node.body:
+            self.visit_Field(node_body)
+        self.node_path.pop()
+        return node
+    
+    # Check the field initialization in the constructor, they must be type annotated
+    def visit_Field(self, node):
+        class_name = self.node_path[-2].name
+        # Check if the assignment done on self        
+        if type(node.target) == ast.Attribute and hasattr(node.target.value, "id") \
+        and node.target.value.id == "self":
+            if type(node.annotation) is ast.Attribute:
+                self.original[class_name][node.target.attr] = node.annotation.attr
+            else:    
+                self.original[class_name][node.target.attr] = node.annotation.id
+        return node
+
+    def visit_Call(self, node):
+        if hasattr(node.func, "value") and hasattr(node.func.value, "id") \
+        and node.func.value.id == "DeviceAllocator" and node.func.attr == "curand_init":
+            if type(self.node_path[-1]) == ClassNode:
+                self.has_random.append(self.node_path[-1].name)
+        return node
+ 
+    def visit_FunctionDef(self, node):
+        self.generic_visit(node)
+        return node
+    
+    def visit_Assign(self, node):
+        self.generic_visit(node)
+        return node
+    
+    def visit_AnnAssign(self, node):
+        self.generic_visit(node)
+        return node
+    
+    def visit_Attribute(self, node):
+        self.generic_visit(node)
+        return node
+    
+    def visit_Expr(self, node):
+        self.generic_visit(node)
+        return node
+
+    def expand_type(self, ftype):
+        if ftype not in self.original:
+            return ftype
+        else:
+            result = {}
+            nested_fdict = self.original[ftype]
+            for nested_field in nested_fdict:
+                result[nested_field] = self.expand_type(nested_fdict[nested_field])
+            return result
+    
+    def expand(self):
+        for class_name in self.original:
+            self.expanded[class_name] = {}
+            for field in self.original[class_name]:
+                if field.split("_")[-1] != "ref":
+                    self.expanded[class_name][field] = self.expand_type(self.original[class_name][field])
+                else:
+                    self.expanded[class_name][field] = self.original[class_name][field]
 
 class Normalizer(DeviceCodeVisitor):
     """
@@ -813,10 +918,11 @@ class Normalizer(DeviceCodeVisitor):
                 var_type = self.node_path[-1].GetVariableType(node.func.value.id)
                 if var_type is None:
                     class_node = self.node_path[0].GetClassNode(self.last_annotation)
-                    for x in class_node.declared_functions:
-                        if x.name == node.func.attr:
-                            self.last_annotation = x.ret_type
-                            break
+                    if class_node is not None:
+                        for x in class_node.declared_functions:
+                            if x.name == node.func.attr:
+                                self.last_annotation = x.ret_type
+                                break
                 else:
                     for x in self.node_path[-1].called_functions:
                         if x.name == node.func.attr and x.c_name == var_type:
@@ -825,28 +931,28 @@ class Normalizer(DeviceCodeVisitor):
 
         elif hasattr(node.func, "value") and type(node.func.value) == ast.Attribute and self.has_auto_variables:
             if node.func.value.value.id == "self":
+                class_name = self.node_path[-2].name
                 var_type = None
-                for x in self.node_path[-2].declared_variables:
-                    if x.name == node.func.value.attr:
-                        var_type = x.v_type
-                        break
-                for x in self.node_path[-1].called_functions:
-                    if x.name == node.func.attr and x.c_name == var_type:
-                        self.last_annotation = x.ret_type
-                        break
+                # Modified to use the field dictionary instead of looking at the class definition
+                if class_name in Checker.original and node.func.value.attr in Checker.original[class_name]:
+                    var_type = Checker.original[class_name][node.func.value.attr]
+                if var_type is not None:
+                    for x in self.node_path[-1].called_functions:
+                        if x.name == node.func.attr and x.c_name == var_type:
+                            self.last_annotation = x.ret_type
+                            break
             else:
                 var_type = None
                 caller_type = self.node_path[-1].GetVariableType(node.func.value.value.id)
                 var_class = self.node_path[0].GetClassNode(caller_type)
-                for x in var_class.declared_variables:
-                    if x.name == node.func.value.attr:
-                        var_type = x.v_type
-                        break
+                if var_class.name in Checker.original and node.func.value.attr in Checker.original[var_class.name]:
+                    var_type = Checker.original[var_class.name][node.func.value.attr]                    
                 caller_class = self.node_path[0].GetClassNode(var_type)
-                for x in caller_class.declared_functions:
-                    if x.name == node.func.attr:
-                        self.last_annotation = x.ret_type
-                        break
+                if caller_class is not None:
+                    for x in caller_class.declared_functions:
+                        if x.name == node.func.attr:
+                            self.last_annotation = x.ret_type
+                            break
 
         # self.f.A().B()...
         if hasattr(node.func, "value") and type(node.func.value) == ast.Call:
@@ -864,13 +970,12 @@ class Normalizer(DeviceCodeVisitor):
                 print("Invalid data structure.", file=sys.stderr)
                 sys.exit(1)
             ret.append(ast.AnnAssign(target=ast.Name(id="__auto_v" + str(self.v_counter), ctx=ast.Store()),
-                                     value=assign_nodes[-1],
-                                     simple=1,
-                                     annotation=ast.Name(id=self.last_annotation, ctx=ast.Load())
-                                     ))
+                                    value=assign_nodes[-1],
+                                    simple=1,
+                                    annotation=ast.Name(id=self.last_annotation, ctx=ast.Load())
+                                    ))
             self.v_counter += 1
             node.func.value = new_var_node
-
         for x in range(len(node.args)):
             # self.f.A(B())
             if type(node.args[x]) == ast.Call:
@@ -880,15 +985,14 @@ class Normalizer(DeviceCodeVisitor):
                 ret.extend(assign_nodes[:-1])
                 self.visit(assign_nodes[-1])
                 ret.append(ast.AnnAssign(target=ast.Name(id="__auto_v" + str(self.v_counter), ctx=ast.Store()),
-                                         value=assign_nodes[-1],
-                                         simple=1,
-                                         annotation=ast.Name(id=self.last_annotation, ctx=ast.Load())
-                                         ))
+                                        value=assign_nodes[-1],
+                                        simple=1,
+                                        annotation=ast.Name(id=self.last_annotation, ctx=ast.Load())
+                                        ))
                 self.v_counter += 1
                 node.args[x] = new_var_node
         ret.append(node)
         return ret
-
 
 class FunctionBodyGenerator(ast.NodeTransformer):
     """Generate new ast nodes which are used by the Inliner to inline functions"""
@@ -1021,16 +1125,17 @@ class Inliner(DeviceCodeVisitor):
         else:
             return node
 
+    """
     def visit_Call(self, node):
         if type(node.func) == ast.Attribute:
             if type(node.func.value) == ast.Attribute:
                 if type(node.func.value.value) == ast.Name:
                     if node.func.value.value.id == "self" and type(self.node_path[-2]) is ClassNode:
                         caller_type = None
-                        for x in self.node_path[-2].declared_variables:
-                            if x.name == node.func.value.attr:
-                                caller_type = x.v_type
-                        if caller_type not in self.sdef_cls:
+                        class_name = self.node_path[-2].name
+                        if class_name in Checker.original and node.func.value.attr in Checker.original[class_name]:
+                            caller_type = Checker.original[class_name][node.func.value.attr]
+                        if caller_type not in self.sdef_cls or node.func.value.attr.split("_")[-1] == "ref":
                             return node
                         func_body_gen = FunctionBodyGenerator(self.node, caller_type)
                         func_body_gen.GetTransformedNodes(node.func.value,
@@ -1042,11 +1147,9 @@ class Inliner(DeviceCodeVisitor):
                         var_type = None
                         caller_type = self.node_path[-1].GetVariableType(node.func.value.value.id)
                         var_class = self.node_path[0].GetClassNode(caller_type)
-                        for x in var_class.declared_variables:
-                            if x.name == node.func.value.attr:
-                                var_type = x.v_type
-                                break
-                        if var_type not in self.sdef_cls:
+                        if var_class.name in Checker.original and node.func.value.attr in Checker.original[var_class.name]:
+                            var_type = Checker.original[var_class.name][node.func.value.attr]                            
+                        if var_type not in self.sdef_cls or node.func.value.attr.split("_")[-1] == "ref":
                             return node
                         func_body_gen = FunctionBodyGenerator(self.node, var_type)
                         func_body_gen.GetTransformedNodes(node.func.value,
@@ -1056,7 +1159,7 @@ class Inliner(DeviceCodeVisitor):
                             return func_body_gen.new_ast_nodes
             elif type(node.func.value) == ast.Name:
                 caller_type = self.node_path[-1].GetVariableType(node.func.value.id)
-                if caller_type not in self.sdef_cls:
+                if caller_type not in self.sdef_cls or node.func.value.id.split("_")[-1] == "ref":
                     return node
                 func_body_gen = FunctionBodyGenerator(self.node, caller_type)
                 func_body_gen.GetTransformedNodes(node.func.value,
@@ -1065,7 +1168,46 @@ class Inliner(DeviceCodeVisitor):
                 if len(func_body_gen.new_ast_nodes) != 0:
                     return func_body_gen.new_ast_nodes
         return node
-
+        """
+        
+    def visit_Call(self, node):
+        if type(node.func) == ast.Attribute:
+            if type(node.func.value) == ast.Attribute:
+                if type(node.func.value.value) == ast.Name and node.func.value.attr.split("_")[-1] != "ref":
+                    if node.func.value.value.id == "self" and type(self.node_path[-2]) is ClassNode:
+                        class_name = self.node_path[-2].name
+                        if class_name in Checker.original and node.func.value.attr in Checker.original[class_name]:
+                            caller_type = Checker.original[class_name][node.func.value.attr]
+                            if caller_type in self.sdef_cls:
+                                func_body_gen = FunctionBodyGenerator(self.node, caller_type)
+                                func_body_gen.GetTransformedNodes(node.func.value,
+                                                                node.func.attr,
+                                                                node.args)
+                                if len(func_body_gen.new_ast_nodes) != 0:
+                                    return func_body_gen.new_ast_nodes
+                    else:
+                        caller_type = self.node_path[-1].GetVariableType(node.func.value.value.id)
+                        var_class = self.node_path[0].GetClassNode(caller_type)      
+                        if var_class.name in Checker.original and node.func.value.attr in Checker.original[var_class.name]:
+                            var_type = Checker.original[var_class.name][node.func.value.attr] 
+                            if var_type in self.sdef_cls:
+                                func_body_gen = FunctionBodyGenerator(self.node, var_type)
+                                func_body_gen.GetTransformedNodes(node.func.value,
+                                                                node.func.attr,
+                                                                node.args)
+                                if len(func_body_gen.new_ast_nodes) != 0:
+                                    return func_body_gen.new_ast_nodes
+            elif type(node.func.value) == ast.Name:
+                if node.func.value.id.split("_")[-1] != "ref":
+                    caller_type = self.node_path[-1].GetVariableType(node.func.value.id)
+                    if caller_type in self.sdef_cls:
+                        func_body_gen = FunctionBodyGenerator(self.node, caller_type)
+                        func_body_gen.GetTransformedNodes(node.func.value,
+                                                        node.func.attr,
+                                                        node.args)
+                        if len(func_body_gen.new_ast_nodes) != 0:
+                            return func_body_gen.new_ast_nodes
+        return node
 
 class Eliminator(DeviceCodeVisitor):
     """
@@ -1086,12 +1228,10 @@ class Eliminator(DeviceCodeVisitor):
     -- m.pos.y: float = (__auto_v3.y / 2)
     // Solved by removing annotation during field synthesizing
     """
-
     def __init__(self, root: CallGraph, node, sdef_cls):
         super().__init__(root)
         self.node = node
         self.sdef_cls = sdef_cls
-        # self.var_dict = {}
 
     def visit_FunctionDef(self, node):
         name = node.name
@@ -1122,6 +1262,12 @@ class Eliminator(DeviceCodeVisitor):
 
     def visit_AnnAssign(self, node):
         self.generic_visit(node)
+        """
+        No inlining for reference type
+        """
+        if (type(node.target) == ast.Attribute and node.target.attr.split("_")[-1] == "ref") \
+        or (type(node.target) == ast.Name and node.target.id.split("_")[-1] == "ref"):
+            return node
         if hasattr(node.annotation, "id") and node.annotation.id in self.sdef_cls and node.value is not None:
             if type(node.value) == ast.Call and type(node.value.func) == ast.Name:
                 if node.value.func.id in self.sdef_cls:
@@ -1133,41 +1279,40 @@ class Eliminator(DeviceCodeVisitor):
                         return func_body_gen.new_ast_nodes
             else:
                 """
-                L: Deal with assignment by non-method/constructor calls.
+                Deal with assignment by non-method/constructor calls.
                 """
                 new_nodes = []
-                expand_type = self.node_path[0].GetClassNode(node.annotation.id)
-                for nested_var in expand_type.declared_variables:
+                if node.annotation.id == "list":
+                    return node
+                expand_type = self.node_path[0].GetClassNode(node.annotation.id).name
+                for nested_var in Checker.original[expand_type]:
+                    ctx = node.value.ctx if hasattr(node.value, "ctx") else None
                     new_node = ast.AnnAssign(
-                        annotation=ast.Name(id=nested_var.v_type, ctx=node.annotation.ctx),
+                        annotation=ast.Name(id=nested_var, ctx=node.annotation.ctx),
                         simple=node.simple,
-                        value=ast.Attribute(value=node.value, attr=nested_var.name, ctx=node.value.ctx),
-                        target=ast.Attribute(value=node.target, attr=nested_var.name, ctx=node.value.ctx)
+                        value=ast.Attribute(value=node.value, attr=nested_var, ctx=ctx),
+                        target=ast.Attribute(value=node.target, attr=nested_var, ctx=ctx)
                     )
                     new_nodes.append(new_node)
                 if len(new_nodes) > 0:
                     return new_nodes
-            # Can't figure out what var_dict is even for
-            """
-            else:
-                if type(node.value) is ast.Name:
-                    self.var_dict[node.target.id] = self.var_dict[node.value.id]
-                else:
-                    self.var_dict[node.target.id] = node.value
-                return None
-            """
         return node
 
     def visit_Assign(self, node):
         ret = []
         self.generic_visit(node)
         for field in node.targets:
+            """
+            No elimination for reference type
+            """
+            if (type(field) == ast.Attribute and field.attr.split("_")[-1] == "ref") \
+            or (type(field) == ast.Name and field.id.split("_")[-1] == "ref"):
+                return node
             if type(field) == ast.Attribute and type(self.node_path[-2]) == ClassNode:
                 var_type = None
-                for x in self.node_path[-2].declared_variables:
-                    if x.name == field.attr:
-                        var_type = x.v_type
-                        break
+                class_name = self.node_path[-2].name
+                if class_name in Checker.original and field.attr in Checker.original[class_name]:
+                    var_type = Checker.original[class_name][field.attr]
                 if node.value is not None and var_type in self.sdef_cls:
                     if type(node.value) == ast.Call and type(node.value.func) == ast.Name:
                         if node.value.func.id in self.sdef_cls:
@@ -1179,23 +1324,19 @@ class Eliminator(DeviceCodeVisitor):
                                 ret.extend(func_body_gen.new_ast_nodes)
                     else:
                         """
-                        L: Added to handle assignments where the value is not a method call, for example:
+                        Added to handle assignments where the value is not a method call, for example:
                         -- other.force = new_force
                         """
-                        for nested_var in self.node_path[0].GetClassNode(self.attribute_type(field)).declared_variables:
-                            ret.append(ast.Assign(
-                                value=ast.Attribute(value=node.value, attr=nested_var.name, ctx=node.value.ctx),
-                                targets=[ast.Attribute(value=field, attr=nested_var.name, ctx=field.ctx)]
-                            ))
+                        field_type = self.attribute_type(field)
+                        if field_type is not None:
+                            for nested_var in Checker.original[field_type]:
+                                ctx = node.value.ctx if hasattr(node.value, "ctx") else None
+                                ret.append(ast.Assign(
+                                    value=ast.Attribute(value=node.value, attr=nested_var, ctx=ctx),
+                                    targets=[ast.Attribute(value=field, attr=nested_var, ctx=field.ctx)]
+                                ))
         if len(ret) != 0:
             return ret
-        return node
-
-    def visit_Name(self, node):
-        """
-        if node.id in self.var_dict:
-            return self.var_dict[node.id]
-        """
         return node
     
     """
@@ -1209,84 +1350,73 @@ class Eliminator(DeviceCodeVisitor):
             else:
                 rec_type = self.node_path[-1].GetVariableType(attribute.value.id)
         elif type(attribute.value) == ast.Attribute:
-            rec_type = self.receiver_type(attribute.value)
+            rec_type = self.attribute_type(attribute.value)
         if rec_type is not None and rec_type not in ["int", "bool", "float"]:
-            rec_class = self.node_path[0].GetClassNode(rec_type)
-            for rec_var in rec_class.declared_variables:
-                if rec_var.name == attribute.attr:
-                    return rec_var.v_type
+            if self.node_path[0].GetClassNode(rec_type) is not None:
+                rec_class_name = self.node_path[0].GetClassNode(rec_type).name
+                if attribute.attr is Checker.original[rec_class_name]:
+                    return Checker.original[attribute.attr]
         return None
 
 class FieldSynthesizer(DeviceCodeVisitor):
-    """
-    Convert fields into its nested fields, attached with '_' and convert field access originally with '.' into '_'
-    """
-
     def __init__(self, root: CallGraph, sdef_cls):
         super().__init__(root)
         self.sdef_cls = sdef_cls
-        self.field_dict = {}
-
+    
     def visit_ClassDef(self, node):
-        name = node.name
-        class_node = self.node_path[-1].GetClassNode(name)
+        class_node = self.node_path[-1].GetClassNode(node.name)
         if class_node is None:
             # Program shouldn't come to here, which means the class is not analyzed by the marker yet
             print("The class {} does not exist.".format(name), file=sys.stderr)
             sys.exit(1)
-        # If it is not a device class just skip
         if class_node.is_device:
-            self.field_dict = {}
             self.node_path.append(class_node)
-            # Visit body to trigger rewriting and build field_dict
-            node_body = [self.visit(body) for body in node.body]
-            node.body = []
-            for body in node_body:
-                # If nested, then expands
-                if hasattr(body, "annotation") and hasattr(body.annotation, "id") \
-                and hasattr(body.target, "id") and body.value is None \
-                and body.target.id in self.field_dict:
-                    for nested_field, nested_type in self.field_dict[body.target.id].items():
-                        node.body.append(ast.AnnAssign(
-                            target=ast.Name(id=body.target.id+"_"+nested_field, ctx=ast.Store()),
-                            annotation=ast.Name(id=nested_type, ctx=ast.Load()),
-                            simple=1,
-                            value=None
-                        ))
+            # node.body = [self.visit(body) for body in node.body]
+            node_body = []
+            for body in node.body:
+                rewritten = self.visit(body)
+                if type(rewritten) == list:
+                    for singular_body in rewritten:
+                        node_body.append(singular_body)
                 else:
-                    node.body.append(body)
+                    node_body.append(rewritten)
+            node.body= node_body
             self.node_path.pop()
-        return node
 
     def visit_FunctionDef(self, node):
-        name = node.name
-        func_node = self.node_path[-1].GetFunctionNode(name, self.node_path[-1].name)
+        func_node = self.node_path[-1].GetFunctionNode(node.name, self.node_path[-1].name)
         if func_node is None:
             # Program shouldn't come to here, which means the function is not analyzed by the marker yet
             print("The function {} does not exist.".format(name), file=sys.stderr)
-            sys.exit(1)
-        # If it is not a device function just skip
+            sys.exit(1)    
         if func_node.is_device:
             self.node_path.append(func_node)
             node.args = self.visit(node.args)
-            node.body = [self.visit(x) for x in node.body]
-            self.node_path.pop()
-            """
-            i = 0
-            for x in range(len(node.body)):
-                if type(node.body[i]) == list:
-                    for n in node.body[i]:
-                        node.body.insert(i, n)
-                        i += 1
-                    del node.body[i]
-                elif node.body[i] is None:
-                    del node.body[i]
-                else:
-                    i += 1
-            self.node_path.pop()
-            """
+            node_body = []
+            if node.name == "__init__" and self.node_path[-2].name in Checker.has_random:
+                node_body.append(ast.AnnAssign(
+                    target=ast.Attribute(attr="random_state_", value=ast.Name("self")),
+                    annotation=ast.Attribute(attr="RandomState", value=ast.Name(id="DeviceAllocator")),
+                    simple=1,
+                    value=ast.Constant(value=None, kind=None)
+                ))
+            for x in node.body:
+                node_body.append(self.visit(x))
+            node.body = node_body
+            self.node_path.pop()           
         return node
 
+    def visit_AnnAssign(self, node):
+        # Replaces nested field access into a single field access joined by _
+        self.generic_visit(node)
+        # Remove type annotations from variable assignments
+        if type(self.node_path[-1]) == FunctionNode and self.node_path[-1].name == "__init__":
+            return node
+        elif type(node.target) == ast.Attribute:
+            return ast.Assign(targets=[node.target], value=node.value)
+        node.simple = 1
+        return node
+    
     def visit_Attribute(self, node):
         ctx = None
         if type(node.ctx) == ast.Load:
@@ -1294,47 +1424,22 @@ class FieldSynthesizer(DeviceCodeVisitor):
         elif type(node.ctx) == ast.Store:
             ctx = ast.Store()
         if type(node.value) == ast.Name:
-            if self.node_path[-1].GetVariableType(node.value.id) in self.sdef_cls:
+            if self.node_path[-1].GetVariableType(node.value.id) in self.sdef_cls \
+            and node.value.id.split("_")[-1] != "ref":
                 return ast.Name(id=node.value.id + "_" + node.attr, ctx=ctx)
-        elif type(node.value) == ast.Attribute and type(self.node_path[-2]) == ClassNode:
+        elif type(node.value) == ast.Attribute and type(self.node_path[-2]) == ClassNode \
+        and node.value.attr.split("_")[-1] != "ref":
             var_type = None
-            for x in self.node_path[-2].declared_variables:
-                if x.name == node.value.attr:
-                    var_type = x.v_type
-                    break
+            if node.value.attr in Checker.expanded[self.node_path[-2].name]:
+                var_type = Checker.original[self.node_path[-2].name][node.value.attr]
             if var_type in self.sdef_cls:
-                # If the field has _ref then no expansion
-                if node.value.attr.split("_")[-1] != "ref":
-                    return ast.Attribute(attr=node.value.attr + "_" + node.attr, ctx=ctx, value=node.value.value)
-                else:
-                    return node
-        return node
-    
-    def visit_AnnAssign(self, node):
-        """
-        L: Current ad-hoc fix for the unstable fields expansion.
-        Actual fix needs to dig into Inliner, Eliminator as well.
-        """
-        # Build field_dict
-        if type(node.target) == ast.Attribute and type(node.target.value) == ast.Attribute \
-        and hasattr(node.target.value.value, "id") and node.target.value.value.id == "self":
-            if (node.target.value.attr.split("_")[-1] != "ref"):
-                if node.target.value.attr not in self.field_dict:
-                    self.field_dict[node.target.value.attr] = {node.target.attr: node.annotation.id}
-                else:
-                    if node.target.attr not in self.field_dict[node.target.value.attr]:
-                        self.field_dict[node.target.value.attr][node.target.attr] = node.annotation.id
-        # Replaces nested field access into a single field access
-        self.generic_visit(node)
-        # Remove type annotations from variable assignments
-        if type(node.target) == ast.Attribute:
-            return ast.Assign(targets=[node.target], value=node.value)
-        # If found field, do nothing
-        node.simple = 1
-        return node
+                return ast.Attribute(attr=node.value.attr + "_" + node.attr, ctx=ctx, value=node.value.value)
+        return node         
 
 def transform(node, call_graph):
     """Replace all self-defined type fields with specific implementation"""
+    # Keep a dictionary of field in Checker
+    ast.fix_missing_locations(Checker(call_graph).visit(node))
     ast.fix_missing_locations(Normalizer(call_graph).visit(node))
     gpcgv1 = GenPyCallGraphVisitor()
     gpcgv1.visit(node)
@@ -1348,7 +1453,7 @@ def transform(node, call_graph):
         if cls in scr.sdef_cls:
             scr.sdef_cls.remove(cls)
     ast.fix_missing_locations(Inliner(call_graph, node, scr.sdef_cls).visit(node))
-    ast.fix_missing_locations(Eliminator(call_graph, node, scr.sdef_cls).visit(node))
+    ast.fix_missing_locations(Eliminator(call_graph, node, scr.sdef_cls).visit(node))    
     ast.fix_missing_locations(FieldSynthesizer(call_graph, scr.sdef_cls).visit(node))
 
 def compile(source_code, dir_path, file_name):
