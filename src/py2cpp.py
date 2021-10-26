@@ -1286,14 +1286,14 @@ class Eliminator(DeviceCodeVisitor):
                 """
                 Deal with assignment by non-method/constructor calls.
                 """
-                new_nodes = []
                 if node.annotation.id == "list":
                     return node
                 expand_type = self.node_path[0].GetClassNode(node.annotation.id).name
-                for nested_var in Checker.original[expand_type]:
+                new_nodes = []
+                for nested_var, nested_type in Checker.original[expand_type].items():
                     ctx = node.value.ctx if hasattr(node.value, "ctx") else None
                     new_node = ast.AnnAssign(
-                        annotation=ast.Name(id=nested_var, ctx=node.annotation.ctx),
+                        annotation=ast.Name(id=nested_type, ctx=node.annotation.ctx),
                         simple=node.simple,
                         value=ast.Attribute(value=node.value, attr=nested_var, ctx=ctx),
                         target=ast.Attribute(value=node.target, attr=nested_var, ctx=ctx)
@@ -1359,9 +1359,10 @@ class Eliminator(DeviceCodeVisitor):
         if rec_type is not None and rec_type not in ["int", "bool", "float"]:
             if self.node_path[0].GetClassNode(rec_type) is not None:
                 rec_class_name = self.node_path[0].GetClassNode(rec_type).name
-                if attribute.attr is Checker.original[rec_class_name]:
-                    return Checker.original[attribute.attr]
+                if attribute.attr in Checker.original[rec_class_name]:
+                    return Checker.original[rec_class_name][attribute.attr]
         return None
+    
 
 class FieldSynthesizer(DeviceCodeVisitor):
     def __init__(self, root: CallGraph, sdef_cls):
