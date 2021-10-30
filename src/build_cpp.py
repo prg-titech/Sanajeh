@@ -390,16 +390,12 @@ class AnnAssign(CodeStatement):
                         self.value.buildCpp(ctx)
                     )                    
                 else:
-                    if self.annotation.id == "list":
-                        if self.value.func.value.id == "DeviceAllocator" \
-                        and self.value.func.attr == "array":
-                            return ctx.indent() + "{} {}[{}];".format(
-                                type_converter.convert(self.value.args[0].id),
-                                self.target.buildCpp(ctx),
-                                str(self.value.args[1].n)
-                            )
-                        else:
-                            assert False
+                    if type(self.annotation) == Subscript and type(self.value) == ListInitialization:
+                        return ctx.indent() + "{} {}[{}];".format(
+                            type_converter.convert(self.annotation.slice.value.buildCpp(ctx)),
+                            self.target.buildCpp(ctx),
+                            str(self.value.size)
+                        )
                     else:
                         return ctx.indent() + "{} {} = {};".format(
                             type_converter.convert(self.annotation.buildCpp(ctx)),
@@ -510,12 +506,12 @@ class If(CodeStatement):
                 result.extend(lines[1:])
             elif self.orelse:
                 result[-1] = ctx.indent() + "} else {"
-                result.extend([
-                              ] + [x.buildCpp(ctx) for x in self.orelse] + [
-                                  "}",
-                              ])
+                for x in self.orelse:
+                    built = x.buildCpp(ctx)
+                    built = "\n".join([ctx.indent() + built_line for built_line in built.split("\n")])
+                    result.append(built)
+                result.append(ctx.indent() + "}")
             return "\n".join(result)
-
 
 class Raise(CodeStatement):
     if six.PY3:
@@ -581,6 +577,11 @@ class CodeExpression(Base):
     def __init__(self):
         super(CodeExpression, self).__init__(Type.Expr)
 
+class ListInitialization(Base):
+    _fields = ["size"]
+
+    def __init__(self, size):
+        self.size = size
 
 class BoolOp(CodeExpression):
     _fields = ["op", "values"]
@@ -698,14 +699,6 @@ class Call(CodeExpression):
                     self.args[1].value.buildCpp(ctx),
                     self.args[1].attr,
                     ", ".join([x.buildCpp(ctx) for x in self.args[2:]]))
-            elif self.func.attr == "rand_uniform":
-                return "curand_uniform(&rand_state)"
-            # TODO: rand_init adds field to the class definition
-            elif self.func.attr == "rand_init":
-                args = ", ".join([x.buildCpp(ctx) for x in self.args])
-                return "curandState rand_state;\n" + \
-                       ctx.indent() + \
-                       "curand_init({}, &rand_state)".format(args)
             elif self.func.attr == "new":
                 args = ", ".join([x.buildCpp(ctx) for x in self.args[1:]])
                 return "new(device_allocator) {}({})".format(self.args[0].buildCpp(ctx), args)
@@ -718,6 +711,12 @@ class Call(CodeExpression):
                 return "curand_uniform(&random_state_)"
             elif self.func.attr == "curand":
                 return "curand(&random_state_)"
+            elif self.func.attr == "random_state":
+                return "{}->random_state_".format(self.args[0].buildCpp(ctx))
+            elif self.func.attr == "type_cast":
+                return "{}->cast<{}>() != nullptr".format(
+                    self.args[0].buildCpp(ctx),
+                    self.args[1].buildCpp(ctx))
             else:
                 # todo: unprovided sanajeh API
                 assert False
@@ -772,6 +771,9 @@ class Attribute(CodeExpression):
     def buildCpp(self, ctx):
         if hasattr(self.value, "id") and self.value.id == "math":
             return self.attr
+        if hasattr(self.value, "id") and self.value.id == "DeviceAllocator" \
+        and self.attr == "RandomState":
+            return "curandState"
         return "{}->{}".format(self.value.buildCpp(ctx), self.attr)
 
 
@@ -811,12 +813,11 @@ class Name(CodeExpression):
 class List(CodeExpression):
     _fields = ["elts"]
 
-    def __init__(self, elts):
-        assert False
+    def __init__(self, elts_):
+        self.elts = elts_
 
     def buildCpp(self, ctx):
-        assert False
-
+        return "{{}}".format(",".join([elt.buildCpp(ctx) for elt in self.elts]))
 
 class Tuple(CodeExpression):
     _fields = ["elts"]
@@ -840,6 +841,15 @@ class Index(CodeExpression):
     def buildCpp(self, ctx):
         return self.value.buildCpp(ctx)
 
+class Assert(CodeExpression):
+    _fields = ["value"]
+
+    def __init__(self, value):
+        super(Assert, self).__init__()
+        self.value = value
+    
+    def buildCpp(self, ctx):
+        return ctx.indent() + "assert({})".format(self.value.buildCpp(ctx))
 
 class arguments(Base):
     _fields = ["args", "vararg", "kwarg", "defaults"]

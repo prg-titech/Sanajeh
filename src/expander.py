@@ -23,7 +23,7 @@ class RuntimeExpander:
       if type(body) == ast.AnnAssign \
       and hasattr(body.target.value, "id") and body.target.value.id == "self":
         ann = None
-        if type(body.annotation) == ast.Subscript and node.annotation.value == "list":
+        if type(body.annotation) == ast.Subscript and body.annotation.value.id == "list":
           ann = "list"
         elif type(body.annotation) == ast.Attribute:
           ann = body.annotation.attr
@@ -44,6 +44,7 @@ class RuntimeExpander:
                 return True
     return False
 
+  # TODO: support inheritance
   def build_function(self, cls, py_code):
     module = cls.__dict__["__module__"]
     name = cls.__name__

@@ -130,7 +130,6 @@ class Body:
 
   def delete_merged(self):
     if self.successful_merge:
-      print("deleted")
       DeviceAllocator.destroy(self)
 
 def kernel_initialize_bodies():

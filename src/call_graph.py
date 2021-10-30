@@ -51,6 +51,7 @@ class ClassNode(CallGraphNode):
 
         # functions declared in this class
         self.declared_functions: Set[FunctionNode] = set()
+        self.declared_fields: Set[VariableNode] = set()
         self.super_class: str = super_class
 
     # Find the function 'function_name' by recursion
@@ -138,6 +139,18 @@ class VariableNode(CallGraphNode):
         self.is_device = True
         # print("Variable {}".format(self.name))
 
+    def MarkDeviceField(self, call_graph):
+        self.is_device = True
+        if self.name.split("_")[-1] != "ref":
+            field_class = None
+            
+            if self.v_type not in ["int", "bool", "float", "RandomState"]:
+                field_class = call_graph.GetClassNode(self.v_type)
+            elif self.v_type == "list" and self.e_type[0] not in ["int", "bool", "float", "RandomState"]:
+                field_class = call_graph.GetClassNode(self.e_type[0])
+
+            if field_class is not None and not field_class.is_device:
+                call_graph.MarkDeviceDataByClassName([field_class.name])
 
 # A tree which represents the calling and declaring relationships
 class CallGraph(CallGraphNode):
@@ -190,11 +203,18 @@ class CallGraph(CallGraphNode):
     def MarkDeviceDataByClassName(self, class_names):
         for cln in class_names:
             # do not support just mark a child class which nest in another class
+            children = []
             for cls in self.declared_classes:
-                if cls.name == cln:
+                if cls.super_class == cln and cls.name not in class_names \
+                and not cls.is_device:
+                    children.append(cls.name)
 
+                if cls.name == cln:
                     # Mark all called functions in class cls
                     cls.MarkDeviceData()
+
+                    for field in cls.declared_fields:
+                        field.MarkDeviceField(self)
 
                     # Mark all called functions in the functions of cls
                     for func in cls.declared_functions:
@@ -203,6 +223,10 @@ class CallGraph(CallGraphNode):
                     # Mark all variables in that class cls (in the functions of cls)
                     for var in cls.declared_variables:
                         var.MarkDeviceData()
+            
+            if children:
+                self.MarkDeviceDataByClassName(children)
+            
 
     # Query whether the function is a device function
     def IsDeviceFunction(self, function_name, class_name):

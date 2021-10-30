@@ -9,6 +9,10 @@ from call_graph import CallGraph, ClassNode, FunctionNode
 import build_cpp as cpp
 import six
 
+import astunparse
+
+def pprint(node):
+    print(astunparse.unparse(node))
 
 BOOLOP_MAP = {
     ast.And: "&&",
@@ -28,7 +32,8 @@ OPERATOR_MAP = {
     ast.BitOr: "|",
     ast.BitXor: "^",
     ast.BitAnd: "&",
-    # ast.FloorDiv: "//",  # special case
+    ast.FloorDiv: "//",  # special case
+    ast.Mod: "%"
 }
 
 # Unary operator map
@@ -170,26 +175,20 @@ class GenCppAstVisitor(ast.NodeVisitor):
             if not var_node.is_device:
                 return cpp.IgnoredNode(node)
         target = self.visit(node.target)
+        array_size = None
         if node.value:
             value = self.visit(node.value)
+            if type(value) == cpp.ListInitialization:
+                array_size = value.size
         else:
             value = None
         annotation = self.visit(node.annotation)
-        """
-        if type(self.__node_path[-1]) is ClassNode:
-            self.__field[var.id] = type_converter.convert(ann)
-        """
-        if type(self.__node_path[-1]) == FunctionNode and self.__node_path[-1].name == "__init__" \
-        and node.target.value.id == "self":
-            if type(node.annotation) == ast.Subscript and node.annotation.value.id == "list" \
-            and hasattr(node.value, "right") and type(node.value.right) == ast.Constant:
-                self.__field[node.target.attr] = \
-                    "DeviceArray<{}, {}>".format(
-                        type_converter.convert(node.annotation.slice.value.id),
-                        str(node.value.right.n))
+        if self.__node_path[-1].name == "__init__" and node.target.value.id == "self":
+            ann_type = type_converter.convert_ann(node.annotation)
+            if ann_type == "list":
+                self.__field[node.target.attr] = "DeviceArray<{}, {}>".format(type_converter.convert_ann(node.annotation.slice.value), array_size)
             else:
-                ann = node.annotation.attr if type(node.annotation) is ast.Attribute else node.annotation.id
-                self.__field[node.target.attr] = type_converter.convert(ann)
+                self.__field[node.target.attr] = ann_type
         if type(self.__node_path[-1]) is CallGraph:
             is_global = True
         return cpp.AnnAssign(target, value, annotation, is_global)
@@ -246,6 +245,9 @@ class GenCppAstVisitor(ast.NodeVisitor):
     def visit_Continue(self, node):
         return cpp.Continue()
 
+    def visit_Assert(self, node):
+        return cpp.Assert(self.visit(node.test))
+    
     #
     # Expressions
     #
@@ -255,10 +257,14 @@ class GenCppAstVisitor(ast.NodeVisitor):
         return cpp.BoolOp(op=op, values=[self.visit(x) for x in node.values])
 
     def visit_BinOp(self, node):
-        assert node.op.__class__ not in [ast.Pow, ast.FloorDiv]
+        assert node.op.__class__ not in [ast.Pow]
         left = self.visit(node.left)
         op = OPERATOR_MAP[node.op.__class__]
         right = self.visit(node.right)
+        # For list initialization in the form of [None] * n, the size must be determined statically
+        if type(left) == cpp.List and len(left.elts) == 1 and type(left.elts[0]) == cpp.NameConstant \
+        and left.elts[0].value is None and op == "*" and type(right) == cpp.Num:
+            return cpp.ListInitialization(size=right.n)
         return cpp.BinOp(left=left, op=op, right=right)
 
     def visit_UnaryOp(self, node):
@@ -365,4 +371,9 @@ class GenCppAstVisitor(ast.NodeVisitor):
         value = self.visit(node.value)
         return cpp.keyword(name=name, value=value)
 
+    def visit_List(self, node):
+        elements = []
+        for elt in node.elts:
+            elements.append(self.visit(elt))
+        return cpp.List(elements)
 

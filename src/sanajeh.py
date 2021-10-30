@@ -82,8 +82,19 @@ class DeviceAllocator:
 
   @staticmethod
   def parallel_do(cls, func, *args):
-    pass      
+    pass   
 
+  @staticmethod
+  def array(size):
+    return [None] * size
+
+  @staticmethod
+  def type_cast(obj, cls):
+    if cpu_flag:
+      return type(obj) == cls
+    else:
+      pass
+      
 class SeqAllocator:
   def __init__(self):
     global cpu_flag
@@ -103,7 +114,7 @@ class SeqAllocator:
         getattr(cls_object, func.__name__)(*args)
 
   def parallel_new(self, cls, object_num):
-    cls_objects = [cls.__new__(cls) for _ in range(object_num)]
+    cls_objects = [cls() for _ in range(object_num)]
     for i in range(object_num):
       getattr(cls_objects[i], cls.__name__)(i)
     global objects
@@ -167,14 +178,6 @@ class PyAllocator:
 
   # load the shared library and initialize the allocator on GPU
   def initialize(self):
-    """
-    Compilation before initializing ffi
-
-    compiler: PyCompiler = PyCompiler(self.file_path, self.file_name)
-    compiler.compile()
-    compiler.build()
-    """
-
     """
     Initialize ffi module
     """

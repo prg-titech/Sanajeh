@@ -26,11 +26,37 @@ class Cell:
     self.neighbors_: list[Cell] = [None]*4
     self.agent_ref: Agent = None
     self.neighbor_request_: list[bool] = [None]*5
+    self.id: int = None
   
   def Cell(self, cell_id: int):
     DeviceAllocator.curand_init(kSeed, cell_id, 0)
+    self.id = cell_id
     self.prepare()
+    cells[cell_id] = self
   
+  def setup(self):
+    x: int = self.id % kSizeX
+    y: int = self.id // kSizeX
+
+    left: Cell = cells[y*kSizeX + x - 1] if x > 0 else cells[y*kSizeX + kSizeX - 1]
+    right: Cell = cells[y*kSizeX + x + 1] if x < kSizeX - 1 else cells[y*kSizeX] 
+    top: Cell = cells[(y - 1)*kSizeX + x] if y > 0 else cells[(kSizeY - 1)*kSizeX + x]
+    bottom: Cell = cells[(y + 1)*kSizeX + x] if y < kSizeY - 1 else cells[x]
+
+    cells[self.id].set_neighbors(left, top, right, bottom)
+
+    agent_type: int = DeviceAllocator.curand() % 4
+    if agent_type == 0:
+      agent: Agent = DeviceAllocator.new(Fish, DeviceAllocator.curand())
+      assert agent != None
+      cells[self.id].enter(agent)
+    elif agent_type == 1:
+      agent: Agent = DeviceAllocator.new(Shark, DeviceAllocator.curand())
+      assert agent != None
+      cells[self.id].enter(agent)
+    else:
+      pass     
+
   def agent(self) -> Agent:
     return self.agent_ref
 
@@ -236,100 +262,52 @@ class Shark(Agent):
           old_position.enter(new_shark)
           self.egg_timer_ = 0
 
-cells: list = DeviceAllocator.array(kSizeX*kSizeY)
-
-def kernel_initialize_bodies():
-  DeviceAllocator.device_class(Cell)
-  DeviceAllocator.device_class(Agent)
-  DeviceAllocator.device_class(Fish)
-  DeviceAllocator.device_class(Shark)
-
-def _update():
-  DeviceAllocator.parallel_do(Cell, Cell.prepare)
-  DeviceAllocator.parallel_do(Cell, Cell.decide)
-  DeviceAllocator.parallel_do(Fish, Fish.prepare)
-  DeviceAllocator.parallel_do(Fish, Fish.update)
-  DeviceAllocator.parallel_do(Shark, Shark.prepare)
-  DeviceAllocator.parallel_do(Shark, Shark.update)
-
-"""
-Rendering setting
-"""
-
-os.environ["SDL_VIDEODRIVER"] = "windib"
-
-screen_width, screen_height = kSizeX, kSizeY
-scaling_factor = 6
-
-def initialize_render():
-  pygame.init()
-  window = pygame.display.set_mode((kSizeX*6, kSizeY*6))
-  screen = pygame.Surface((kSizeX, kSizeY))
-  screen.fill((0,0,0))
-  return (window, screen)
-
-def render(window, screen, pxarray):
-  for i in range(kSizeX*kSizeY):
-    x = i % kSizeX
-    y = i // kSizeX
-    if cells[i].has_fish():
-      pxarray[x,y] = pygame.Color(0,255,0)
-    elif cells[i].has_shark():
-      pxarray[x,y] = pygame.Color(255,0,0)
-    else:
-      pxarray[x,y] = pygame.Color(255,255,255)
-  window.blit(pygame.transform.scale(screen, window.get_rect().size), (0,0))
-  pygame.display.update()  
-
-
-"""
-Global definitions
-"""
-
-# TODO: change to parallel_new so there won't be any need for thread size
-def create_cells():
-  for i in range(kSizeX*kSizeY):
-    new_cell: Cell = DeviceAllocator.new(Cell, i)
-    assert new_cell != None
-    cells[i] = new_cell
-
-# TODO: change to parallel_do
-def setup_cells():
-  for i in range(kSizeX*kSizeY):
-    x: int = i % kSizeX
-    y: int = i // kSizeX
-
-    left: Cell = cells[y*kSizeX + x - 1] if x > 0 else cells[y*kSizeX + kSizeX - 1]
-    right: Cell = cells[y*kSizeX + x + 1] if x < kSizeX - 1 else cells[y*kSizeX] 
-    top: Cell = cells[(y - 1)*kSizeX + x] if y > 0 else cells[(kSizeY - 1)*kSizeX + x]
-    bottom: Cell = cells[(y + 1)*kSizeX + x] if y < kSizeY - 1 else cells[x]
-
-    cells[i].set_neighbors(left, top, right, bottom)
-
-    agent_type: int = DeviceAllocator.curand() % 4
-    if agent_type == 0:
-      agent: Agent = DeviceAllocator.new(Fish, DeviceAllocator.curand())
-      assert agent != None
-      cells[i].enter(agent)
-    elif agent_type == 1:
-      agent: Agent = DeviceAllocator.new(Shark, DeviceAllocator.curand())
-      assert agent != None
-      cells[i].enter(agent)
-    else:
-      pass  
+# cells: list = DeviceAllocator.array(kSizeX*kSizeY)
 
 def main(allocator, do_render):
-  # initialize()
-  create_cells()
-  setup_cells()
-  
-  # Initialize render
-  window, screen = initialize_render()
-  pxarray = pygame.PixelArray(screen)
-  render(window, screen, pxarray)
 
-  total_time = time.perf_counter()
+  # Initialize render  
+  window = None
+  screen = None
+  pxarray = None
+
+  def initialize_render():
+    pygame.init()
+    window = pygame.display.set_mode((kSizeX*6, kSizeY*6))
+    screen = pygame.Surface((kSizeX, kSizeY))
+    screen.fill((0,0,0))
+    return (window, screen)
+
+  def render():
+    for i in range(kSizeX*kSizeY):
+      x = i % kSizeX
+      y = i // kSizeX
+      if cells[i].has_fish():
+        pxarray[x,y] = pygame.Color(0,255,0)
+      elif cells[i].has_shark():
+        pxarray[x,y] = pygame.Color(255,0,0)
+      else:
+        pxarray[x,y] = pygame.Color(255,255,255)  
+    window.blit(pygame.transform.scale(screen, window.get_rect().size), (0,0))
+    pygame.display.update()  
   
+  total_time = time.perf_counter()
+
+  allocator.initialize()
+  initialize_time = time.perf_counter()
+  allocator.parallel_new(Cell, kSizeX*kSizeY)
+  parallel_new_time = time.perf_counter()
+  
+  allocator.parallel_do(Cell, Cell.setup)
+
+  if do_render:
+    os.environ["SDL_VIDEODRIVER"] = "windib"
+    screen_width, screen_height = kSizeX, kSizeY
+    scaling_factor = 6  
+    window, screen = initialize_render()
+    pxarray = pygame.PixelArray(screen)
+    render()
+
   for i in range(kNumIterations):
     time_before = time.perf_counter()
 
@@ -348,6 +326,7 @@ def main(allocator, do_render):
     total_time += time_after - time_before
 
     # No rendering in the original dynasoar, so this doesn't require do_all
-    render(window, screen, pxarray)
+    if do_render:
+      render()
 
   print(total_time)
