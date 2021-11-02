@@ -70,14 +70,14 @@ class Body:
     self.successful_merge: bool = False
 
   def Body(self, idx: int):
-    DeviceAllocator.curand_init(kSeed, idx, 0)
+    random.seed(kSeed, idx, 0)
     self.merge_target_ref = None
-    self.pos = Vector(2.0 * DeviceAllocator.curand_uniform() - 1.0,
-                      2.0 * DeviceAllocator.curand_uniform() - 1.0)
-    self.vel = Vector((DeviceAllocator.curand_uniform() - 0.5) / 1000,
-                      (DeviceAllocator.curand_uniform() - 0.5) / 1000)
+    self.pos = Vector(2.0 * random.uniform() - 1.0,
+                      2.0 * random.uniform() - 1.0)
+    self.vel = Vector((random.uniform() - 0.5) / 1000,
+                      (random.uniform() - 0.5) / 1000)
     self.force = Vector(0.0, 0.0)
-    self.mass = (DeviceAllocator.curand_uniform()/2 + 0.5) * kMaxMass
+    self.mass = (random.uniform()/2 + 0.5) * kMaxMass
     self.has_incoming_merge = False
     self.successful_merge = False
 

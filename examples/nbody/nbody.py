@@ -66,12 +66,12 @@ class Body:
     self.mass: float = 0
 
   def Body(self, idx: int):
-    DeviceAllocator.curand_init(kSeed, idx, 0)
-    self.pos = Vector(2.0 * DeviceAllocator.curand_uniform() - 1.0,
-                      2.0 * DeviceAllocator.curand_uniform() - 1.0)
+    random.seed(idx)
+    self.pos = Vector(2.0 * random.uniform() - 1.0,
+                      2.0 * random.uniform() - 1.0)
     self.vel = Vector(0.0, 0.0)
     self.force = Vector(0.0, 0.0)
-    self.mass = (DeviceAllocator.curand_uniform() / 2.0 + 0.5) * kMaxMass
+    self.mass = (random.uniform() / 2.0 + 0.5) * kMaxMass
   
   def compute_force(self):
     self.force.to_zero()

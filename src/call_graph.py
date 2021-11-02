@@ -53,6 +53,7 @@ class ClassNode(CallGraphNode):
         self.declared_functions: Set[FunctionNode] = set()
         self.declared_fields: Set[VariableNode] = set()
         self.super_class: str = super_class
+        self.has_random_state: bool = False
 
     # Find the function 'function_name' by recursion
     def GetFunctionNode(self, function_name, class_name):
@@ -134,6 +135,7 @@ class VariableNode(CallGraphNode):
         super(VariableNode, self).__init__(node_name)
         self.v_type: str = var_type  # type of the variable, "None" for untyped variables
         self.e_type: str = element_type  # type of the element, only for arrays
+        self.is_device = True if node_name == "kSeed" else False
 
     def MarkDeviceData(self):
         self.is_device = True
@@ -141,16 +143,14 @@ class VariableNode(CallGraphNode):
 
     def MarkDeviceField(self, call_graph):
         self.is_device = True
-        if self.name.split("_")[-1] != "ref":
-            field_class = None
-            
-            if self.v_type not in ["int", "bool", "float", "RandomState"]:
-                field_class = call_graph.GetClassNode(self.v_type)
-            elif self.v_type == "list" and self.e_type[0] not in ["int", "bool", "float", "RandomState"]:
-                field_class = call_graph.GetClassNode(self.e_type[0])
+        field_class = None
+        if self.v_type == "list" and self.e_type[0] not in ["int", "bool", "float", "RandomState"]:
+            field_class = call_graph.GetClassNode(self.e_type[0])
+        elif self.v_type not in ["int", "bool", "float", "RandomState"]:
+            field_class = call_graph.GetClassNode(self.v_type)
 
-            if field_class is not None and not field_class.is_device:
-                call_graph.MarkDeviceDataByClassName([field_class.name])
+        if field_class is not None and not field_class.is_device:
+            call_graph.MarkDeviceDataByClassName([field_class.name])
 
 # A tree which represents the calling and declaring relationships
 class CallGraph(CallGraphNode):
@@ -226,7 +226,6 @@ class CallGraph(CallGraphNode):
             
             if children:
                 self.MarkDeviceDataByClassName(children)
-            
 
     # Query whether the function is a device function
     def IsDeviceFunction(self, function_name, class_name):

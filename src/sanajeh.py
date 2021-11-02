@@ -17,10 +17,8 @@ class DeviceAllocator:
     def __init__(self):
       pass
 
-  # Decorator for global function
-  def __host__(func):
-    return func
-
+  # Can be removed later
+  """
   @staticmethod
   def curand_init(seed, sequence, offset):
     if cpu_flag:
@@ -44,6 +42,7 @@ class DeviceAllocator:
   
   def random_state(ref):
     pass
+  """
 
   @staticmethod
   def new(cls, *args):
@@ -67,10 +66,12 @@ class DeviceAllocator:
         del obj
     else:
       pass
-
+  
+  """
   @staticmethod
   def device_class(*cls):
     pass
+  """
 
   @staticmethod
   def device_do(cls, func, *args):
@@ -88,13 +89,6 @@ class DeviceAllocator:
   def array(size):
     return [None] * size
 
-  @staticmethod
-  def type_cast(obj, cls):
-    if cpu_flag:
-      return type(obj) == cls
-    else:
-      pass
-      
 class SeqAllocator:
   def __init__(self):
     global cpu_flag
@@ -129,12 +123,7 @@ class SeqAllocator:
       func(obj)
 
 class PyCompiler:
-  """
-  file_path: str = ""
-  file_name: str = ""
-  dir_path: str = ""
-  """
-
+  
   def __init__(self, pth: str, nme: str):
     self.file_path = pth
     self.file_name = nme
