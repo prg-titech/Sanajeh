@@ -57,7 +57,7 @@ class Vector:
     self.x = 0.0
     self.y = 0.0
     return self
-  
+
 class Body:
   
   def __init__(self):

@@ -52,6 +52,7 @@ class ClassNode(CallGraphNode):
         # functions declared in this class
         self.declared_functions: Set[FunctionNode] = set()
         self.declared_fields: Set[VariableNode] = set()
+        self.expanded_fields: dict = {}
         self.super_class: str = super_class
         self.has_random_state: bool = False
 
@@ -146,7 +147,8 @@ class VariableNode(CallGraphNode):
         field_class = None
         if self.v_type == "list" and self.e_type[0] not in ["int", "bool", "float", "RandomState"]:
             field_class = call_graph.GetClassNode(self.e_type[0])
-        elif self.v_type not in ["int", "bool", "float", "RandomState"]:
+        elif self.v_type not in ["int", "bool", "float", "RandomState"] \
+        and self.name.split("ref")[-1] == "ref":
             field_class = call_graph.GetClassNode(self.v_type)
 
         if field_class is not None and not field_class.is_device:
