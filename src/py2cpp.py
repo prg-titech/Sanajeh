@@ -724,6 +724,16 @@ class DeviceCodeVisitor(ast.NodeTransformer):
             self.node_path.pop()
         return node
 
+    def GetVariableNode(self, var_name):
+        i = len(self.node_path) - 1
+        while i >= 0:
+            if type(self.node_path[i]) in [FunctionNode, CallGraph]:
+                for var_node in self.node_path[i].declared_variables:
+                    if var_node.name == var_name:
+                        return var_node
+            i -= 1
+        return None
+
     """
     Type a possibly nested attribute
     """
@@ -805,6 +815,7 @@ class Normalizer(DeviceCodeVisitor):
         super().__init__(root)
         self.v_counter = 0  # used to count the auto generated variables
         self.last_annotation = None
+        self.has_auto_variables = False
         self.built_nodes = []
         self.current_attr = None
 
@@ -850,6 +861,7 @@ class Normalizer(DeviceCodeVisitor):
     def visit_Assign(self, node):
         ret = []
         self.last_annotation = "None"
+        self.has_auto_variables = False
         self.built_nodes = []
         self.current_attr = node.value
         node.value = self.visit(node.value)
@@ -866,6 +878,7 @@ class Normalizer(DeviceCodeVisitor):
             return node
         ret = []
         self.last_annotation = "None"
+        self.has_auto_variables = False
         self.built_nodes = []
         self.current_attr = node.value
         node.value = self.visit(node.value)
@@ -882,8 +895,8 @@ class Normalizer(DeviceCodeVisitor):
     def visit_Name(self, node):
         if node.id == "self":
             self.last_annotation = self.node_path[-2].name
-        elif self.node_path[-1].GetVariableType(node.id) is not None:
-            self.last_annotation = self.node_path[-1].GetVariableType(node.id)
+        elif self.GetVariableNode(node.id) is not None:
+            self.last_annotation = self.GetVariableNode(node.id).v_type
         self.current_attr = node
         return node
         
@@ -912,7 +925,7 @@ class Normalizer(DeviceCodeVisitor):
         self.visit(node.slice.value)
         new_index = ast.Index(self.current_attr)
         if type(node.value) == ast.Name:
-            var_node = self.node_path[-1].GetVariableNode(node.value.id)
+            var_node = self.GetVariableNode(node.value.id)
             if var_node is not None:
                 self.last_annotation = var_node.e_type[0]
             self.current_attr = node
@@ -945,12 +958,16 @@ class Normalizer(DeviceCodeVisitor):
             self.current_attr = arg
             self.visit(arg)
             if type(arg) == ast.Call:
-                new_node = ast.AnnAssign(
-                    target=ast.Name(id="__auto_v" + str(self.v_counter), ctx=ast.Load()),
-                    value=self.current_attr, simple=1, annotation=ast.Name(id=self.last_annotation, ctx=ast.Load()))
-                self.built_nodes.append(new_node)
-                new_args.append(ast.Name(id="__auto_v" + str(self.v_counter), ctx=ast.Load()))
-                self.v_counter += 1
+                if hasattr(arg.func.value, "id") and arg.func.value.id == "random" \
+                and arg.func.attr in ["getrandbits", "uniform"]:
+                    new_args.append(arg)
+                else:
+                    new_node = ast.AnnAssign(
+                        target=ast.Name(id="__auto_v" + str(self.v_counter), ctx=ast.Load()),
+                        value=self.current_attr, simple=1, annotation=ast.Name(id=self.last_annotation, ctx=ast.Load()))
+                    self.built_nodes.append(new_node)
+                    new_args.append(ast.Name(id="__auto_v" + str(self.v_counter), ctx=ast.Load()))
+                    self.v_counter += 1
             else:
                 new_args.append(self.current_attr)
         if type(node.func) == ast.Name:
@@ -961,7 +978,13 @@ class Normalizer(DeviceCodeVisitor):
                 if class_node.name == node.func.id:
                     self.last_annotation = class_node.name
             self.current_attr = node
+        elif hasattr(node.func.value, "id") and node.func.value.id == "random" \
+        and node.func.attr in ["getrandbits", "uniform"]:
+            self.current_attr = node
         else:
+            if hasattr(node.func.value, "func") and hasattr(node.func.value.func, "id") \
+            and node.func.value.func.id == "super":
+                return node
             self.visit(node.func.value)
             if type(node.func.value) == ast.Call:
                 new_node = ast.AnnAssign(
@@ -984,92 +1007,6 @@ class Normalizer(DeviceCodeVisitor):
                     if class_func.name == node.func.attr:
                         self.last_annotation = class_func.ret_type
         return node
-
-    """
-    def visit_Call(self, node):
-        ret = []
-        # if self.has_auto_variables:
-        if hasattr(node.func, "value") and type(node.func.value) == ast.Name and self.has_auto_variables:
-            if type(self.node_path[-1]) == FunctionNode:
-                var_type = self.node_path[-1].GetVariableType(node.func.value.id)
-                if var_type is None:
-                    class_node = self.node_path[0].GetClassNode(self.last_annotation)
-                    if class_node is not None:
-                        for x in class_node.declared_functions:
-                            if x.name == node.func.attr:
-                                self.last_annotation = x.ret_type
-                                break
-                else:
-                    for x in self.node_path[-1].called_functions:
-                        if x.name == node.func.attr and x.c_name == var_type:
-                            self.last_annotation = x.ret_type
-                            break
-        elif hasattr(node.func, "value") and type(node.func.value) == ast.Attribute and self.has_auto_variables:
-            if node.func.value.value.id == "self":
-                var_type = None
-                for field in self.node_path[-2].declared_fields:
-                    if field.name == node.func.value.attr:
-                        var_type = field.v_type
-                if var_type is not None:
-                    for function in self.node_path[-1].called_functions:
-                        if function.name == node.func.attr and function.c_name == var_type:
-                            self.last_annotation = function.ret_type
-                            break    
-            else:
-                var_type = None
-                caller_type = self.node_path[-1].GetVariableType(node.func.value.value.id)
-                var_class = self.node_path[0].GetClassNode(caller_type)
-                for field in var_class.declared_fields:
-                    if field.name == node.func.value.attr:
-                        var_type = field.v_type
-                caller_class = self.node_path[0].GetClassNode(var_type)
-                if caller_class is not None:
-                    for x in caller_class.declared_functions:
-                        if x.name == node.func.attr:
-                            self.last_annotation = x.ret_type
-                            break
-
-        # self.f.A().B()...
-        if hasattr(node.func, "value") and type(node.func.value) == ast.Call:
-            self.has_auto_variables = True
-            assign_nodes = self.visit(node.func.value)
-            if hasattr(node.func, "attr") and node.func.attr == "__init__" and hasattr(node.func.value, "func") \
-                    and hasattr(node.func.value.func, "id") and node.func.value.func.id == "super":
-                return node
-            new_var_node = ast.Name(id="__auto_v" + str(self.v_counter), ctx=ast.Load())  # change argument
-            self.visit(assign_nodes[-1])
-            ret.extend(assign_nodes[:-1])
-            if type(self.node_path[-2]) == ClassNode:
-                pass
-            else:
-                print("Invalid data structure.", file=sys.stderr)
-                sys.exit(1)
-            ret.append(ast.AnnAssign(target=ast.Name(id="__auto_v" + str(self.v_counter), ctx=ast.Store()),
-                                    value=assign_nodes[-1],
-                                    simple=1,
-                                    annotation=ast.Name(id=self.last_annotation, ctx=ast.Load())
-                                    ))
-            self.v_counter += 1
-            node.func.value = new_var_node
-
-        for x in range(len(node.args)):
-            # self.f.A(B())
-            if type(node.args[x]) == ast.Call:
-                self.has_auto_variables = True
-                assign_nodes = self.visit(node.args[x])
-                new_var_node = ast.Name(id="__auto_v" + str(self.v_counter), ctx=ast.Load())  # change argument
-                ret.extend(assign_nodes[:-1])
-                self.visit(assign_nodes[-1])
-                ret.append(ast.AnnAssign(target=ast.Name(id="__auto_v" + str(self.v_counter), ctx=ast.Store()),
-                                        value=assign_nodes[-1],
-                                        simple=1,
-                                        annotation=ast.Name(id=self.last_annotation, ctx=ast.Load())
-                                        ))
-                self.v_counter += 1
-                node.args[x] = new_var_node
-        ret.append(node)
-        return ret 
-    """
 
 class FunctionBodyGenerator(ast.NodeTransformer):
     """Generate new ast nodes which are used by the Inliner to inline functions"""
@@ -1444,7 +1381,8 @@ class FieldSynthesizer(DeviceCodeVisitor):
         elif type(node.ctx) == ast.Store:
             ctx = ast.Store()
         if type(node.value) == ast.Name:
-            if self.node_path[-1].GetVariableType(node.value.id) in self.sdef_cls \
+            if type(self.node_path[-1]) in [FunctionNode, ClassNode] \
+            and self.node_path[-1].GetVariableType(node.value.id) in self.sdef_cls \
             and node.value.id.split("_")[-1] != "ref":
                 return ast.Name(id=node.value.id + "_" + node.attr, ctx=ctx)
         elif type(node.value) == ast.Attribute and type(self.node_path[-2]) == ClassNode \
@@ -1461,7 +1399,6 @@ class FieldSynthesizer(DeviceCodeVisitor):
 def transform(node, call_graph):
     """Replace all self-defined type fields with specific implementation"""
     ast.fix_missing_locations(Normalizer(call_graph).visit(node))
-    pprint(node)
     gpcgv1 = GenPyCallGraphVisitor()
     gpcgv1.visit(node)
     if not gpcgv1.mark_device_data(node):

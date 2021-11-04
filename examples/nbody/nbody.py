@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import os, math, time
+import os, math, time, random
 import pygame
 from sanajeh import DeviceAllocator
 
@@ -67,11 +67,11 @@ class Body:
 
   def Body(self, idx: int):
     random.seed(idx)
-    self.pos = Vector(2.0 * random.uniform() - 1.0,
-                      2.0 * random.uniform() - 1.0)
+    self.pos = Vector(2.0 * random.uniform(0,1) - 1.0,
+                      2.0 * random.uniform(0,1) - 1.0)
     self.vel = Vector(0.0, 0.0)
     self.force = Vector(0.0, 0.0)
-    self.mass = (random.uniform() / 2.0 + 0.5) * kMaxMass
+    self.mass = (random.uniform(0,1) / 2.0 + 0.5) * kMaxMass
   
   def compute_force(self):
     self.force.to_zero()
