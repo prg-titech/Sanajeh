@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import os, math, time, random
+import os, math, time
 import pygame
 from sanajeh import DeviceAllocator
 
@@ -66,12 +66,12 @@ class Body:
     self.mass: float = 0
 
   def Body(self, idx: int):
-    random.seed(idx)
-    self.pos = Vector(2.0 * random.uniform(0,1) - 1.0,
-                      2.0 * random.uniform(0,1) - 1.0)
+    DeviceAllocator.curand_init(kSeed, idx, 0)
+    self.pos = Vector(2.0 * DeviceAllocator.curand_uniform() - 1.0,
+                      2.0 * DeviceAllocator.curand_uniform() - 1.0)
     self.vel = Vector(0.0, 0.0)
     self.force = Vector(0.0, 0.0)
-    self.mass = (random.uniform(0,1) / 2.0 + 0.5) * kMaxMass
+    self.mass = (DeviceAllocator.curand_uniform() / 2.0 + 0.5) * kMaxMass
   
   def compute_force(self):
     self.force.to_zero()
@@ -92,19 +92,6 @@ class Body:
         self.vel.x = -self.vel.x
     if self.pos.y < -1 or self.pos.y > 1:
         self.vel.y = -self.vel.y
-
-"""
-TODO: 
-Device classes and functions can be analysed
-from the main function looking for parallel_new
-and parallel_do calls
-"""
-def kernel_initialize_bodies():
-  DeviceAllocator.device_class(Body)
-
-def _update():
-  DeviceAllocator.parallel_do(Body, Body.compute_force)
-  DeviceAllocator.parallel_do(Body, Body.update)
 
 def main(allocator, do_render):
   """

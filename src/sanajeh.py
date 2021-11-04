@@ -8,17 +8,122 @@ from expander import RuntimeExpander
 ffi = cffi.FFI()
 
 cpu_flag = False
-objects = None  
+objects = {}  
+
+# Device side allocator
+class DeviceAllocator:
+
+  class RandomState:
+    def __init__(self):
+      pass
+
+  # Can be removed later
+  """
+  @staticmethod
+  def curand_init(seed, sequence, offset):
+    if cpu_flag:
+      random.seed(seed + sequence)
+    else:
+      pass      
+
+  @staticmethod
+  def curand():
+    if cpu_flag:
+      return random.getrandbits(32)
+    else:
+      pass
+
+  @staticmethod
+  def curand_uniform():
+    if cpu_flag:
+      return random.uniform(0,1)
+    else:
+      pass
+  
+  def random_state(ref):
+    pass
+  """
+
+  @staticmethod
+  def new(cls, *args):
+    if cpu_flag:
+      new_object = cls()
+      getattr(new_object, cls.__name__)(*args)
+      global objects
+      if cls in objects:
+        objects[cls].append(new_object)
+      else:
+        objects[cls] = [new_object]
+      return new_object
+    else:
+      pass
+  
+  @staticmethod
+  def destroy(obj):
+    if cpu_flag:
+      if type(obj) in objects:
+        objects[type(obj)].remove(obj)
+        del obj
+    else:
+      pass
+  
+  """
+  @staticmethod
+  def device_class(*cls):
+    pass
+  """
+
+  @staticmethod
+  def device_do(cls, func, *args):
+    if cpu_flag:
+      for obj in objects[cls]:
+        getattr(obj, func.__name__)(*args)
+    else:
+      pass
+
+  @staticmethod
+  def parallel_do(cls, func, *args):
+    pass   
+
+  @staticmethod
+  def array(size):
+    return [None] * size
+
+class SeqAllocator:
+  def __init__(self):
+    global cpu_flag
+    cpu_flag = True
+    pass
+  
+  def initialize(self):
+    pass
+  
+  def uninitialize(self):
+    pass
+  
+  def parallel_do(self, cls, func, *args):
+    if cls in objects:
+      objects_to_check = objects[cls][:len(objects[cls])]
+      for cls_object in objects_to_check:
+        getattr(cls_object, func.__name__)(*args)
+
+  def parallel_new(self, cls, object_num):
+    cls_objects = [cls() for _ in range(object_num)]
+    for i in range(object_num):
+      getattr(cls_objects[i], cls.__name__)(i)
+    global objects
+    if cls in objects:
+      for new_object in cls_objects:
+        objects[cls].append(new_object)
+    else:
+      objects[cls] = cls_objects
+
+  def do_all(self, cls, func):
+    for obj in objects[cls]:
+      func(obj)
 
 class PyCompiler:
-  file_path: str = ""
-  file_name: str = ""
-  dir_path: str = ""
-
-  #cpp_code: str = ""
-  #hpp_code: str = ""
-  #cdef_code: str = ""
-
+  
   def __init__(self, pth: str, nme: str):
     self.file_path = pth
     self.file_name = nme
@@ -27,9 +132,6 @@ class PyCompiler:
   def compile(self):
     source = open(self.file_path, encoding="utf-8").read()
     codes = py2cpp.compile(source, self.dir_path, self.file_name)
-    #self.cpp_code = codes[0]
-    #self.hpp_code = codes[1]
-    #self.cdef_code = codes[2]
 
   def build(self):
     """
@@ -48,96 +150,6 @@ class PyCompiler:
   def printCdef(self):
     print(self.cdef_code)
 
-# Device side allocator
-class DeviceAllocator:
-  @staticmethod
-  def device_do(cls, func, *args):
-    if cpu_flag:
-      for obj in objects:
-        getattr(obj, func.__name__)(*args)
-    else:
-      pass
-
-  @staticmethod
-  def device_class(*cls):
-    pass
-
-  @staticmethod
-  def parallel_do(cls, func, *args):
-    pass
-
-  @staticmethod
-  def rand_init(seed, sequence, offset):
-    if cpu_flag:
-      random.seed(sequence)
-    else:
-      pass
-
-  # (0,1]
-  @staticmethod
-  def rand_uniform():
-    if cpu_flag:
-      return random.uniform(0,1)
-    else:
-      pass
-
-  @staticmethod
-  def array_size(array, size):
-    pass
-
-  @staticmethod
-  def new(cls, *args):
-    pass
-
-  @staticmethod
-  def destroy(obj):
-    if cpu_flag:
-      del obj
-    else:
-      pass
-
-class RuntimeDoAll:
-
-  built = {}
-
-  def __init__(self):
-    pass
-
-  def rebuild_function(self, cls):
-    module = cls.__dict__["__module__"]    
-    flattened = self.flatten(cls)
-    for field, ftype in cls.__dict__["__annotations__"].items():
-      if field.split("_")[-1] != "ref" and ftype not in ["int", "float", "bool"] and ftype not in self.built.keys():
-        self.rebuild_function(getattr(__import__(module), ftype))
-    new_function = "def rebuild_{}({}):\n".format(cls.__name__, ", ".join(flattened[0]))
-    new_function += "\t" + "new_object: {} = {}.__new__({})\n".format(cls.__name__, cls.__name__, cls.__name__)
-    for field, ftype in cls.__dict__["__annotations__"].items():
-      if field in flattened[1].keys():
-        nested_build = ", ".join([nested_field for nested_field in flattened[1][field]])
-        new_function += "\t" + "new_object.{} = {}({})\n".format(field, ftype, nested_build)
-      else:
-        new_function += "\t" + "new_object.{} = {}\n".format(field, field)
-    new_function += "\t" + "return new_object"
-    self.built[cls.__name__] = new_function
-
-  def flatten(self, cls):
-    field_map = {}
-    nested_map = {}
-    module = cls.__dict__["__module__"]
-    if "__annotations__" in cls.__dict__.keys():
-      for field, ftype in cls.__dict__["__annotations__"].items():
-        if field.split("_")[-1] == "ref":
-          field_map[field] = "int"
-        elif ftype in ["int", "float", "bool"]:
-          field_map[field] = ftype
-        else:
-          nested_map[field] = {}
-          nested_result = self.flatten(getattr(__import__(module), ftype))
-          for nested_field, nested_ftype in nested_result[0].items():
-              field_map[field + "_" + nested_field] = nested_ftype
-              nested_map[field][field + "_" + nested_field] = nested_ftype
-    return [field_map, nested_map]        
-
 class PyAllocator:
   file_path: str = ""
   file_name: str = ""
@@ -146,111 +158,83 @@ class PyAllocator:
   cdef_code: str = ""
   lib = None
 
-  def __init__(self, path: str, name: str, flag: bool):
+  expander: RuntimeExpander = RuntimeExpander()
+
+  def __init__(self, path: str, name: str):
     self.file_name = name
     self.file_path = path
-    global cpu_flag    
-    cpu_flag = flag
+    self.py_code = ""
 
   # load the shared library and initialize the allocator on GPU
   def initialize(self):
-    if cpu_flag:
+    """
+    Initialize ffi module
+    """
+    self.py_code = open("device_code/{}/{}_py.py".format(self.file_name, self.file_name), mode="r").read()
+    self.cpp_code = open("device_code/{}/{}.cu".format(self.file_name, self.file_name), mode="r").read()
+    self.hpp_code = open("device_code/{}/{}.h".format(self.file_name, self.file_name), mode="r").read()
+    self.cdef_code = open("device_code/{}/{}.cdef".format(self.file_name, self.file_name), mode="r").read()
+
+    ffi.cdef(self.cdef_code)
+    self.lib = ffi.dlopen("device_code/{}/{}.so".format(self.file_name, self.file_name))
+    if self.lib.AllocatorInitialize() == 0:
       pass
+      #print("Successfully initialized the allocator through FFI.")
     else:
-      """
-      Compilation before initializing ffi
-      """
-      compiler: PyCompiler = PyCompiler(self.file_path, self.file_name)
-      compiler.compile()
-      compiler.build()
-
-      """
-      Initialize ffi module
-      """
-      self.cpp_code = open("device_code/{}/{}.cu".format(self.file_name, self.file_name), mode="r").read()
-      self.hpp_code = open("device_code/{}/{}.h".format(self.file_name, self.file_name), mode="r").read()
-      self.cdef_code = open("device_code/{}/{}.cdef".format(self.file_name, self.file_name), mode="r").read()
-
-      ffi.cdef(self.cdef_code)
-      self.lib = ffi.dlopen("device_code/{}/{}.so".format(self.file_name, self.file_name))
-      if self.lib.AllocatorInitialize() == 0:
-        pass
-        #print("Successfully initialized the allocator through FFI.")
-      else:
-        print("Initialization failed!", file=sys.stderr)
-        sys.exit(1)
+      print("Initialization failed!", file=sys.stderr)
+      sys.exit(1)
 
   # Free all of the memory on GPU
   def uninitialize():
-    if cpu_flag:
+    """
+    Initialize ffi module
+    """
+    if self.lib.AllocatorUninitialize() == 0:
       pass
+      # print("Successfully uninitialized the allocator through FFI.")
     else:
-      """
-      Initialize ffi module
-      """
-      if self.lib.AllocatorUninitialize() == 0:
-        pass
-        # print("Successfully uninitialized the allocator through FFI.")
-      else:
-        print("Initialization failed!", file=sys.stderr)
-        sys.exit(1)
+      print("Initialization failed!", file=sys.stderr)
+      sys.exit(1)
 
   def parallel_do(self, cls, func, *args):
-    if cpu_flag:
-      for obj in objects:
-        getattr(obj, func.__name__)(*args)
+    """
+    Parallelly run a function on all objects of a class.
+    """
+    object_class_name = cls.__name__
+    func_str = func.__qualname__.split(".")
+    # todo nested class exception
+    func_class_name = func_str[0]
+    func_name = func_str[1]
+    # todo args
+    if eval("self.lib.{}_{}_{}".format(object_class_name, func_class_name, func_name))() == 0:
+      pass
+      # print("Successfully called parallel_do {} {} {}".format(object_class_name, func_class_name, func_name))
     else:
-      """
-      Parallelly run a function on all objects of a class.
-      """
-      object_class_name = cls.__name__
-      func_str = func.__qualname__.split(".")
-      # todo nested class exception
-      func_class_name = func_str[0]
-      func_name = func_str[1]
-      # todo args
-      if eval("self.lib.{}_{}_{}".format(object_class_name, func_class_name, func_name))() == 0:
-        pass
-        # print("Successfully called parallel_do {} {} {}".format(object_class_name, func_class_name, func_name))
-      else:
-        print("Parallel_do expression failed!", file=sys.stderr)
-        sys.exit(1)
+      print("Parallel_do expression failed!", file=sys.stderr)
+      sys.exit(1)
 
   def parallel_new(self, cls, object_num):
-    if cpu_flag:
-      global objects
-      objects = [cls.__new__(cls) for _ in range(object_num)]
-      for i in range(object_num):
-        getattr(objects[i], cls.__name__)(i)
+    """
+    Parallelly create objects of a class
+    """
+    object_class_name = cls.__name__
+    if eval("self.lib.parallel_new_{}".format(object_class_name))(object_num) == 0:
+      pass
+      # print("Successfully called parallel_new {} {}".format(object_class_name, object_num))
     else:
-      """
-      Parallelly create objects of a class
-      """
-      object_class_name = cls.__name__
-      if eval("self.lib.parallel_new_{}".format(object_class_name))(object_num) == 0:
-        pass
-        # print("Successfully called parallel_new {} {}".format(object_class_name, object_num))
-      else:
-        print("Parallel_new expression failed!", file=sys.stderr)
-        sys.exit(1)
-  
-  expander: RuntimeExpander = RuntimeExpander()
+      print("Parallel_new expression failed!", file=sys.stderr)
+      sys.exit(1)
 
   def do_all(self, cls, func):
-    if cpu_flag:
-      for obj in objects:
-        func(obj)
+    name = cls.__name__
+    if name not in self.expander.built.keys():
+      self.expander.build_function(cls, self.py_code)
+    callback_types = "void({})".format(", ".join(self.expander.flattened[name].values()))
+    fields = ", ".join(self.expander.flattened[name])
+    lambda_for_create_host_objects = eval("lambda {}: func(cls.__rebuild_{}({}))".format(fields, name, fields), locals())
+    lambda_for_callback = ffi.callback(callback_types, lambda_for_create_host_objects)
+    if eval("self.lib.{}_do_all".format(name))(lambda_for_callback) == 0:
+      pass
     else:
-      name = cls.__name__
-      if name not in self.expander.built.keys():
-        self.expander.build_function(cls)
-      callback_types = "void({})".format(", ".join(self.expander.flattened[name].values()))
-      fields = ", ".join(self.expander.flattened[name])
-      lambda_for_create_host_objects = eval("lambda {}: func(cls.__rebuild_{}({}))".format(fields, name, fields), locals())
-      lambda_for_callback = ffi.callback(callback_types, lambda_for_create_host_objects)
-      if eval("self.lib.{}_do_all".format(name))(lambda_for_callback) == 0:
-        pass
-        # print("Successfully called parallel_new {} {}".format(object_class_name, object_num))
-      else:
-        print("Do_all expression failed!", file=sys.stderr)
-        sys.exit(1)   
+      print("Do_all expression failed!", file=sys.stderr)
+      sys.exit(1)   

@@ -170,7 +170,8 @@ class FunctionDef(CodeStatement):
                 while '' in body:
                     body.remove('')
                 # __init__ special case
-                if self.name == "__init__" or self.name == ctx.stack[-1].name:
+                # if self.name == "__init__" or self.name == ctx.stack[-1].name:
+                if self.name == ctx.stack[-1].name:
                     # class with parent class needs to generate initializer list for calling father constructor
                     if init_lst is not None:
                         return "\n".join([
@@ -223,8 +224,10 @@ class FunctionDef(CodeStatement):
 
     def buildHpp(self, ctx):
         with BuildContext(ctx, self) as new_ctx:
-            # __init__ special case
-            if self.name == "__init__" or self.name == ctx.stack[-1].name and ctx.in_class():
+            # __init__ is not converted
+            if self.name == "__init__" and ctx.in_class():
+                return ""
+            if self.name == ctx.stack[-1].name and ctx.in_class():
                 return "\n".join([
                     "{}__device__ {}({});".format(
                         ctx.indent(),
@@ -263,7 +266,8 @@ class ClassDef(CodeStatement):
     def buildCpp(self, ctx):
         with BuildContext(ctx, self) as new_ctx:
             new_ctx.indent_level -= 1
-            body = [x.buildCpp(new_ctx) for x in self.stmt if type(x) is FunctionDef]
+            # body = [x.buildCpp(new_ctx) for x in self.stmt if type(x) is FunctionDef]
+            body = [x.buildCpp(new_ctx) for x in self.stmt if type(x) is FunctionDef and x.name != "__init__"]
             while '' in body:
                 body.remove('')
             return "\n".join(body)
@@ -281,7 +285,7 @@ class ClassDef(CodeStatement):
             for field in self.fields:
                 field_types.append(self.fields[field])
                 # different list for the _do function
-                do_field_types.append(type_converter.do_all_convert(self.fields[field])[0])
+                do_field_types.append(type_converter.do_all_convert(self.fields[field]))
                 field_templates.append(INDENT + "Field<{}, {}> {};".format(self.name,
                                                                            i,
                                                                            field)
@@ -365,6 +369,7 @@ class AnnAssign(CodeStatement):
 
     def buildCpp(self, ctx):
         if self.is_global:
+            """
             if type(self.annotation) is Subscript:
                 return ctx.indent() + "__device__ {}* {};\n".format(
                     # array support
@@ -373,20 +378,37 @@ class AnnAssign(CodeStatement):
                     # array support
                     type_converter.convert(self.annotation.slice.buildCpp(ctx)),
                     self.target.buildCpp(ctx))
+            """
+            # case: _: list[_] = DeviceAllocator.array(_)
+            if type(self.annotation) is Subscript and hasattr(self.annotation.value, "id") and \
+            self.annotation.value.id == "list" and type(self.value) is Call and hasattr(self.value.func.value, "id") \
+            and self.value.func.value.id == "DeviceAllocator" and self.value.func.attr == "array": 
+                return ctx.indent() + "__device__ {}* {}[{}];".format(
+                    self.annotation.slice.buildCpp(ctx),
+                    self.target.buildCpp(ctx),
+                    ", ".join([arg.buildCpp(ctx) for arg in self.value.args]) 
+                )
             else:
-                # todo
                 return ""
-                # return ctx.indent() + "__device__ {} {};".format(
-                #     type_converter.convert(self.annotation.buildCpp(ctx)),
-                #     self.target.buildCpp(ctx)
-                # )
         else:
             if self.value:
-                return ctx.indent() + "{} {} = {};".format(
-                    type_converter.convert(self.annotation.buildCpp(ctx)),
-                    self.target.buildCpp(ctx),
-                    self.value.buildCpp(ctx)
-                )
+                if type(self.annotation) == Subscript and type(self.value) == ListInitialization:
+                    return ctx.indent() + "{} {}[{}];".format(
+                        self.annotation.slice.buildCpp(ctx),
+                        self.target.buildCpp(ctx),
+                        self.value.size.buildCpp(ctx)
+                    )
+                elif type(ctx.stack[-1]) == FunctionDef and ctx.stack[-1].name == "__init__":
+                    return ctx.indent() + "{} = {};".format(
+                        self.target.buildCpp(ctx),
+                        self.value.buildCpp(ctx)
+                    )                    
+                else:
+                    return ctx.indent() + "{} {} = {};".format(
+                        type_converter.convert(self.annotation.buildCpp(ctx)),
+                        self.target.buildCpp(ctx),
+                        self.value.buildCpp(ctx)
+                    )
             else:
                 return ctx.indent() + "{} {};".format(
                     type_converter.convert(self.annotation.buildCpp(ctx)),
@@ -394,7 +416,14 @@ class AnnAssign(CodeStatement):
                 )
 
     def buildHpp(self, ctx):
-        if self.is_global and self.value:
+        if self.is_global and self.value and type(self.annotation) is not Subscript:
+            return ctx.indent() + "static const {} {} = {};".format(
+                type_converter.convert(self.annotation.buildCpp(ctx)),
+                self.target.buildCpp(ctx),
+                self.value.buildCpp(ctx)
+            )
+        # case: constant attribute
+        elif not self.is_global and self.value:
             return ctx.indent() + "static const {} {} = {};".format(
                 type_converter.convert(self.annotation.buildCpp(ctx)),
                 self.target.buildCpp(ctx),
@@ -433,7 +462,50 @@ class For(CodeStatement):
     def buildCpp(self, ctx):
         with BuildContext(ctx, self) as new_ctx:
             body = [x.buildCpp(new_ctx) for x in self.stmt]
-            # TODO: orelse
+            # case: for _ in range(_)
+            if type(self.iter) == Call:
+                if hasattr(self.iter.func, "id") and self.iter.func.id == "range":
+                    # one arg
+                    if len(self.iter.args) == 1:
+                        return "\n".join(["{}for (int {} = {}; {} < {}; ++{}) {{".format(
+                            ctx.indent(),
+                            self.target.buildCpp(ctx),
+                            "0",
+                            self.target.buildCpp(ctx),
+                            self.iter.args[0].buildCpp(ctx),
+                            self.target.buildCpp(ctx)
+                        ),
+                            "\n".join(body),
+                            ctx.indent() + "}",
+                        ])
+                    # two args
+                    elif len(self.iter.args) == 2:
+                        return "\n".join(["{}for (int {} = {}; {} < {}; ++{}) {{".format(
+                            ctx.indent(),
+                            self.target.buildCpp(ctx),
+                            self.iter.args[0].buildCpp(ctx),
+                            self.target.buildCpp(ctx),
+                            self.iter.args[1].buildCpp(ctx),
+                            self.target.buildCpp(ctx)
+                        ),
+                            "\n".join(body),
+                            ctx.indent() + "}",
+                        ])
+                    # three args
+                    elif len(self.iter.args) == 3:
+                        return "\n".join(["{}for (int {} = {}; {} < {}; {} += {}) {{".format(
+                            ctx.indent(),
+                            self.target.buildCpp(ctx),
+                            self.iter.args[0].buildCpp(ctx),
+                            self.target.buildCpp(ctx),
+                            self.iter.args[1].buildCpp(ctx),
+                            self.target.buildCpp(ctx),
+                            self.iter.args[2].buildCpp(ctx)
+                        ),
+                            "\n".join(body),
+                            ctx.indent() + "}",
+                        ])
+
             return "\n".join(["{}for (auto {} : {}) {{".format(
                 ctx.indent(),
                 self.target.buildCpp(ctx),
@@ -491,12 +563,12 @@ class If(CodeStatement):
                 result.extend(lines[1:])
             elif self.orelse:
                 result[-1] = ctx.indent() + "} else {"
-                result.extend([
-                              ] + [x.buildCpp(ctx) for x in self.orelse] + [
-                                  "}",
-                              ])
+                for x in self.orelse:
+                    built = x.buildCpp(ctx)
+                    built = "\n".join([ctx.indent() + built_line for built_line in built.split("\n")])
+                    result.append(built)
+                result.append(ctx.indent() + "}")
             return "\n".join(result)
-
 
 class Raise(CodeStatement):
     if six.PY3:
@@ -562,6 +634,11 @@ class CodeExpression(Base):
     def __init__(self):
         super(CodeExpression, self).__init__(Type.Expr)
 
+class ListInitialization(Base):
+    _fields = ["size"]
+
+    def __init__(self, size):
+        self.size = size
 
 class BoolOp(CodeExpression):
     _fields = ["op", "values"]
@@ -652,6 +729,13 @@ class Compare(CodeExpression):
 
     def buildCpp(self, ctx):
         temp = [self.left.buildCpp(ctx)]
+        # case: type check
+        if type(self.left) == Call and hasattr(self.left.func, "id") and self.left.func.id == "type" \
+        and len(self.ops) == 1 and self.ops[0] == "==" and len(self.comparators) == 1:
+            return "{}->cast<{}>() != nullptr".format(
+                self.left.args[0].buildCpp(ctx),
+                self.comparators[0].buildCpp(ctx)
+            )
         for op, comp in zip(self.ops, self.comparators):
             temp += [op, comp.buildCpp(ctx)]
         return " ".join(temp)
@@ -679,20 +763,37 @@ class Call(CodeExpression):
                     self.args[1].value.buildCpp(ctx),
                     self.args[1].attr,
                     ", ".join([x.buildCpp(ctx) for x in self.args[2:]]))
-            elif self.func.attr == "rand_uniform":
-                return "curand_uniform(&rand_state)"
-            elif self.func.attr == "rand_init":
-                args = ", ".join([x.buildCpp(ctx) for x in self.args])
-                return "curandState rand_state;\n" + \
-                       ctx.indent() + \
-                       "curand_init({}, &rand_state)".format(args)
             elif self.func.attr == "new":
                 args = ", ".join([x.buildCpp(ctx) for x in self.args[1:]])
                 return "new(device_allocator) {}({})".format(self.args[0].buildCpp(ctx), args)
             elif self.func.attr == "destroy":
                 return "destroy(device_allocator, {})".format(self.args[0].buildCpp(ctx))
             else:
+                print(self.func.attr)
                 # todo: unprovided sanajeh API
+                assert False
+            """
+            elif self.func.attr == "curand_init":
+                args = ", ".join([x.buildCpp(ctx) for x in self.args])
+                return "curand_init({}, &random_state_)".format(args)
+            elif self.func.attr == "curand_uniform":
+                return "curand_uniform(&random_state_)"
+            elif self.func.attr == "curand":
+                return "curand(&random_state_)"
+            elif self.func.attr == "random_state":
+                return "{}->random_state_".format(self.args[0].buildCpp(ctx))
+            """
+        if hasattr(self.func, "value") and hasattr(self.func.value, "id") and self.func.value.id == "random":
+            if self.func.attr == "getrandbits":
+                return "curand(&random_state_)"
+            elif self.func.attr == "uniform":
+                return "curand_uniform(&random_state_)"
+            # set a random state field for the class
+            elif self.func.attr == "seed":
+                args = ", ".join([x.buildCpp(ctx) for x in self.args])
+                return "curand_init(kSeed, {}, 0, &random_state_)".format(args)
+            else:
+                # unprovided sanajeh API
                 assert False
         args = ", ".join([x.buildCpp(ctx) for x in self.args])
         return "{}({})".format(self.func.buildCpp(ctx), args)
@@ -745,6 +846,9 @@ class Attribute(CodeExpression):
     def buildCpp(self, ctx):
         if hasattr(self.value, "id") and self.value.id == "math":
             return self.attr
+        if hasattr(self.value, "id") and self.value.id == "DeviceAllocator" \
+        and self.attr == "RandomState":
+            return "curandState"
         return "{}->{}".format(self.value.buildCpp(ctx), self.attr)
 
 
@@ -784,12 +888,11 @@ class Name(CodeExpression):
 class List(CodeExpression):
     _fields = ["elts"]
 
-    def __init__(self, elts):
-        assert False
+    def __init__(self, elts_):
+        self.elts = elts_
 
     def buildCpp(self, ctx):
-        assert False
-
+        return "{{}}".format(",".join([elt.buildCpp(ctx) for elt in self.elts]))
 
 class Tuple(CodeExpression):
     _fields = ["elts"]
@@ -813,6 +916,15 @@ class Index(CodeExpression):
     def buildCpp(self, ctx):
         return self.value.buildCpp(ctx)
 
+class Assert(CodeExpression):
+    _fields = ["value"]
+
+    def __init__(self, value):
+        super(Assert, self).__init__()
+        self.value = value
+    
+    def buildCpp(self, ctx):
+        return ctx.indent() + "assert({})".format(self.value.buildCpp(ctx)) + ";"
 
 class arguments(Base):
     _fields = ["args", "vararg", "kwarg", "defaults"]

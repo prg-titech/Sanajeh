@@ -5,10 +5,14 @@ import ast
 import sys
 
 import type_converter
-from call_graph import CallGraph, ClassNode
+from call_graph import CallGraph, ClassNode, FunctionNode
 import build_cpp as cpp
 import six
 
+import astunparse
+
+def pprint(node):
+    print(astunparse.unparse(node))
 
 BOOLOP_MAP = {
     ast.And: "&&",
@@ -28,7 +32,8 @@ OPERATOR_MAP = {
     ast.BitOr: "|",
     ast.BitXor: "^",
     ast.BitAnd: "&",
-    # ast.FloorDiv: "//",  # special case
+    ast.FloorDiv: "/",  # special case
+    ast.Mod: "%"
 }
 
 # Unary operator map
@@ -156,7 +161,10 @@ class GenCppAstVisitor(ast.NodeVisitor):
         if type(node.annotation) is ast.Subscript:
             ann = node.annotation.value.id
         else:
-            ann = node.annotation.id
+            if type(node.annotation) is ast.Attribute:
+                ann = node.annotation.attr
+            else:
+                ann = node.annotation.id
         is_global = False
         if type(var) is ast.Name:
             var_node = self.__node_path[-1].GetVariableNode(var.id, ann)
@@ -167,13 +175,23 @@ class GenCppAstVisitor(ast.NodeVisitor):
             if not var_node.is_device:
                 return cpp.IgnoredNode(node)
         target = self.visit(node.target)
+        array_size = None
         if node.value:
             value = self.visit(node.value)
+            if type(value) == cpp.ListInitialization and hasattr(value.size, "n"):
+                array_size = value.size.n
         else:
             value = None
         annotation = self.visit(node.annotation)
-        if type(self.__node_path[-1]) is ClassNode:
-            self.__field[var.id] = type_converter.convert(ann)
+        if self.__node_path[-1].name == "__init__" and hasattr(node.target.value, "id") \
+        and node.target.value.id == "self":
+            ann_type = type_converter.convert_ann(node.annotation)
+            # Field with list type needs a fixed size
+            if ann_type == "list":
+                self.__field[node.target.attr] = \
+                    "DeviceArray<{}, {}>".format(type_converter.convert_ann(node.annotation.slice.value), array_size)
+            else:
+                self.__field[node.target.attr] = ann_type
         if type(self.__node_path[-1]) is CallGraph:
             is_global = True
         return cpp.AnnAssign(target, value, annotation, is_global)
@@ -230,6 +248,9 @@ class GenCppAstVisitor(ast.NodeVisitor):
     def visit_Continue(self, node):
         return cpp.Continue()
 
+    def visit_Assert(self, node):
+        return cpp.Assert(self.visit(node.test))
+    
     #
     # Expressions
     #
@@ -239,10 +260,14 @@ class GenCppAstVisitor(ast.NodeVisitor):
         return cpp.BoolOp(op=op, values=[self.visit(x) for x in node.values])
 
     def visit_BinOp(self, node):
-        assert node.op.__class__ not in [ast.Pow, ast.FloorDiv]
+        assert node.op.__class__ not in [ast.Pow]
         left = self.visit(node.left)
         op = OPERATOR_MAP[node.op.__class__]
         right = self.visit(node.right)
+        # For list initialization in the form of [None] * n, the size must be determined statically
+        if type(left) == cpp.List and len(left.elts) == 1 and type(left.elts[0]) == cpp.NameConstant \
+        and left.elts[0].value is None and op == "*" and type(right) == cpp.Num:
+            return cpp.ListInitialization(size=right)
         return cpp.BinOp(left=left, op=op, right=right)
 
     def visit_UnaryOp(self, node):
@@ -268,10 +293,19 @@ class GenCppAstVisitor(ast.NodeVisitor):
         return cpp.Compare(left=left, ops=ops, comparators=comparators)
 
     def visit_Call(self, node):
-        if hasattr(node.func, "attr") and node.func.attr == "__init__" and hasattr(node.func.value, "func") \
-                and hasattr(node.func.value.func, "id") and node.func.value.func.id == "super":
-            args = [self.visit(x) for x in node.args]
-            return cpp.InitializerList(self.__node_path[-2].super_class, args)
+        if type(self.__node_path[-1]) == FunctionNode:
+            """
+            if hasattr(node.func, "attr") and node.func.attr == "__init__" and hasattr(node.func.value, "func") \
+            and hasattr(node.func.value.func, "id") and node.func.value.func.id == "super":
+                args = [self.visit(x) for x in node.args]
+                return cpp.InitializerList(self.__node_path[-2].super_class, args)
+            """
+            # case: super()._(args) in the method that initializes the object
+            if hasattr(node.func, "attr") and node.func.attr == self.__node_path[-2].super_class \
+            and self.__node_path[-1].name == self.__node_path[-2].name and hasattr(node.func.value, "func") \
+            and hasattr(node.func.value.func, "id") and node.func.value.func.id == "super":
+                args = [self.visit(x) for x in node.args]
+                return cpp.InitializerList(self.__node_path[-2].super_class, args)
         func = self.visit(node.func)
         args = [self.visit(x) for x in node.args]
         keywords = [self.visit(x) for x in node.keywords]
@@ -349,4 +383,9 @@ class GenCppAstVisitor(ast.NodeVisitor):
         value = self.visit(node.value)
         return cpp.keyword(name=name, value=value)
 
+    def visit_List(self, node):
+        elements = []
+        for elt in node.elts:
+            elements.append(self.visit(elt))
+        return cpp.List(elements)
 
