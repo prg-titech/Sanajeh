@@ -234,7 +234,7 @@ class Shark(Agent):
   
   def Shark(self, seed: int):
     super().Agent(seed)
-    self.energy_ = kEnergyStart
+    self.energy_ = 2
     self.egg_timer_ = seed % kSpawnThreshold
 
   def prepare(self):
