@@ -769,7 +769,6 @@ class Call(CodeExpression):
             elif self.func.attr == "destroy":
                 return "destroy(device_allocator, {})".format(self.args[0].buildCpp(ctx))
             else:
-                print(self.func.attr)
                 # todo: unprovided sanajeh API
                 assert False
             """

@@ -56,7 +56,10 @@ class RuntimeExpander:
       func += "\t" + "new_object.random_state_ = random_state\n"
     for field, ftype in field_dict.items():
       if ftype != "RandomState":
-        if field.split("_")[-1] != "ref" and ftype not in ["int", "float", "bool"]:
+        if ftype == "list":
+          args[field] = "int"
+          func += "\t" + "new_object.{} = []\n".format(field)
+        elif field.split("_")[-1] != "ref" and ftype not in ["int", "float", "bool"]:
           if ftype not in self.built.keys():
             self.build_function(getattr(__import__(module), ftype), py_code)
           nested_args = []
