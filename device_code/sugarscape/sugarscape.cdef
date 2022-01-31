@@ -1,0 +1,17 @@
+
+int Cell_Cell_Setup();
+int Cell_Cell_grow_sugar();
+int Cell_Cell_prepare_diffuse();
+int Cell_Cell_update_diffuse();
+int Agent_Agent_age_and_metabolize();
+int Agent_Agent_prepare_move();
+int Cell_Cell_decide_permission();
+int Agent_Agent_update_move();
+int Male_Male_propose();
+int Female_Female_decide_proposal();
+int Male_Male_propose_offspring_target();
+int Male_Male_mate();
+int parallel_new_Cell(int object_num);
+int AllocatorInitialize();
+int Cell_do_all(void (*pf)(int, int, int, int, int, int, int, int, int));
+int AllocatorUninitialize();

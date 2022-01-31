@@ -175,13 +175,34 @@ class Cell:
 
       return True
 
+class BreedBehavior():
+  def __init__(self):
+    self.egg_timer_: int = None
+
+  def BreedBehavior(self,seed: int):
+    self.egg_timer_ = seed % kSpawnThreshold
+
+  def BreedPrepare(self):
+    self.egg_timer_ += 1
+
+  def BreedNewling(self) -> Agent:
+    ret: Agent = DeviceAllocator.virtual( BreedBehavior.BreedNewling )
+    return ret
+
+  def BreedUpdate(self, position: Cell ):
+      if self.egg_timer_ > kSpawnThreshold:
+        newling: Agent = self.BreedNewling()
+        assert newling != None
+        position.enter(newling)
+        self.egg_timer_ = 0
+
 class Agent:
   kIsAbstract: bool = True
 
   def __init__(self):
     self.position_ref: Cell = None
     self.new_position_ref: Cell = None
-  
+
   def Agent(self, seed: int):
     random.seed(seed)
   
@@ -196,18 +217,18 @@ class Agent:
   def set_position(self, cell: Cell):
     self.position_ref = cell
 
-class Fish(Agent):
+class Fish(Agent,BreedBehavior):
   kIsAbstract: bool = False
   
   def __init__(self):
-    self.egg_timer_: int = None
+    pass
 
   def Fish(self, seed: int):
     super().Agent(seed)
-    self.egg_timer_ = seed % kSpawnThreshold
+    super().BreedBehavior(seed)
 
   def prepare(self):
-    self.egg_timer_ += 1
+    self.BreedPrepare()
     self.new_position_ref = self.position_ref
 
     assert self.position_ref != None
@@ -219,26 +240,24 @@ class Fish(Agent):
       old_position.leave()
       self.new_position_ref.enter(self)
 
-      if kOptionFishSpawn and self.egg_timer_ > kSpawnThreshold:
-        new_fish: Fish = DeviceAllocator.new(Fish, random.getrandbits(32))
-        assert new_fish != None
-        old_position.enter(new_fish)
-        self.egg_timer_ = 0
+      self.BreedUpdate(old_position)
 
-class Shark(Agent):
+  def BreedNewling(self) -> Agent:
+    return DeviceAllocator.new(Fish,random.getrandbits(32))
+
+class Shark(Agent,BreedBehavior):
   kIsAbstract: bool = False
 
   def __init__(self):
-    self.egg_timer_: int = None
     self.energy_: int = None
   
   def Shark(self, seed: int):
     super().Agent(seed)
+    super().BreedBehavior(seed)
     self.energy_ = 2
-    self.egg_timer_ = seed % kSpawnThreshold
 
   def prepare(self):
-    self.egg_timer_ += 1
+    self.BreedPrepare()
     self.energy_ -= 1
 
     assert self.position_ref != None
@@ -261,11 +280,10 @@ class Shark(Agent):
         old_position.leave()
         self.new_position_ref.enter(self)
 
-        if kOptionSharkSpawn and self.egg_timer_ > kSpawnThreshold:
-          new_shark: Shark = DeviceAllocator.new(Shark, random.getrandbits(32))
-          assert new_shark != None
-          old_position.enter(new_shark)
-          self.egg_timer_ = 0
+        self.BreedUpdate(old_position)
+
+  def BreedNewling(self) -> Agent:
+    return DeviceAllocator.new(Shark,random.getrandbits(32))
 
 def main(allocator, do_render):
 
@@ -316,6 +334,7 @@ def main(allocator, do_render):
     allocator.parallel_do(Shark, Shark.prepare)
     allocator.parallel_do(Cell, Cell.decide)
     allocator.parallel_do(Shark, Shark.update)
+
 
     time_after = time.perf_counter()
     total_time += time_after - time_before

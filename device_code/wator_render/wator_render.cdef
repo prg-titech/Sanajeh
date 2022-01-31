@@ -1,0 +1,12 @@
+
+int Cell_Cell_setup();
+int Cell_Cell_prepare();
+int Fish_Fish_prepare();
+int Cell_Cell_decide();
+int Fish_Fish_update();
+int Shark_Shark_prepare();
+int Shark_Shark_update();
+int parallel_new_Cell(int object_num);
+int AllocatorInitialize();
+int Cell_do_all(void (*pf)(int, int, int, int, int, int));
+int AllocatorUninitialize();
