@@ -124,31 +124,38 @@ class SeqAllocator:
 
 class PyCompiler:
   
-  def __init__(self, pth: str, nme: str):
-    self.file_path = pth
-    self.file_name = nme
+  def __init__(self, path: str):
+    self.file_path = path
+    self.file_name = os.path.basename(path).split(".")[0]
     self.dir_path = "device_code/{}".format(self.file_name)
 
-  def compile(self):
+  def compile(self, emit_py, emit_cpp):
     source = open(self.file_path, encoding="utf-8").read()
-    codes = py2cpp.compile(source, self.dir_path, self.file_name)
+    py, cpp, hpp, cdef = py2cpp.compile(source, self.dir_path, self.file_name)
 
-  def build(self):
-    """
-    Compile cpp source file to .so file
-    """
+    if emit_py:
+      print(py)
+      return
+    elif emit_cpp:
+      print(cpp + "\n\n" + hpp + "\n\n" + cdef)
+      return
+
+    if not os.path.isdir(self.dir_path):
+      os.mkdir(self.dir_path)
+    compile_path: str = self.dir_path + "/" + self.file_name
+    with open(compile_path + ".cu", mode="w") as cpp_file:
+      cpp_file.write(cpp)
+    with open(compile_path + ".h", mode="w") as hpp_file:
+      hpp_file.write(hpp)
+    with open(compile_path + ".cdef", mode="w") as cdef_file:
+      cdef_file.write(cdef)
+    with open(compile_path + "_py.py", mode="w") as py_file:
+      py_file.write(py)
+    
     so_path: str = "{}/{}.so".format(self.dir_path, self.file_name)
     if os.system("src/build.sh " + "{}/{}.cu".format(self.dir_path, self.file_name) + " -o " + so_path) != 0:
       print("Build failed!", file=sys.stderr)
-      sys.exit(1)
-
-  def printCppAndHpp(self):
-    print(self.cpp_code)
-    print("--------------------------------")
-    print(self.hpp_code)
-
-  def printCdef(self):
-    print(self.cdef_code)
+      sys.exit(1)   
 
 class PyAllocator:
   file_path: str = ""

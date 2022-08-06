@@ -757,27 +757,5 @@ def compile(source_code, dir_path, file_name):
                 + gpcgv1.build_parallel_new_cdef() \
                 + init_cdef + gpcgv1.build_do_all_cdef() \
                 + unit_cdef
-    """
-    if not os.path.isdir(DIC_NAME):
-      os.mkdir(DIC_NAME)
-    with open(CPP_FILE_PATH, mode='w+') as cpp_file:
-        cpp_file.write(cpp_code)
-    with open(HPP_FILE_PATH, mode='w+') as hpp_file:
-        hpp_file.write(hpp_code)
-    with open(CDEF_FILE_PATH, mode='w+') as cdef_file:
-        cdef_file.write(cdef_code)
-    with open(PY_FILE_PATH, mode='w+') as py_file:
-        py_file.write(new_py_code)
-    """
-    if not os.path.isdir(dir_path):
-        os.mkdir(dir_path)
-    pth: str = dir_path + "/" + file_name
-    with open(pth + ".cu", mode="w") as cpp_file:
-        cpp_file.write(cpp_code)
-    with open(pth + ".h", mode="w") as hpp_file:
-        hpp_file.write(hpp_code)
-    with open(pth + ".cdef", mode="w") as cdef_file:
-        cdef_file.write(cdef_code)
-    with open(pth + "_py.py", mode="w") as py_file:
-        py_file.write(new_py_code)
-    return cpp_code, hpp_code, cdef_code
+                
+    return new_py_code, cpp_code, hpp_code, cdef_code
