@@ -126,7 +126,7 @@ class PyCompiler:
   
   def __init__(self, path: str):
     self.file_path = path
-    self.file_name = os.path.basename(path).split(".")[0]
+    self.file_name, _ = os.path.splitext(os.path.basename(path))
     self.dir_path = "device_code/{}".format(self.file_name)
 
   def compile(self, emit_py, emit_cpp):
@@ -142,7 +142,7 @@ class PyCompiler:
 
     if not os.path.isdir(self.dir_path):
       os.mkdir(self.dir_path)
-    compile_path: str = self.dir_path + "/" + self.file_name
+    compile_path: str = os.path.join(self.dir_path + self.file_name)
     with open(compile_path + ".cu", mode="w") as cpp_file:
       cpp_file.write(cpp)
     with open(compile_path + ".h", mode="w") as hpp_file:

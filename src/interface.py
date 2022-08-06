@@ -27,7 +27,8 @@ def main():
     run_cpu = args.cpu
 
     directory = os.path.dirname(file_path)
-    file_name = os.path.basename(file_path).split(".")[0]
+    basename = os.path.basename(file_path)
+    file_name, _ = os.path.splitext(basename)
 
     if to_run:
         sys.path.append(directory)
