@@ -129,7 +129,7 @@ class PyCompiler:
         self.file_name, _ = os.path.splitext(os.path.basename(path))
         self.dir_path = "device_code/{}".format(self.file_name)
 
-    def compile(self, emit_py, emit_cpp):
+    def compile(self, emit_py, emit_cpp, emit_hpp, emit_cdef):
         source = open(self.file_path, encoding="utf-8").read()
         py, cpp, hpp, cdef = py2cpp.compile(source, self.dir_path, self.file_name)
 
@@ -137,9 +137,15 @@ class PyCompiler:
             print(py)
             return
         elif emit_cpp:
-            print(cpp + "\n\n" + hpp + "\n\n" + cdef)
+            print(cpp)
             return
-
+        elif emit_hpp:
+            print(hpp)
+            return
+        elif emit_cdef:
+            print(cdef)
+            return
+                
         if not os.path.isdir(self.dir_path):
             os.mkdir(self.dir_path)
         compile_path: str = os.path.join(self.dir_path + self.file_name)

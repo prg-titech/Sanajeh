@@ -12,6 +12,10 @@ def main():
         help="Show the compiled Python file")
     parser.add_argument("--emit-cpp", action="store_true", 
         help="Show the compiled C++ file")
+    parser.add_argument("--emit-hpp", action="store_true",
+        help="Show the compiled C++ header file")
+    parser.add_argument("--emit-cdef", action="store_true",
+        help="Show the compiled C++ cdef file")
     parser.add_argument("--run", action="store_true", 
         help="Run the file alongside the compiled C++ file")
     parser.add_argument("--render", action="store_true", 
@@ -22,6 +26,8 @@ def main():
     file_path = args.prog
     emit_py = args.emit_py
     emit_cpp = args.emit_cpp
+    emit_hpp = args.emit_hpp
+    emit_cdef = args.emit_cdef
     to_run = args.run
     to_render = args.render
     run_cpu = args.cpu
@@ -40,7 +46,7 @@ def main():
         return
 
     compiler: PyCompiler = sanajeh.PyCompiler(file_path)
-    compiler.compile(emit_py, emit_cpp)
+    compiler.compile(emit_py, emit_cpp, emit_hpp, emit_cdef)
 
 if __name__ == "__main__":
     main()
