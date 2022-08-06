@@ -1,5 +1,6 @@
 # Generated code
 device_code/
+tests/output/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
