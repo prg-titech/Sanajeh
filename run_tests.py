@@ -32,7 +32,7 @@ def run(basename, cmd, out_dir, infile):
         stdout_file = None
     if len(r.stderr):
         stderr_file = os.path.join(out_dir, basename + "." + "stderr")
-        open(stderr_file, "wb").write()
+        open(stderr_file, "wb").write(r.stderr)
     else:
         stderr_file = None
 
