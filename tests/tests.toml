@@ -1,1 +1,5 @@
 # tests
+
+[[test]]
+filename = "examples/nbody/nbody.py"
+py = true
