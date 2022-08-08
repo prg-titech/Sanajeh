@@ -19,5 +19,13 @@ The examples are defined in `/examples`. Three working examples are `nbody`, `co
 Compilation is executed as follows. Omitting the compile option will run the program.
 
 ````
-python src/interface.py --c (compile) --r (render) --cpu (sequential) path/to/file.py
+src/interface.py path/to/file.py
 ````
+
+Then run the compiled program with the following command. `--render` is the rendering options. `--cpu` if the program needs to be run sequentially on Python.
+
+````
+src/inteface.py --run [--render] [--cpu] path/to/file.py
+````
+
+The compilation results are automatically put inside the directory `device_code`.

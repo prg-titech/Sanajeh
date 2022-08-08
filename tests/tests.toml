@@ -1,0 +1,8 @@
+# tests
+
+[[test]]
+filename = "examples/nbody/nbody.py"
+py = true
+cpp = true
+hpp = true
+cdef = true
