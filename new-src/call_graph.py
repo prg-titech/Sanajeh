@@ -74,10 +74,11 @@ class RootNode(CallGraphNode):
         return None
 
 class ClassNode(CallGraphNode):
-    def __init__(self, class_name, super_class):
+    def __init__(self, class_name, super_class, ast_node=None):
         super().__init__()
         self.class_name = class_name
         self.super_class = super_class
+        self.ast_node = ast_node
         self.declared_functions: Set[FunctionNode] = set()
         self.declared_variables: Set[VariableNode] = set()
         self.declared_fields: Set[VariableNode] = set()
@@ -110,12 +111,13 @@ class ClassNode(CallGraphNode):
         return None
 
 class FunctionNode(CallGraphNode):
-    def __init__(self, function_name, host_name, return_type):
+    def __init__(self, function_name, host_name, return_type, ast_node=None):
         super().__init__()
         self.function_name = function_name
-        self.arguments: list[VariableNode] = []
-        self.return_type = return_type
         self.host_name = host_name
+        self.return_type = return_type        
+        self.ast_node = ast_node
+        self.arguments: list[VariableNode] = []
         self.declared_functions: Set[FunctionNode] = set()
         self.called_functions: Set[FunctionNode] = set()
         self.declared_variables: Set[VariableNode] = set()
@@ -220,7 +222,7 @@ class RefTypeNode(TypeNode):
 
 class CallGraphVisitor(ast.NodeVisitor):
     def __init__(self):
-        self.stack = [self.root]
+        self.stack = [RootNode()]
         self.current_node = None
 
     @property
@@ -253,7 +255,7 @@ class CallGraphVisitor(ast.NodeVisitor):
             super_class = node.bases[0].id
         elif len(node.bases) > 1:
             ast_error("Sanajeh does not yet support multiple inheritances", node)
-        class_node = ClassNode(class_name, super_class)
+        class_node = ClassNode(class_name, super_class, ast_node=node)
         self.current_node.declared_classes.add(class_node)
         self.stack.append(class_node)
         self.generic_visit(node)
@@ -269,7 +271,7 @@ class CallGraphVisitor(ast.NodeVisitor):
             return_type = self.current_node.type
         elif hasattr(node.returns, "id"):
             return_type = ast_to_call_graph_type(self.stack, node.returns)
-        func_node = FunctionNode(func_name, self.current_node.name, return_type)
+        func_node = FunctionNode(func_name, self.current_node.name, return_type, ast_node=node)
         self.current_node.declared_functions.add(func_node)
         self.stack.append(func_node)
         self.generic_visit(node)

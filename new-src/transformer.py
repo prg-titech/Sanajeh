@@ -1,43 +1,19 @@
 # -*- coding: utf-8 -*-
 
-import ast, astunparse
-import copy
+import ast, copy
 import call_graph
 
 class FunctionBodyGenerator(ast.NodeTransformer):
-    """Generate new ast nodes which are used by the Inliner to inline functions"""
-
-    def __init__(self, node, caller_type):
-        self.func_name = None
-        self.caller = None
-        self.args = []
+    """
+    Generate new ast nodes which are used by 
+    the Inliner to inline functions
+    """
+    def __init__(self, caller, args):
+        self.caller = copy.deepcopy(caller)
+        self.args = copy.deepcopy(args)
         self.func_args = []
-        self.new_ast_nodes = []
-        self.node = copy.deepcopy(node)
-        self.caller_type = caller_type
         self.var_dict = {}
-
-    def visit_Module(self, node):
-        for class_node in node.body:
-            if type(class_node) == ast.ClassDef and class_node.name == self.caller_type:
-                self.visit(class_node)
-        return node
-    
-    def visit_ClassDef(self, node):
-        node.body = [self.visit(body_node) for body_node in node.body]
-        return node
-
-    def visit_FunctionDef(self, node):
-        if node.name == self.func_name:
-            #  check if argument number is correct
-            if len(node.args.args) - 1 != len(self.args):
-                ast_error("Invalid number of arguments", node)
-            for arg in node.args.args:
-                if arg.arg != "self":
-                    self.func_args.append(arg.arg)
-            for x in node.body:
-                self.new_ast_nodes.append(self.visit(x))
-        return node
+        self.built_nodes = []
 
     def visit_AnnAssign(self, node):
         self.generic_visit(node)
@@ -59,17 +35,20 @@ class FunctionBodyGenerator(ast.NodeTransformer):
             return self.var_dict[node.id]
         return node
 
-    def GetTransformedNodes(self, caller, func_name, args):
-        """Traverse the ast node given, find the target function and return the transformed implementation"""
-        self.caller = copy.deepcopy(caller)
-        self.func_name = func_name
-        self.args = copy.deepcopy(args)
-        self.visit(self.node)
+    def generate(self, node):
+        if len(node.args.args)-1 != len(self.args):
+            ast_error("Invalid number of arguments", node)
+        for arg in node.args.args:
+            if arg.arg != "self":
+                self.func_args.append(arg.arg)
+        for body in node.body:
+            self.built_nodes.append(self.visit(body))
+        return self.built_nodes
 
 class DeviceCodeVisitor(ast.NodeTransformer):
     def __init__(self, root: call_graph.RootNode):
         self.stack = [root]
-    
+
     @property
     def root(self):
         return self.stack[0]
@@ -249,7 +228,7 @@ class Normalizer(DeviceCodeVisitor):
                         target=ast.Name(id=new_name, ctx=ast.Load()),
                         value=self.receiver, simple=1, annotation=ast.Name(id=self.receiver_type.name, ctx=ast.Load()))
                     self.built_nodes.append(new_node)
-                    new_args.append(ast.Name(id="__auto_v" + str(self.var_counter), ctx=ast.Load()))
+                    new_args.append(ast.Name(id=new_name, ctx=ast.Load()))
                     self.var_counter += 1
             else:
                 new_args.append(self.receiver)
@@ -385,8 +364,10 @@ class Inliner(DeviceCodeVisitor):
         if type(node.func) is ast.Attribute:
             receiver_type = call_graph.ast_to_call_graph_type(self.stack, node.func.value)
             if type(receiver_type) is call_graph.ClassTypeNode and receiver_type.name in self.root.device_class_names:
-                func_body_gen = FunctionBodyGenerator(self.node, receiver_type.name)
-                func_body_gen.GetTransformedNodes(node.func.value, node.func.attr, node.args)
-                if len(func_body_gen.new_ast_nodes) != 0:
-                    return func_body_gen.new_ast_nodes
-        return node                
+                for func_node in receiver_type.class_node.declared_functions:
+                    if func_node.name == node.func.attr:
+                        func_body_gen = FunctionBodyGenerator(node.func.value, node.args)
+                        result = func_body_gen.generate(func_node.ast_node)
+                        if len(result) != 0:
+                            return result
+        return node
