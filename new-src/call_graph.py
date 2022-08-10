@@ -220,9 +220,12 @@ class RefTypeNode(TypeNode):
 
 class CallGraphVisitor(ast.NodeVisitor):
     def __init__(self):
-        self.root = RootNode()
         self.stack = [self.root]
         self.current_node = None
+
+    @property
+    def root(self):
+        return self.stack[0]
 
     def visit(self, node):
         self.current_node = self.stack[-1]

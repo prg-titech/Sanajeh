@@ -68,15 +68,27 @@ class FunctionBodyGenerator(ast.NodeTransformer):
 
 class DeviceCodeVisitor(ast.NodeTransformer):
     def __init__(self, root: call_graph.RootNode):
-        self.root: call_graph.RootNode = root
         self.stack = [root]
     
+    @property
+    def root(self):
+        return self.stack[0]
+
     def visit_Module(self, node):
         for body in node.body:
             if type(body) in [ast.ClassDef, ast.FunctionDef]:
                 self.visit(body)
         return node
-    
+
+    def visit_ClassDef(self, node):
+        class_name = node.name
+        class_node = self.stack[-1].get_ClassNode(class_name)
+        if class_node.is_device:
+            self.stack.append(class_node)
+            for body in node.body:
+                self.visit(body)
+            self.stack.pop()
+        return node    
 
 """
 Replace method calls nested inside other expressions 
@@ -96,16 +108,6 @@ class Normalizer(DeviceCodeVisitor):
         self.built_nodes = []
         self.receiver_type = call_graph.TypeNode()
         self.receiver = None
-
-    def visit_ClassDef(self, node):
-        class_name = node.name
-        class_node = self.stack[-1].get_ClassNode(class_name)
-        if class_node.is_device:
-            self.stack.append(class_node)
-            for body in node.body:
-                self.visit(body)
-            self.stack.pop()
-        return node
 
     def visit_FunctionDef(self, node):
         self.var_counter = 0
@@ -312,23 +314,12 @@ CONVERTED INTO
 class Inliner(DeviceCodeVisitor):
     def __init__(self, root: call_graph.RootNode):
         super().__init__(root)
-        self.stack = [self.root]
     
     def visit_Module(self, node):
         self.node = node
         for node_body in node.body:
             if type(node_body) in [ast.ClassDef, ast.FunctionDef, ast.AnnAssign]:
                 self.visit(node_body)
-        return node
-
-    def visit_ClassDef(self, node):
-        class_name = node.name
-        class_node = self.stack[-1].get_ClassNode(class_name)
-        if class_node.is_device:
-            self.stack.append(class_node)
-            for body in node.body:
-                self.visit(body)
-            self.stack.pop()
         return node
 
     def visit_FunctionDef(self, node):
