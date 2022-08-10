@@ -666,6 +666,7 @@ def transform(node, call_graph):
         if cls in scr.sdef_cls:
             scr.sdef_cls.remove(cls)
     ast.fix_missing_locations(Inliner(call_graph, node, scr.sdef_cls).visit(node))
+    print(astunparse.unparse(node))    
     ast.fix_missing_locations(Eliminator(call_graph, node, scr.sdef_cls).visit(node))  
     ast.fix_missing_locations(FieldSynthesizer(call_graph, scr.sdef_cls).visit(node)) 
 
