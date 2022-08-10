@@ -3,7 +3,7 @@
 import ast, copy
 import call_graph
 
-class FunctionBodyGenerator(ast.NodeTransformer):
+class FunctionInliner(ast.NodeTransformer):
     """
     Generate new ast nodes which are used by 
     the Inliner to inline functions
@@ -14,6 +14,16 @@ class FunctionBodyGenerator(ast.NodeTransformer):
         self.func_args = []
         self.var_dict = {}
         self.built_nodes = []
+
+    def inline(self, node):
+        if len(node.args.args)-1 != len(self.args):
+            ast_error("Invalid number of arguments", node)
+        for arg in node.args.args:
+            if arg.arg != "self":
+                self.func_args.append(arg.arg)
+        for body in node.body:
+            self.built_nodes.append(self.visit(body))
+        return self.built_nodes
 
     def visit_AnnAssign(self, node):
         self.generic_visit(node)
@@ -34,16 +44,6 @@ class FunctionBodyGenerator(ast.NodeTransformer):
         if node.id in self.var_dict:
             return self.var_dict[node.id]
         return node
-
-    def generate(self, node):
-        if len(node.args.args)-1 != len(self.args):
-            ast_error("Invalid number of arguments", node)
-        for arg in node.args.args:
-            if arg.arg != "self":
-                self.func_args.append(arg.arg)
-        for body in node.body:
-            self.built_nodes.append(self.visit(body))
-        return self.built_nodes
 
 class DeviceCodeVisitor(ast.NodeTransformer):
     def __init__(self, root: call_graph.RootNode):
@@ -366,8 +366,8 @@ class Inliner(DeviceCodeVisitor):
             if type(receiver_type) is call_graph.ClassTypeNode and receiver_type.name in self.root.device_class_names:
                 for func_node in receiver_type.class_node.declared_functions:
                     if func_node.name == node.func.attr:
-                        func_body_gen = FunctionBodyGenerator(node.func.value, node.args)
-                        result = func_body_gen.generate(func_node.ast_node)
+                        func_body_gen = FunctionInliner(node.func.value, node.args)
+                        result = func_body_gen.inline(func_node.ast_node)
                         if len(result) != 0:
                             return result
         return node
