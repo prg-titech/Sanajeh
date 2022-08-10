@@ -157,6 +157,8 @@ class VariableNode(CallGraphNode):
     def type(self):
         return self.var_type
 
+""" types for nodes in the call graph """
+
 class TypeNode():
     def __init__(self):
         pass
@@ -361,53 +363,6 @@ class CallGraphVisitor(ast.NodeVisitor):
         self.current_node.called_functions.add(call_node)
         self.generic_visit(node)
 
-    """
-    def ast_to_call_graph_type(self, node, var_name=None):
-        if type(node) is ast.Name:
-            type_name = node.id
-            if type_name == "int":
-                return IntNode()
-            elif type_name == "float":
-                return FloatNode()
-            elif type_name == "bool":
-                return BoolNode()
-            elif type_name == "uint32_t":
-                return IntNode(True, 32)
-            elif type_name == "uint8_t":
-                return IntNode(True, 8)
-            elif type_name == "curandState":
-                return CurandStateTypeNode()
-            else:
-                for class_node in self.root.declared_classes:
-                    if class_node.name == type_name:
-                        if var_name is not None:
-                            split_var_name = var_name.split("_")
-                            if split_var_name[-1] == "ref":
-                                return RefTypeNode(ClassTypeNode(class_node))
-                        return ClassTypeNode(class_node)
-        elif type(node) is ast.Attribute:
-            receiver_type = self.ast_to_call_graph_type(node.value)
-            if type(receiver_type) is not TypeNode and type(receiver_type) is not ListTypeNode:
-                if type(receiver_type) is RefTypeNode:
-                    receiver_type = receiver_type.type_node
-                for field in receiver_type.declared_fields:
-                    if field.name == node.attr:
-                        return field.type
-        elif type(node) is ast.Call:
-            if type(node.func) is ast.Attribute:
-                receiver_type = self.ast_to_call_graph_type(node.func.value)
-                for func in receiver_type.declared_functions:
-                    if func.name == node.func.attr:
-                        return func.return_type
-        elif type(node) is ast.Subscript and node.value.id == "list":
-            element_type = self.ast_to_call_graph_type(node.slice.value, var_name)
-            if element_type is None:
-                ast_error("Requires element type for list", node)
-            return ListTypeNode(element_type)
-        else:
-            return TypeNode()
-    """
-
     def expand_field(self, field_node):
         result = []
         if type(field_node.type) is ClassTypeNode and field_node.name.split("_")[-1] == "ref":
@@ -512,6 +467,8 @@ def check_equal_type(ltype: TypeNode, rtype: TypeNode):
     if type(ltype) is RefTypeNode and type(rtype) is RefTypeNode:
         return check_equal_type(ltype.type_node, rtype.type_node)
     return False        
+
+""" convert AST nodes into types for call graph """
 
 def ast_to_call_graph_type(stack, node, var_name=None):
     if type(node) is ast.Name:
