@@ -532,20 +532,27 @@ def ast_to_call_graph_type(stack, node, var_name=None):
         elif type_name == "curandState":
             return CurandStateTypeNode()            
         else:
+            i = len(stack) - 1
+            while i >= 0:
+                current_node = stack[i]
+                # check declared variable
+                var_node = current_node.get_VariableNode(type_name)
+                if var_node:
+                    return var_node.type
+                # check function parameter
+                if type(current_node) is FunctionNode:
+                    for arg_node in current_node.arguments:
+                        if type_name == arg_node.name:
+                            return arg_node.type
+                i -= 1
+            # check declared classes
             for class_node in stack[0].declared_classes:
                 if class_node.name == type_name:
                     if var_name:
                         split_var_name = var_name.split("_")
                         if split_var_name[-1] == "ref":
                             return RefTypeNode(ClassTypeNode(class_node))
-                    return ClassTypeNode(class_node)
-            i = len(stack) - 1
-            while i >= 0:
-                current_node = stack[i]
-                var_node = current_node.get_VariableNode(type_name)
-                if var_node:
-                    return var_node.type
-                i -= 1
+                    return ClassTypeNode(class_node)    
     elif type(node) is ast.Attribute:
         receiver_type = ast_to_call_graph_type(stack, node.value, var_name)
         if type(receiver_type) is not TypeNode and type(receiver_type) is not ListTypeNode:

@@ -392,7 +392,7 @@ class Inliner(DeviceCodeVisitor):
     
     def visit_Call(self, node):
         if type(node.func) is ast.Attribute:
-            receiver_type = call_graph.ast_to_call_graph_type(self.stack, node.func.value)  
+            receiver_type = call_graph.ast_to_call_graph_type(self.stack, node.func.value)
             if type(receiver_type) is call_graph.ClassTypeNode and receiver_type.name in self.root.device_class_names:
                 func_body_gen = FunctionBodyGenerator(self.node, receiver_type.name)
                 func_body_gen.GetTransformedNodes(node.func.value, node.func.attr, node.args)
