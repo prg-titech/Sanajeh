@@ -2,20 +2,26 @@
 
 import ast, copy
 import call_graph
+import astunparse
 
 class FunctionInliner(ast.NodeTransformer):
     """
     Generate new ast nodes which are used by 
     the Inliner to inline functions
     """
-    def __init__(self, caller, args):
+    def __init__(self, node, caller, args):
         self.caller = copy.deepcopy(caller)
         self.args = copy.deepcopy(args)
+        self.node = copy.deepcopy(node)
         self.func_args = []
         self.var_dict = {}
         self.built_nodes = []
+    
+    def inline(self):
+        self.visit(self.node)
+        return self.built_nodes
 
-    def inline(self, node):
+    def visit_FunctionDef(self, node):
         if len(node.args.args)-1 != len(self.args):
             ast_error("Invalid number of arguments", node)
         for arg in node.args.args:
@@ -23,7 +29,7 @@ class FunctionInliner(ast.NodeTransformer):
                 self.func_args.append(arg.arg)
         for body in node.body:
             self.built_nodes.append(self.visit(body))
-        return self.built_nodes
+        return node
 
     def visit_AnnAssign(self, node):
         self.generic_visit(node)
@@ -342,7 +348,7 @@ class Inliner(DeviceCodeVisitor):
                 ret.append(new_node)
             return result
         return node
-
+    
     def visit_AnnAssign(self, node):
         if node.value is None:
             return node
@@ -366,8 +372,97 @@ class Inliner(DeviceCodeVisitor):
             if type(receiver_type) is call_graph.ClassTypeNode and receiver_type.name in self.root.device_class_names:
                 for func_node in receiver_type.class_node.declared_functions:
                     if func_node.name == node.func.attr:
-                        func_body_gen = FunctionInliner(node.func.value, node.args)
-                        result = func_body_gen.inline(func_node.ast_node)
+                        func_body_gen = FunctionInliner(func_node.ast_node, node.func.value, node.args)
+                        result = func_body_gen.inline()
                         if len(result) != 0:
                             return result
+        return node
+
+"""
+Replace constructor of non-reference classes with their fields
+
+EXAMPLE:
+    self.pos: Vector = Vector(0, 0)
+CONVERTED INTO:
+    self.pos.x: float = 0
+    self.pos.y: float = 0
+"""
+class Eliminator(DeviceCodeVisitor):
+    def __init__(self, root: call_graph.RootNode):
+        super().__init__(root)
+    
+    def visit_FunctionDef(self, node):
+        name = node.name
+        func_node = self.stack[-1].get_FunctionNode(name, self.stack[-1].name)
+        if func_node is None:
+            call_graph.ast_error("The function {} does not exist.".format(name), node)
+        if func_node.is_device:
+            self.stack.append(func_node)
+            node.args = self.visit(node.args)
+            new_function_body = []
+            for func_body in node.body:
+                transformed = self.visit(func_body)
+                if type(transformed) == list:
+                    new_function_body.extend(transformed)
+                else:
+                    new_function_body.append(transformed)
+            node.body = new_function_body
+            self.stack.pop()
+        return node
+
+    def visit_AnnAssign(self, node):
+        target_type = call_graph.ast_to_call_graph_type(self.stack, node.target)
+        if type(target_type) is call_graph.ClassTypeNode and target_type.name in self.root.device_class_names:
+            if type(node.value) is ast.Call and type(node.value.func) is ast.Name:
+                for func_node in target_type.class_node.declared_functions:
+                    if func_node.name == "__init__":
+                        inst_body_gen = FunctionInliner(func_node.ast_node, node.target, node.value.args)
+                        result = inst_body_gen.inline()
+                        if len(result) != 0:
+                            return result
+            else:
+                new_nodes = []
+                for field_name in target_type.class_node.expanded_fields:
+                    for nested_field in target_type.expanded_fields[field_name]:
+                        annotation = None
+                        if type(nested_field.type) is ListTypeNode:
+                            annotation = ast.Subscript(
+                                value=ast.Name(id="list", ctx=node.annotation.ctx),
+                                slice=ast.Index(value=ast.Name(id=nested_field.type.element_type, ctx=node.annotation.ctx)),
+                                ctx=node.annotation.ctx)
+                        else:
+                            annotation = ast.Name(id=nested_field.type.name, ctx=node.annotation.ctx)
+                        value_ctx = node.value.ctx if hasattr(node.value, "ctx") else None
+                        new_node = ast.AnnAssign(
+                            target=ast.Attribute(value=node.target, attr=nested_field.name, ctx=node.target.ctx),
+                            annotation=annotation,
+                            value=ast.Attribute(value=node.value, attr=nested_field.name, ctx=value_ctx),
+                            simple=node.simple)
+                        new_nodes.append(new_node)
+                return new_nodes
+        return node
+
+    def visit_Assign(self, node):
+        result = []
+        for target in node.targets:
+            target_type = call_graph.ast_to_call_graph_type(self.stack, target)
+            if type(target_type) is call_graph.ClassTypeNode and target_type.name in self.root.device_class_names:
+                if type(node.value) is ast.Call and type(node.value.func) is ast.Name:
+                    for func_node in target_type.class_node.declared_functions:
+                        if func_node.name == "__init__":
+                            inst_body_gen = FunctionInliner(func_node.ast_node, target, node.value.args)
+                            result = inst_body_gen.inline()
+                            if len(result) != 0:
+                                return result
+                else:
+                    new_nodes = []
+                    for field_name in target_type.class_node.expanded_fields:
+                        for nested_field in target_type.class_node.expanded_fields[field_name]:
+                            value_ctx = node.value.ctx if hasattr(node.value, "ctx") else None
+                            new_node = ast.Assign(
+                                value=ast.Attribute(value=node.value, attr=nested_field.name, ctx=value_ctx),
+                                targets=[ast.Attribute(value=target, attr=nested_field.name, ctx=target.ctx)])
+                            result.append(new_node)
+        if len(result) != 0:
+            return result
         return node

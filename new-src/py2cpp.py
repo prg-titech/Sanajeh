@@ -5,7 +5,7 @@ import os, sys
 import astunparse
 
 from call_graph import CallGraphVisitor, MarkDeviceVisitor
-from transformer import Normalizer, Inliner
+from transformer import Normalizer, Inliner, Eliminator
 
 def compile(source_code, dir_path, file_name):
     """
@@ -26,6 +26,8 @@ def compile(source_code, dir_path, file_name):
     ast.fix_missing_locations(normalizer.visit(py_ast))
     inliner = Inliner(normalizer.root)
     inliner.visit(py_ast)
+    eliminator = Eliminator(inliner.root)
+    eliminator.visit(py_ast)
 
     new_py_ast = astunparse.unparse(py_ast)
 
