@@ -466,3 +466,49 @@ class Eliminator(DeviceCodeVisitor):
         if len(result) != 0:
             return result
         return node
+
+class FieldSynthesizer(DeviceCodeVisitor):
+    def __init__(self, root: call_graph.RootNode):
+        super().__init__(root)
+
+    def visit_FunctionDef(self, node):
+        func_node = self.stack[-1].get_FunctionNode(node.name, self.stack[-1].name)
+        if func_node is None:
+            call_graph.ast_error("The function {} does not exist.".format(name), node)
+        if func_node.is_device:
+            self.stack.append(func_node)
+            node.args = self.visit(node.args)
+            node_body = []
+            # Add random_state_ field
+            if node.name == "__init__" and self.stack[-2].has_random_state:
+                node_body.append(ast.AnnAssign(
+                    target=ast.Attribute(attr="random_state_", value=ast.Name("self")),
+                    annotation=ast.Attribute(attr="RandomState", value=ast.Name(id="DeviceAllocator")),
+                    simple=1,
+                    value=ast.Constant(value=None, kind=None)))
+            for func_body in node.body:
+                node_body.append(self.visit(func_body))
+            node.body = node_body
+            self.stack.pop()           
+        return node
+
+    def visit_AnnAssign(self, node):
+        self.generic_visit(node)
+        if type(node.target) is ast.Attribute and self.stack[-1].name != "__init__":
+            return ast.Assign(targets=[node.target], value=node.value)
+        node.simple = 1
+        return node
+
+    def visit_Attribute(self, node):
+        ctx = None
+        if type(node.ctx) == ast.Load:
+            ctx = ast.Load()
+        elif type(node.ctx) == ast.Store:
+            ctx = ast.Store()
+        value_type = call_graph.ast_to_call_graph_type(self.stack, node.value)
+        if type(value_type) is call_graph.ClassTypeNode and value_type.name in self.root.device_class_names:
+            if type(node.value) is ast.Name and node.value.id != "self":
+                return ast.Name(id=node.value.id + "_" + node.attr, ctx=ctx)
+            elif type(node.value) is ast.Attribute:
+                return ast.Attribute(value=node.value.value, attr=node.value.attr + "_" + node.attr, ctx=ctx)
+        return node   

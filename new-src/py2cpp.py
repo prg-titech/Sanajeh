@@ -5,7 +5,7 @@ import os, sys
 import astunparse
 
 from call_graph import CallGraphVisitor, MarkDeviceVisitor
-from transformer import Normalizer, Inliner, Eliminator
+from transformer import Normalizer, Inliner, Eliminator, FieldSynthesizer
 
 def compile(source_code, dir_path, file_name):
     """
@@ -28,6 +28,8 @@ def compile(source_code, dir_path, file_name):
     inliner.visit(py_ast)
     eliminator = Eliminator(inliner.root)
     eliminator.visit(py_ast)
+    synthesizer = FieldSynthesizer(eliminator.root)
+    synthesizer.visit(py_ast)
 
     new_py_ast = astunparse.unparse(py_ast)
 
