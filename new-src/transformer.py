@@ -2,7 +2,6 @@
 
 import ast, copy
 import call_graph
-import astunparse
 
 class FunctionInliner(ast.NodeTransformer):
     """

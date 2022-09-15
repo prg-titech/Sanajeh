@@ -1,8 +1,11 @@
-import os, sys
-import py2cpp
+import os, sys, ast
+import astunparse
 import cffi
 import random
-from typing import Callable
+
+import call_graph as cg
+from transformer import Normalizer, Inliner, Eliminator, FieldSynthesizer
+from py2cpp import Preprocessor, CppVisitor, HppVisitor
 
 ffi = cffi.FFI()
 
@@ -130,7 +133,7 @@ class PyCompiler:
 
     def compile(self, emit_py, emit_cpp, emit_hpp, emit_cdef):
         source = open(self.file_path, encoding="utf-8").read()
-        py, cpp, hpp, cdef = py2cpp.compile(source, self.dir_path, self.file_name)
+        py, cpp, hpp, cdef = compile(source, self.dir_path, self.file_name)
 
         if emit_py:
             # print(py)
@@ -161,3 +164,66 @@ class PyCompiler:
         if os.system("src/build.sh " + "{}/{}.cu".format(self.dir_path, self.file_name) + " -o " + so_path) != 0:
             print("Build failed!", file=sys.stderr)
             sys.exit(1)  
+
+def compile(source_code, dir_path, file_name):
+    """
+    Compile python source_code into c++ source file and header file
+        source_code:    codes written in python
+    """
+    # Set the global variable for file name
+    FILE_NAME = file_name
+
+    # Generate python ast
+    py_ast = ast.parse(source_code)
+
+    # Generate python call graph and mark device data
+    cgv = cg.CallGraphVisitor()
+    cgv.visit(py_ast)
+    mdv = cg.MarkDeviceVisitor()
+    mdv.visit(cgv.root)
+
+    # Transformation passes
+    normalizer = Normalizer(mdv.root)
+    ast.fix_missing_locations(normalizer.visit(py_ast))
+    inliner = Inliner(normalizer.root)
+    ast.fix_missing_locations(inliner.visit(py_ast))
+    eliminator = Eliminator(inliner.root)
+    ast.fix_missing_locations(eliminator.visit(py_ast))
+    synthesizer = FieldSynthesizer(eliminator.root)
+    ast.fix_missing_locations(synthesizer.visit(py_ast))
+    
+    # Rebuild the call graph after transformation
+    recgv = cg.CallGraphVisitor()
+    recgv.visit(py_ast)
+    remdv = cg.MarkDeviceVisitor()
+    remdv.visit(recgv.root)
+
+    # Preprocessor (find device class in python code and compile parallel_do expressions into c++ ones)
+    pp = Preprocessor(remdv.root)
+    pp.visit(py_ast)
+    cv = CppVisitor(pp.root)
+    cv.visit(py_ast)
+    hv = HppVisitor(pp.root)
+
+    endif_expr = "\n#endif"
+
+    precompile_expr = "#ifndef SANAJEH_DEVICE_CODE_H" \
+                      "\n#define SANAJEH_DEVICE_CODE_H" \
+                      "\n#define KNUMOBJECTS 64*64*64*64"
+    hpp_include_expr = '\n\n#include <curand_kernel.h>\n#include "dynasoar.h"'
+    init_hpp = '\nextern "C" int AllocatorInitialize();\n'
+    unit_hpp = 'extern "C" int AllocatorUninitialize();\n'
+
+    hpp_code = precompile_expr \
+                + hpp_include_expr \
+                + hv.visit(py_ast) \
+                + pp.build_do_all_hpp() \
+                + pp.build_parallel_do_hpp() \
+                + pp.build_parallel_new_hpp() \
+                + init_hpp \
+                + unit_hpp \
+                + endif_expr
+
+    new_py_ast = astunparse.unparse(py_ast)
+
+    return new_py_ast, None, None, None
