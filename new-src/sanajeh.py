@@ -5,7 +5,7 @@ import random
 
 import call_graph as cg
 from transformer import Normalizer, Inliner, Eliminator, FieldSynthesizer
-from py2cpp import Preprocessor, CppVisitor, HppVisitor
+from py2cpp import Preprocessor, CppVisitor, HppVisitor, INDENT
 
 ffi = cffi.FFI()
 
@@ -202,11 +202,38 @@ def compile(source_code, dir_path, file_name):
     pp = Preprocessor(remdv.root)
     pp.visit(py_ast)
     cv = CppVisitor(pp.root)
-    cv.visit(py_ast)
     hv = HppVisitor(pp.root)
 
-    endif_expr = "\n#endif"
+    cpp_include_expr = '#include "{}.h"\n\n'.format(FILE_NAME)
+    allocator_declaration = "AllocatorHandle<AllocatorT>* allocator_handle;\n" \
+                            "__device__ AllocatorT* device_allocator;\n"
+    init_cpp = ['\n\nextern "C" int AllocatorInitialize(){\n',
+                INDENT + "allocator_handle = new AllocatorHandle<AllocatorT>(/* unified_memory= */ true);\n",
+                INDENT + "AllocatorT* dev_ptr = allocator_handle->device_pointer();\n",
+                INDENT + "cudaMemcpyToSymbol(device_allocator, &dev_ptr, sizeof(AllocatorT*), 0, cudaMemcpyHostToDevice);\n",
+                pp.build_global_device_variables_init(),
+                INDENT + "return 0;\n" 
+                "}"
+                ]
+    unit_cpp = ['\n\nextern "C" int AllocatorUninitialize(){\n',
+                pp.build_global_device_variables_unit(),
+                INDENT +
+                "return 0;\n"
+                "}"
+                ]
 
+    cpp_code = cpp_include_expr \
+                + allocator_declaration \
+                + cv.visit(py_ast) \
+                + pp.build_do_all_cpp() \
+                + pp.build_parallel_do_cpp() \
+                + pp.build_parallel_new_cpp() \
+                + "".join(init_cpp) \
+                + "".join(unit_cpp)
+    
+    print(cpp_code)
+
+    endif_expr = "\n#endif"
     precompile_expr = "#ifndef SANAJEH_DEVICE_CODE_H" \
                       "\n#define SANAJEH_DEVICE_CODE_H" \
                       "\n#define KNUMOBJECTS 64*64*64*64"
@@ -224,6 +251,15 @@ def compile(source_code, dir_path, file_name):
                 + unit_hpp \
                 + endif_expr
 
+    init_cdef = '\nint AllocatorInitialize();'
+    unit_cdef = '\nint AllocatorUninitialize();'
+
+    cdef_code = pp.build_parallel_do_cdef() \
+                + pp.build_parallel_new_cdef() \
+                + init_cdef \
+                + pp.build_do_all_cdef() \
+                + unit_cdef
+
     new_py_ast = astunparse.unparse(py_ast)
 
-    return new_py_ast, None, None, None
+    return new_py_ast, None, hpp_code, cdef_code

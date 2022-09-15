@@ -5,7 +5,6 @@ import hashlib
 import six
 
 import call_graph as cg
-from transformer import Normalizer, Inliner, Eliminator, FieldSynthesizer
 
 import astunparse
 
@@ -212,6 +211,24 @@ class Preprocessor(ast.NodeVisitor):
 
     def build_parallel_new_cdef(self):
         return '\n' + '\n'.join(self.cdef_parallel_new_codes)
+
+    def build_global_device_variables_init(self):
+        result = []
+        for var in self.global_device_variables:
+            var_node = self.root.get_VariableNode(var, None)
+            elem_type = var_node.type.element_type
+            n = self.global_device_variables[var]
+            ret.append(INDENT + "{}* host_{};\n".format(elem_type.to_cpp_type(), var) + \
+                       INDENT + "cudaMalloc(&host_{}, sizeof({})*{});\n".format(var, elem_type.to_cpp_type, n) + \
+                       INDENT + "cudaMemcpyToSymbol({}, &host_{}, sizeof({}*), 0, cudaMemcpyHostToDevice);\n" \
+                       .format(var, var, elem_type.to_cpp_type()))
+        return "\n".join(result)
+
+    def build_global_device_variables_unit(self):
+        result = []
+        for var in self.global_device_variables:
+            ret.append(INDENT + "cudaFree(host_{});\n".format(var))
+        return "\n".join(result) 
 
     def visit_Module(self, node):
         self.ast_root = node
