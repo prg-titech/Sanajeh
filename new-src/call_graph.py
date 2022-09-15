@@ -45,6 +45,7 @@ class RootNode(CallGraphNode):
         self.called_variables: Set[VariableNode] = set()
 
         self.device_class_names = []
+        self.fields_class_names = []
         self.has_device_data = False
 
     def get_ClassNode(self, class_name):
@@ -81,7 +82,7 @@ class ClassNode(CallGraphNode):
         self.ast_node = ast_node
         self.declared_functions: Set[FunctionNode] = set()
         self.declared_variables: Set[VariableNode] = set()
-        self.declared_fields: Set[VariableNode] = set()
+        self.declared_fields: list[VariableNode] = []
         self.expanded_fields: dict = {}
         self.has_random_state: bool = False
 
@@ -173,23 +174,53 @@ class TypeNode():
     def element_type(self):
         return None
 
+    def to_cpp_type(self):
+        return "auto"
+
 class IntNode(TypeNode):
     def __init__(self, unsigned=False, size=None):
         super().__init__()
         self.unsigned = unsigned
         self.size = size
 
+    @property
+    def name(self):
+        return "int"
+    
+    def to_cpp_type(self):
+        if self.unsigned:
+            return "uint" + str(self.size) + "_t"
+        else:
+            return "int" 
+
 class FloatNode(TypeNode):
     def __init__(self):
         super().__init__()
+
+    @property
+    def name(self):
+        return "float"
+    
+    def to_cpp_type(self):
+        return "float"
 
 class BoolNode(TypeNode):
     def __init__(self):
         super().__init__()
 
+    @property
+    def name(self):
+        return "bool"
+
+    def to_cpp_type(self):
+        return "bool"
+
 class CurandStateTypeNode(TypeNode):
     def __init__(self):
         super().__init__()
+
+    def to_cpp_type(self):
+        return "curandState&"
 
 class ListTypeNode(TypeNode):
     def __init__(self, element_type):
@@ -213,10 +244,16 @@ class ClassTypeNode(TypeNode):
     def name(self):
         return self.class_node.name
 
+    def to_cpp_type(self):
+        return self.name + "*"
+
 class RefTypeNode(TypeNode):
     def __init__(self, type_node):
         super().__init__()
         self.type_node = type_node
+    
+    def to_cpp_type(self):
+        return self.name + "*"
 
 """ visit AST and build call graph """
 
@@ -303,7 +340,7 @@ class CallGraphVisitor(ast.NodeVisitor):
             if hasattr(var.value, "id") and var.value.id == "self" \
                     and self.current_node.name == "__init__":
                 field_node = VariableNode(var_name, var_type)
-                self.stack[-2].declared_fields.add(field_node)
+                self.stack[-2].declared_fields.append(field_node)
                 if type(var_type) is ClassTypeNode:
                     var_type.class_node.expanded_fields[var_name] = self.expand_field(field_node)
         elif type(var) is ast.Name:
@@ -431,10 +468,15 @@ class MarkDeviceVisitor:
             field_class = self.root.get_ClassNode(node.type.name)
         if field_class is not None and not field_class.is_device:
             self.root.device_class_names.append(field_class.name)
+            if not field_class.name in self.root.fields_class_names:
+                self.root.fields_class_names.append(field_class.name)
             self.visit_RootNode(self.root, [field_class.name])
 
     def visit_VariableNode(self, node):
         node.is_device = True
+        if type(node.type) is ClassTypeNode \
+                and not node.type.name in self.root.fields_class_names:
+            self.root.fields.class_names.append(node.type.name)
 
     def visit_FunctionNode(self, node):
         queue = [node]

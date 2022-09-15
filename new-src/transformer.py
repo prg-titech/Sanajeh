@@ -369,7 +369,7 @@ class Inliner(DeviceCodeVisitor):
     def visit_Call(self, node):
         if type(node.func) is ast.Attribute:
             receiver_type = call_graph.ast_to_call_graph_type(self.stack, node.func.value)
-            if type(receiver_type) is call_graph.ClassTypeNode and receiver_type.name in self.root.device_class_names:
+            if type(receiver_type) is call_graph.ClassTypeNode and receiver_type.name in self.root.fields_class_names:
                 for func_node in receiver_type.class_node.declared_functions:
                     if func_node.name == node.func.attr:
                         func_body_gen = FunctionInliner(func_node.ast_node, node.func.value, node.args)
@@ -412,7 +412,7 @@ class Eliminator(DeviceCodeVisitor):
 
     def visit_AnnAssign(self, node):
         target_type = call_graph.ast_to_call_graph_type(self.stack, node.target)
-        if type(target_type) is call_graph.ClassTypeNode and target_type.name in self.root.device_class_names:
+        if type(target_type) is call_graph.ClassTypeNode and target_type.name in self.root.fields_class_names:
             if type(node.value) is ast.Call and type(node.value.func) is ast.Name:
                 for func_node in target_type.class_node.declared_functions:
                     if func_node.name == "__init__":
@@ -446,7 +446,7 @@ class Eliminator(DeviceCodeVisitor):
         result = []
         for target in node.targets:
             target_type = call_graph.ast_to_call_graph_type(self.stack, target)
-            if type(target_type) is call_graph.ClassTypeNode and target_type.name in self.root.device_class_names:
+            if type(target_type) is call_graph.ClassTypeNode and target_type.name in self.root.fields_class_names:
                 if type(node.value) is ast.Call and type(node.value.func) is ast.Name:
                     for func_node in target_type.class_node.declared_functions:
                         if func_node.name == "__init__":
@@ -506,8 +506,8 @@ class FieldSynthesizer(DeviceCodeVisitor):
         elif type(node.ctx) == ast.Store:
             ctx = ast.Store()
         value_type = call_graph.ast_to_call_graph_type(self.stack, node.value)
-        if type(value_type) is call_graph.ClassTypeNode and value_type.name in self.root.device_class_names:
-            if type(node.value) is ast.Name and node.value.id != "self":
+        if type(value_type) is call_graph.ClassTypeNode and value_type.name in self.root.fields_class_names:
+            if type(node.value) is ast.Name:
                 return ast.Name(id=node.value.id + "_" + node.attr, ctx=ctx)
             elif type(node.value) is ast.Attribute:
                 return ast.Attribute(value=node.value.value, attr=node.value.attr + "_" + node.attr, ctx=ctx)
