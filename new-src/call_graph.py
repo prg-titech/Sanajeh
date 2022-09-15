@@ -219,6 +219,10 @@ class CurandStateTypeNode(TypeNode):
     def __init__(self):
         super().__init__()
 
+    @property
+    def name(self):
+        return "curandState"
+
     def to_cpp_type(self):
         return "curandState&"
 
@@ -534,7 +538,7 @@ def ast_to_call_graph_type(stack, node, var_name=None):
         elif type_name == "uint8_t":
             return IntNode(True, 8)
         elif type_name == "curandState":
-            return CurandStateTypeNode()            
+            return CurandStateTypeNode()
         else:
             i = len(stack) - 1
             while i >= 0:
@@ -558,6 +562,9 @@ def ast_to_call_graph_type(stack, node, var_name=None):
                             return RefTypeNode(ClassTypeNode(class_node))
                     return ClassTypeNode(class_node)    
     elif type(node) is ast.Attribute:
+        if type(node.value) is ast.Name and node.value.id == "DeviceAllocator" \
+                and node.attr == "RandomState":
+            return CurandStateTypeNode()
         receiver_type = ast_to_call_graph_type(stack, node.value, var_name)
         if type(receiver_type) is not TypeNode and type(receiver_type) is not ListTypeNode:
             if type(receiver_type) is RefTypeNode:
