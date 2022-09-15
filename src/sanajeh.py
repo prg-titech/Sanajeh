@@ -148,7 +148,7 @@ class PyCompiler:
                 
         if not os.path.isdir(self.dir_path):
             os.mkdir(self.dir_path)
-        compile_path: str = os.path.join(self.dir_path + self.file_name)
+        compile_path: str = os.path.join(self.dir_path, self.file_name)
         with open(compile_path + ".cu", mode="w") as cpp_file:
             cpp_file.write(cpp)
         with open(compile_path + ".h", mode="w") as hpp_file:
