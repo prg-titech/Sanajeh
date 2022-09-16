@@ -136,7 +136,7 @@ class PyCompiler:
         py, cpp, hpp, cdef = compile(source, self.dir_path, self.file_name)
 
         if emit_py:
-            # print(py)
+            print(py)
             return
         elif emit_cpp:
             print(cpp)
@@ -150,7 +150,7 @@ class PyCompiler:
                 
         if not os.path.isdir(self.dir_path):
             os.mkdir(self.dir_path)
-        compile_path: str = os.path.join(self.dir_path + self.file_name)
+        compile_path: str = os.path.join(self.dir_path, self.file_name)
         with open(compile_path + ".cu", mode="w") as cpp_file:
             cpp_file.write(cpp)
         with open(compile_path + ".h", mode="w") as hpp_file:
@@ -191,7 +191,7 @@ def compile(source_code, dir_path, file_name):
     ast.fix_missing_locations(eliminator.visit(py_ast))
     synthesizer = FieldSynthesizer(eliminator.root)
     ast.fix_missing_locations(synthesizer.visit(py_ast))
-    
+
     # Rebuild the call graph after transformation
     recgv = cg.CallGraphVisitor()
     recgv.visit(py_ast)
@@ -230,8 +230,6 @@ def compile(source_code, dir_path, file_name):
                 + pp.build_parallel_new_cpp() \
                 + "".join(init_cpp) \
                 + "".join(unit_cpp)
-    
-    print(cpp_code)
 
     endif_expr = "\n#endif"
     precompile_expr = "#ifndef SANAJEH_DEVICE_CODE_H" \

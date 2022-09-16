@@ -516,6 +516,13 @@ class CppVisitor(ast.NodeVisitor):
             cpp_code = "this"
         return cpp_code
 
+    def visit_NameConstant(self, node):
+        if type(node.value) == bool:
+            return "true" if node.value else "false"
+        elif node.value is None:
+            return "nullptr"
+        return node.value
+
     def visit_Compare(self, node):
         result = [self.visit(node.left)]
         if type(node.left) is ast.Call and type(node.left.func) is ast.Name \
@@ -697,6 +704,9 @@ class HppVisitor(ast.NodeVisitor):
      
     def visit_Name(self, node):
         return node.id
+
+    def visit_Num(self, node):
+        return "{}".format(node.n)
 
     def visit_arguments(self, node):
         args = []

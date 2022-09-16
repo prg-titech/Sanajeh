@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 
 import ast, copy
-import call_graph
+import call_graph as cg
+
+import astunparse
 
 class FunctionInliner(ast.NodeTransformer):
     """
@@ -51,7 +53,7 @@ class FunctionInliner(ast.NodeTransformer):
         return node
 
 class DeviceCodeVisitor(ast.NodeTransformer):
-    def __init__(self, root: call_graph.RootNode):
+    def __init__(self, root: cg.RootNode):
         self.stack = [root]
 
     @property
@@ -86,11 +88,11 @@ CONVERTED INTO:
     self.vel.add(__auto_v1)
 """
 class Normalizer(DeviceCodeVisitor):
-    def __init__(self, root: call_graph.RootNode):
+    def __init__(self, root: cg.RootNode):
         super().__init__(root)
         self.var_counter = 0
         self.built_nodes = []
-        self.receiver_type = call_graph.TypeNode()
+        self.receiver_type = cg.TypeNode()
         self.receiver = None
 
     def visit_FunctionDef(self, node):
@@ -98,7 +100,7 @@ class Normalizer(DeviceCodeVisitor):
         name = node.name
         func_node = self.stack[-1].get_FunctionNode(name, self.stack[-1].name)
         if func_node is None:
-            call_graph.ast_error("The function {} does not exist.".format(name), node)
+            cg.ast_error("The function {} does not exist.".format(name), node)
         if func_node.is_device:
             self.stack.append(func_node)
             node.args = self.visit(node.args)
@@ -163,9 +165,9 @@ class Normalizer(DeviceCodeVisitor):
 
     def visit_Attribute(self, node):
         self.visit(node.value)
-        if type(self.receiver) is ast.Call and type(self.receiver_type) is call_graph.ClassTypeNode:
+        if type(self.receiver) is ast.Call and type(self.receiver_type) is cg.ClassTypeNode:
             new_name = "__auto_v" + str(self.var_counter)
-            self.stack[-1].declared_variables.add(call_graph.VariableNode(new_name, self.receiver_type))
+            self.stack[-1].declared_variables.add(cg.VariableNode(new_name, self.receiver_type))
             new_node = ast.AnnAssign(
                 target=ast.Name(id=new_name, ctx=ast.Load()),
                 value=self.receiver, simple=1, annotation=ast.Name(id=self.receiver_type.name, ctx=ast.Load()))
@@ -196,7 +198,7 @@ class Normalizer(DeviceCodeVisitor):
             self.visit(node.value.value)
             if type(node.value.value) is ast.Call and self.receiver_type is not None:
                 new_name = "__auto_v" + str(self.var_counter)
-                self.stack[-1].declared_variables.add(call_graph.VariableNode(new_name, self.receiver_type))                
+                self.stack[-1].declared_variables.add(cg.VariableNode(new_name, self.receiver_type))                
                 new_node = ast.AnnAssign(
                     target=ast.Name(id=new_name, ctx=ast.Load()),
                     value=self.receiver, simple=1, annotation=ast.Name(id=self.receiver_type.name, ctx=ast.Load()))
@@ -222,13 +224,13 @@ class Normalizer(DeviceCodeVisitor):
         for arg in node.args:
             self.receiver = arg
             self.visit(arg)
-            if type(arg) is ast.Call and type(self.receiver_type) is not call_graph.TypeNode:
+            if type(arg) is ast.Call and type(self.receiver_type) is not cg.TypeNode:
                 if hasattr(arg.func.value, "id") and arg.func.value.id == "random" and \
                         arg.func.attr in ["getrandbits", "uniform"]:
                     new_args.append(arg)
                 else:
                     new_name = "__auto_v" + str(self.var_counter)
-                    self.stack[-1].declared_variables.add(call_graph.VariableNode(new_name, self.receiver_type))
+                    self.stack[-1].declared_variables.add(cg.VariableNode(new_name, self.receiver_type))
                     new_node = ast.AnnAssign(
                         target=ast.Name(id=new_name, ctx=ast.Load()),
                         value=self.receiver, simple=1, annotation=ast.Name(id=self.receiver_type.name, ctx=ast.Load()))
@@ -253,9 +255,9 @@ class Normalizer(DeviceCodeVisitor):
                     and node.func.value.func.id == "super":
                 return node
             self.visit(node.func.value)
-            if type(node.func.value) == ast.Call and type(self.receiver_type) is not call_graph.TypeNode:
+            if type(node.func.value) == ast.Call and type(self.receiver_type) is not cg.TypeNode:
                 new_name = "__auto_v" + str(self.var_counter)
-                self.stack[-1].declared_variables.add(call_graph.VariableNode(new_name, self.receiver_type))                
+                self.stack[-1].declared_variables.add(cg.VariableNode(new_name, self.receiver_type))                
                 new_node = ast.AnnAssign(
                     target=ast.Name(id=new_name, ctx=ast.Load()),
                     value=self.receiver, simple=1, annotation=ast.Name(id=self.receiver_type.name, ctx=ast.Load()))
@@ -296,7 +298,7 @@ CONVERTED INTO
     __auto_v0: Vector = Vector((self.force.x * kDt), (self.force.y * kDt))
 """
 class Inliner(DeviceCodeVisitor):
-    def __init__(self, root: call_graph.RootNode):
+    def __init__(self, root: cg.RootNode):
         super().__init__(root)
     
     def visit_Module(self, node):
@@ -310,7 +312,7 @@ class Inliner(DeviceCodeVisitor):
         name = node.name
         func_node = self.stack[-1].get_FunctionNode(name, self.stack[-1].name)
         if func_node is None:
-            call_graph.ast_error("The function {} does not exist.".format(name), node)
+            cg.ast_error("The function {} does not exist.".format(name), node)
         if func_node.is_device:
             self.stack.append(func_node)
             node.args = self.visit(node.args)
@@ -344,14 +346,14 @@ class Inliner(DeviceCodeVisitor):
             for new_node in node.value:
                 if type(new_node) == ast.Return:
                     new_node = ast.Assign(targets=node.targets, value=new_node.value)
-                ret.append(new_node)
+                result.append(new_node)
             return result
         return node
     
     def visit_AnnAssign(self, node):
         if node.value is None:
             return node
-        if type(call_graph.ast_to_call_graph_type(self.stack, node.target)) is call_graph.RefTypeNode:
+        if type(cg.ast_to_call_graph_type(self.stack, node.target)) is cg.RefTypeNode:
             return node
         result = []
         node.value = self.visit(node.value)
@@ -367,8 +369,8 @@ class Inliner(DeviceCodeVisitor):
     
     def visit_Call(self, node):
         if type(node.func) is ast.Attribute:
-            receiver_type = call_graph.ast_to_call_graph_type(self.stack, node.func.value)
-            if type(receiver_type) is call_graph.ClassTypeNode and receiver_type.name in self.root.fields_class_names:
+            receiver_type = cg.ast_to_call_graph_type(self.stack, node.func.value)
+            if type(receiver_type) is cg.ClassTypeNode and receiver_type.name in self.root.fields_class_names:
                 for func_node in receiver_type.class_node.declared_functions:
                     if func_node.name == node.func.attr:
                         func_body_gen = FunctionInliner(func_node.ast_node, node.func.value, node.args)
@@ -387,14 +389,14 @@ CONVERTED INTO:
     self.pos.y: float = 0
 """
 class Eliminator(DeviceCodeVisitor):
-    def __init__(self, root: call_graph.RootNode):
+    def __init__(self, root: cg.RootNode):
         super().__init__(root)
     
     def visit_FunctionDef(self, node):
         name = node.name
         func_node = self.stack[-1].get_FunctionNode(name, self.stack[-1].name)
         if func_node is None:
-            call_graph.ast_error("The function {} does not exist.".format(name), node)
+            cg.ast_error("The function {} does not exist.".format(name), node)
         if func_node.is_device:
             self.stack.append(func_node)
             node.args = self.visit(node.args)
@@ -410,8 +412,8 @@ class Eliminator(DeviceCodeVisitor):
         return node
 
     def visit_AnnAssign(self, node):
-        target_type = call_graph.ast_to_call_graph_type(self.stack, node.target)
-        if type(target_type) is call_graph.ClassTypeNode and target_type.name in self.root.fields_class_names:
+        target_type = cg.ast_to_call_graph_type(self.stack, node.target)
+        if type(target_type) is cg.ClassTypeNode and target_type.name in self.root.fields_class_names:
             if type(node.value) is ast.Call and type(node.value.func) is ast.Name:
                 for func_node in target_type.class_node.declared_functions:
                     if func_node.name == "__init__":
@@ -422,9 +424,9 @@ class Eliminator(DeviceCodeVisitor):
             else:
                 new_nodes = []
                 for field_name in target_type.class_node.expanded_fields:
-                    for nested_field in target_type.expanded_fields[field_name]:
+                    for nested_field in target_type.class_node.expanded_fields[field_name]:
                         annotation = None
-                        if type(nested_field.type) is ListTypeNode:
+                        if type(nested_field.type) is cg.ListTypeNode:
                             annotation = ast.Subscript(
                                 value=ast.Name(id="list", ctx=node.annotation.ctx),
                                 slice=ast.Index(value=ast.Name(id=nested_field.type.element_type, ctx=node.annotation.ctx)),
@@ -444,8 +446,8 @@ class Eliminator(DeviceCodeVisitor):
     def visit_Assign(self, node):
         result = []
         for target in node.targets:
-            target_type = call_graph.ast_to_call_graph_type(self.stack, target)
-            if type(target_type) is call_graph.ClassTypeNode and target_type.name in self.root.fields_class_names:
+            target_type = cg.ast_to_call_graph_type(self.stack, target)
+            if type(target_type) is cg.ClassTypeNode and target_type.name in self.root.fields_class_names:
                 if type(node.value) is ast.Call and type(node.value.func) is ast.Name:
                     for func_node in target_type.class_node.declared_functions:
                         if func_node.name == "__init__":
@@ -467,13 +469,13 @@ class Eliminator(DeviceCodeVisitor):
         return node
 
 class FieldSynthesizer(DeviceCodeVisitor):
-    def __init__(self, root: call_graph.RootNode):
+    def __init__(self, root: cg.RootNode):
         super().__init__(root)
 
     def visit_FunctionDef(self, node):
         func_node = self.stack[-1].get_FunctionNode(node.name, self.stack[-1].name)
         if func_node is None:
-            call_graph.ast_error("The function {} does not exist.".format(name), node)
+            cg.ast_error("The function {} does not exist.".format(name), node)
         if func_node.is_device:
             self.stack.append(func_node)
             node.args = self.visit(node.args)
@@ -504,8 +506,8 @@ class FieldSynthesizer(DeviceCodeVisitor):
             ctx = ast.Load()
         elif type(node.ctx) == ast.Store:
             ctx = ast.Store()
-        value_type = call_graph.ast_to_call_graph_type(self.stack, node.value)
-        if type(value_type) is call_graph.ClassTypeNode and value_type.name in self.root.fields_class_names:
+        value_type = cg.ast_to_call_graph_type(self.stack, node.value)
+        if type(value_type) is cg.ClassTypeNode and value_type.name in self.root.fields_class_names:
             if type(node.value) is ast.Name:
                 return ast.Name(id=node.value.id + "_" + node.attr, ctx=ctx)
             elif type(node.value) is ast.Attribute:

@@ -44,8 +44,8 @@ class RootNode(CallGraphNode):
         self.declared_variables: Set[VariableNode] = set()
         self.called_variables: Set[VariableNode] = set()
 
-        self.device_class_names = []
-        self.fields_class_names = []
+        self.device_class_names = set()
+        self.fields_class_names = set()
         self.has_device_data = False
 
     def get_ClassNode(self, class_name):
@@ -255,7 +255,11 @@ class RefTypeNode(TypeNode):
     def __init__(self, type_node):
         super().__init__()
         self.type_node = type_node
-    
+
+    @property
+    def name(self):
+        return self.type_node.name    
+
     def to_cpp_type(self):
         return self.name + "*"
 
@@ -346,7 +350,9 @@ class CallGraphVisitor(ast.NodeVisitor):
                 field_node = VariableNode(var_name, var_type)
                 self.stack[-2].declared_fields.append(field_node)
                 if type(var_type) is ClassTypeNode:
-                    var_type.class_node.expanded_fields[var_name] = self.expand_field(field_node)
+                    self.stack[-2].expanded_fields[var_name] = self.expand_field(field_node)
+                else:
+                    self.stack[-2].expanded_fields[var_name] = [field_node]
         elif type(var) is ast.Name:
             var_name = var.id
             var_type = ast_to_call_graph_type(self.stack, node.annotation, var_name=var_name)
@@ -381,12 +387,12 @@ class CallGraphVisitor(ast.NodeVisitor):
                     self.root.has_device_data = True
                     for cls in node.args:
                         if cls.id not in self.root.device_class_names:
-                            self.root.device_class_names.append(cls.id)
+                            self.root.device_class_names.add(cls.id)
                 if (node.func.value.id == "allocator" or node.func.value.id == "PyAllocator") and \
                         func_name == "parallel_new":
                     self.root.has_device_data = True
                     if node.args[0].id not in self.root.device_class_names:
-                        self.root.device_class_names.append(node.args[0].id)
+                        self.root.device_class_names.add(node.args[0].id)
             elif type(node.func.value) is ast.Attribute:
                 if hasattr(node.func.value.value, "id") and node.func.value.value.id == "self" and \
                         type(self.stack[-2]) is ClassNode:
@@ -421,6 +427,8 @@ class CallGraphVisitor(ast.NodeVisitor):
         return result
 
 """ visit call graph and marks corresponding nodes as device nodes """
+
+"""
 
 class MarkDeviceVisitor:
     def __init__(self):
@@ -471,7 +479,6 @@ class MarkDeviceVisitor:
         elif type(node.type) is ClassTypeNode and node.type.name != "RandomState":
             field_class = self.root.get_ClassNode(node.type.name)
         if field_class is not None and not field_class.is_device:
-            self.root.device_class_names.append(field_class.name)
             if not field_class.name in self.root.fields_class_names:
                 self.root.fields_class_names.append(field_class.name)
             self.visit_RootNode(self.root, [field_class.name])
@@ -480,7 +487,7 @@ class MarkDeviceVisitor:
         node.is_device = True
         if type(node.type) is ClassTypeNode \
                 and not node.type.name in self.root.fields_class_names:
-            self.root.fields.class_names.append(node.type.name)
+            self.root.fields_class_names.append(node.type.name)
 
     def visit_FunctionNode(self, node):
         queue = [node]
@@ -499,7 +506,79 @@ class MarkDeviceVisitor:
                     queue.append(func_node)
             queue.pop(0)
 
+"""
+
+class MarkDeviceVisitor:
+    def __init__(self):
+        self.root = None
+    
+    def visit(self, node):
+        self.root = node
+        if type(node) is RootNode:
+            self.visit_RootNode(node)
         
+    def visit_RootNode(self, node):
+        for class_node in node.declared_classes:
+            if class_node.name in self.root.device_class_names:
+                self.visit_ClassNode(class_node)
+        for device_class in self.root.device_class_names:
+            if device_class in self.root.fields_class_names:
+                self.root.fields_class_names.remove(device_class)
+
+    def visit_ClassNode(self, node):
+        node.is_device = True
+        if not node.name in self.root.device_class_names:
+            self.root.device_class_names.add(node.name)
+        if node.super_class is not None:
+            super_class_node = self.root.get_ClassNode(node.super_class)
+            if not super_class_node.is_device:
+                self.visit_ClassNode(super_class_node)
+        for field_node in node.declared_fields:
+            self.visit_FieldNode(field_node)
+        for func_node in node.declared_functions:
+            self.visit_FunctionNode(func_node)
+        for var_node in node.declared_variables:
+            self.visit_VariableNode(var_node)
+    
+    def visit_FieldNode(self, node):
+        node.is_device = True
+        if type(node.type) is ListTypeNode:
+            elem_type = node.type.element_type
+            if type(elem_type) is ClassTypeNode:
+                if not elem_type.name in self.root.fields_class_names:
+                    self.root.fields_class_names.add(elem_type.name)
+                self.visit_ClassNode(elem_type.class_node)
+        elif type(node.type) is RefTypeNode and type(node.type.type_node) is ClassTypeNode:
+            ref_type = node.type.type_node
+            if not ref_type.class_node.is_device:
+                if not ref_type.name in self.root.fields_class_names:
+                    self.root.fields_class_names.add(ref_type.name)
+                self.visit_ClassNode(ref_type.class_node)
+        node_type = node.type
+        if type(node_type) is ClassTypeNode:
+            if not node_type.class_node.name in self.root.fields_class_names:
+                self.root.fields_class_names.add(node_type.class_node.name)                
+    
+    def visit_FunctionNode(self, node):
+        node.is_device = True
+        for arg in node.arguments:
+            if type(arg.type) is ClassTypeNode and not arg.type.class_node.name in self.root.fields_class_names:
+                self.root.fields_class_names.add(arg.type.class_node.name)
+        for var_node in node.called_variables:
+            self.visit_VariableNode(var_node)
+        for var_node in node.declared_variables:
+            self.visit_VariableNode(var_node)
+        for func_node in node.called_functions:
+            if not func_node.is_device:
+                self.visit_FunctionNode(func_node)
+
+    def visit_VariableNode(self, node):
+        node.is_device = True
+        node_type = node.type
+        if type(node_type) is ClassTypeNode:
+            if not node_type.class_node.name in self.root.fields_class_names:
+                self.root.fields_class_names.add(node_type.class_node.name)  
+
 """ used to check equivalence between two typenodes """
 
 def check_equal_type(ltype: TypeNode, rtype: TypeNode):
