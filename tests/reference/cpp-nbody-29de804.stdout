@@ -53,7 +53,6 @@ __device__ void Body::update() {
 		this->vel_y = -this->vel_y;
 	}
 }
-
 void Body::_do(void (*pf)(int, float, float, float, float, float, float, float)){
 	pf(0, this->pos_x, this->pos_y, this->vel_x, this->vel_y, this->force_x, this->force_y, this->mass);
 }

@@ -127,13 +127,13 @@ def main(allocator, do_render):
         py = int(((b.pos.y + 1) * 150))
         pygame.draw.circle(screen, (255, 255, 255), (px, py), ((b.mass / 10000) * 20))
     if do_render:
-        os.environ['SDL_VIDEODRIVER'] = 'windib'
+        os.environ['SDL_VIDEODRIVER'] = 'x11'
         screen_width = 300
         screen_height = 300
         pygame.init()
         screen = pygame.display.set_mode((screen_width, screen_height))
         pygame.display.flip()
-    num: int = 10
+    num: int = 100
     iter: int = 5000
     allocator.initialize()
     initialize_time = time.perf_counter()
