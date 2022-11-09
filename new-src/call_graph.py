@@ -160,6 +160,9 @@ class VariableNode(CallGraphNode):
     def type(self):
         return self.var_type
 
+    def is_ref(self):
+        return self.var_name.split("_")[-1] == "ref"
+
 """ types for nodes in the call graph """
 
 class TypeNode():

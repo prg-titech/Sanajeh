@@ -628,7 +628,10 @@ class HppVisitor(ast.NodeVisitor):
         do_field_types = []
         field_templates = []
         for i, field in enumerate(class_node.declared_fields):
-            field_types.append(field.type.name)
+            if field.is_ref():
+                field_types.append(field.type.name + "*")
+            else:
+                field_types.append(field.type.name)
             do_field_types.append(self.do_all_convert(field.type.name))
             field_templates.append(INDENT + "Field<{}, {}> {};".format(
                 node.name, i, field.name))
