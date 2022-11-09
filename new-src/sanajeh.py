@@ -6,6 +6,7 @@ import random
 import call_graph as cg
 from transformer import Normalizer, Inliner, Eliminator, FieldSynthesizer
 from py2cpp import Preprocessor, CppVisitor, HppVisitor, INDENT
+from expander import RuntimeExpander
 
 ffi = cffi.FFI()
 
@@ -163,7 +164,88 @@ class PyCompiler:
         so_path: str = "{}/{}.so".format(self.dir_path, self.file_name)
         if os.system("src/build.sh " + "{}/{}.cu".format(self.dir_path, self.file_name) + " -o " + so_path) != 0:
             print("Build failed!", file=sys.stderr)
-            sys.exit(1)  
+            sys.exit(1)
+
+class PyAllocator:
+    
+    file_name: str = ""
+    py_code: str = ""
+    cpp_code: str = ""
+    hpp_code: str = ""
+    cdef_code: str = ""
+    lib = None
+    expander: RuntimeExpander = RuntimeExpander()
+
+    def __init__(self, name: str):
+        self.file_name = name
+
+    def initialize(self):
+        """
+        Initialize ffi module
+        """
+        self.py_code = open("device_code/{}/{}_py.py".format(self.file_name, self.file_name), mode="r").read()
+        self.cpp_code = open("device_code/{}/{}.cu".format(self.file_name, self.file_name), mode="r").read()
+        self.hpp_code = open("device_code/{}/{}.h".format(self.file_name, self.file_name), mode="r").read()
+        self.cdef_code = open("device_code/{}/{}.cdef".format(self.file_name, self.file_name), mode="r").read()
+
+        ffi.cdef(self.cdef_code)
+        self.lib = ffi.dlopen("device_code/{}/{}.so".format(self.file_name, self.file_name))
+        if self.lib.AllocatorInitialize() == 0:
+            print("Successfully initialized the allocator through FFI.")
+        else:
+            print("Initialization failed!", file=sys.stderr)
+            sys.exit(1)
+
+    def uninitialize():
+        """
+        Initialize ffi module
+        """
+        if self.lib.AllocatorUninitialize() == 0:
+            print("Successfully uninitialized the allocator through FFI.")
+        else:
+            print("Initialization failed!", file=sys.stderr)
+            sys.exit(1)
+
+    def parallel_do(self, cls, func, *args):
+        """
+        Parallelly run a function on all objects of a class.
+        """
+        object_class_name = cls.__name__
+        func_str = func.__qualname__.split(".")
+        # todo nested class exception
+        func_class_name = func_str[0]
+        func_name = func_str[1]
+        # todo args
+        if eval("self.lib.{}_{}_{}".format(object_class_name, func_class_name, func_name))() == 0:
+            print("Successfully called parallel_do {} {} {}".format(object_class_name, func_class_name, func_name))
+        else:
+            print("Parallel_do expression failed!", file=sys.stderr)
+            sys.exit(1)
+
+    def parallel_new(self, cls, object_num):
+        """
+        Parallelly create objects of a class
+        """
+        object_class_name = cls.__name__
+        if eval("self.lib.parallel_new_{}".format(object_class_name))(object_num) == 0:
+            print("Successfully called parallel_new {} {}".format(object_class_name, object_num))
+        else:
+            print("Parallel_new expression failed!", file=sys.stderr)
+            sys.exit(1)
+
+    def do_all(self, cls, func):
+        name = cls.__name__
+        if name not in self.expander.built.keys():
+            self.expander.build_function(cls, self.py_code)
+        callback_types = "void({})".format(", ".join(self.expander.flattened[name].values()))
+        fields = ", ".join(self.expander.flattened[name])
+        lambda_for_create_host_objects = eval("lambda {}: func(cls.__rebuild_{}({}))".format(fields, name, fields), locals())
+        lambda_for_callback = ffi.callback(callback_types, lambda_for_create_host_objects)
+        if eval("self.lib.{}_do_all".format(name))(lambda_for_callback) == 0:
+            pass
+        else:
+            print("Do_all expression failed!", file=sys.stderr)
+            sys.exit(1)   
 
 def compile(source_code, dir_path, file_name):
     """
@@ -260,4 +342,4 @@ def compile(source_code, dir_path, file_name):
 
     new_py_ast = astunparse.unparse(py_ast)
 
-    return new_py_ast, None, hpp_code, cdef_code
+    return new_py_ast, cpp_code, hpp_code, cdef_code
