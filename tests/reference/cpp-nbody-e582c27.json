@@ -1,0 +1,11 @@
+{
+    "basename": "cpp-nbody-e582c27",
+    "cmd": "src/interface.py --emit-cpp {infile}",
+    "infile": "examples/nbody/nbody.py",
+    "infile_hash": "40e72eaee1116fd390c6cbc7410eb67ec055a9fb6775b9416f3cc4f7",
+    "stdout": "cpp-nbody-e582c27.stdout",
+    "stdout_hash": "72c8a8a90c727af5d0f8741a9a7ea996290abd848b05b337cdce4833",
+    "stderr": null,
+    "stderr_hash": null,
+    "returncode": 0
+}

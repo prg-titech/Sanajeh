@@ -134,7 +134,7 @@ class PyCompiler:
         py, cpp, hpp, cdef = py2cpp.compile(source, self.dir_path, self.file_name)
 
         if emit_py:
-            # print(py)
+            print(py)
             return
         elif emit_cpp:
             print(cpp)
