@@ -134,6 +134,8 @@ class PyCompiler:
 
     def compile(self, emit_py, emit_cpp, emit_hpp, emit_cdef):
         source = open(self.file_path, encoding="utf-8").read()
+        if not os.path.isdir("device_code"):
+            os.mkdir("device_code")
         py, cpp, hpp, cdef = compile(source, self.dir_path, self.file_name)
 
         if emit_py:
@@ -148,7 +150,7 @@ class PyCompiler:
         elif emit_cdef:
             print(cdef)
             return
-                
+        
         if not os.path.isdir(self.dir_path):
             os.mkdir(self.dir_path)
         compile_path: str = os.path.join(self.dir_path, self.file_name)
