@@ -15,7 +15,7 @@ hpp = true
 cdef = true
 
 [[test]]
-filename = "examples/wator/wator_render.py"
+filename = "examples/wator/wator.py"
 py = true
 cpp = true
 hpp = true
