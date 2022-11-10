@@ -1,0 +1,11 @@
+{
+    "basename": "python-nbody-c51b775",
+    "cmd": "new-src/interface.py --emit-py {infile}",
+    "infile": "examples/nbody/nbody.py",
+    "infile_hash": "6f95c9faf5c3a5e37fabf40b92e892f22609d9e9068a718d59dedde4",
+    "stdout": "python-nbody-c51b775.stdout",
+    "stdout_hash": "a79940a20baa8f80fa5eea327bba13e855fad3e7a43e0120b7fc38ab",
+    "stderr": null,
+    "stderr_hash": null,
+    "returncode": 0
+}

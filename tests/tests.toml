@@ -1,0 +1,22 @@
+# tests
+
+[[test]]
+filename = "examples/nbody/nbody.py"
+py = true
+cpp = true
+hpp = true
+cdef = true
+
+[[test]]
+filename = "examples/collision/collision_nested.py"
+py = true
+cpp = true
+hpp = true
+cdef = true
+
+[[test]]
+filename = "examples/wator/wator.py"
+py = true
+cpp = true
+hpp = true
+cdef = true

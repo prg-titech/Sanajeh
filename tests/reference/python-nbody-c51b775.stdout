@@ -1,0 +1,153 @@
+
+from __future__ import annotations
+import os, math, time, random
+import pygame
+from sanajeh import DeviceAllocator
+kSeed: int = 45
+kMaxMass: float = 1000.0
+kDt: float = 0.01
+kGravityConstant: float = 4e-06
+kDampeningFactor: float = 0.05
+
+class Vector():
+
+    def __init__(self, x_: float, y_: float):
+        self.x: float = x_
+        self.y: float = y_
+
+    def add(self, other: Vector) -> Vector:
+        self.x += other.x
+        self.y += other.y
+        return self
+
+    def plus(self, other: Vector) -> Vector:
+        return Vector((self.x + other.x), (self.y + other.y))
+
+    def subtract(self, other: Vector) -> Vector:
+        self.x -= other.x
+        self.y -= other.y
+        return self
+
+    def minus(self, other: Vector) -> Vector:
+        return Vector((self.x - other.x), (self.y - other.y))
+
+    def scale(self, ratio: float) -> Vector:
+        self.x *= ratio
+        self.y *= ratio
+        return self
+
+    def multiply(self, multiplier: float) -> Vector:
+        return Vector((self.x * multiplier), (self.y * multiplier))
+
+    def divide_by(self, divisor: float) -> Vector:
+        self.x /= divisor
+        self.y /= divisor
+        return self
+
+    def divide(self, divisor: float) -> Vector:
+        return Vector((self.x / divisor), (self.y / divisor))
+
+    def dist_origin(self) -> float:
+        return math.sqrt(((self.x * self.x) + (self.y * self.y)))
+
+    def to_zero(self) -> Vector:
+        self.x = 0.0
+        self.y = 0.0
+        return self
+
+class Body():
+
+    def __init__(self):
+        self.random_state_: DeviceAllocator.RandomState = None
+        self.pos_x: float = 0
+        self.pos_y: float = 0
+        self.vel_x: float = 0
+        self.vel_y: float = 0
+        self.force_x: float = 0
+        self.force_y: float = 0
+        self.mass: float = 0
+
+    def Body(self, idx: int):
+        random.seed(idx)
+        self.pos_x = ((2.0 * random.uniform(0, 1)) - 1.0)
+        self.pos_y = ((2.0 * random.uniform(0, 1)) - 1.0)
+        self.vel_x = 0.0
+        self.vel_y = 0.0
+        self.force_x = 0.0
+        self.force_y = 0.0
+        self.mass = (((random.uniform(0, 1) / 2.0) + 0.5) * kMaxMass)
+
+    def compute_force(self):
+        self.force_x = 0.0
+        self.force_y = 0.0
+        DeviceAllocator.device_do(Body, Body.apply_force, self)
+
+    def apply_force(self, other: Body):
+        if (other is not self):
+            d_x: float = (self.pos_x - other.pos_x)
+            d_y: float = (self.pos_y - other.pos_y)
+            dist: float = math.sqrt(((d_x * d_x) + (d_y * d_y)))
+            f: float = (((kGravityConstant * self.mass) * other.mass) / ((dist * dist) + kDampeningFactor))
+            __auto_v0_x: float = (d_x * f)
+            __auto_v0_y: float = (d_y * f)
+            __auto_v1_x: float = (__auto_v0_x / dist)
+            __auto_v1_y: float = (__auto_v0_y / dist)
+            other.force_x += __auto_v1_x
+            other.force_y += __auto_v1_y
+
+    def update(self):
+        __auto_v0_x: float = (self.force_x * kDt)
+        __auto_v0_y: float = (self.force_y * kDt)
+        __auto_v1_x: float = (__auto_v0_x / self.mass)
+        __auto_v1_y: float = (__auto_v0_y / self.mass)
+        self.vel_x += __auto_v1_x
+        self.vel_y += __auto_v1_y
+        __auto_v2_x: float = (self.vel_x * kDt)
+        __auto_v2_y: float = (self.vel_y * kDt)
+        self.pos_x += __auto_v2_x
+        self.pos_y += __auto_v2_y
+        if ((self.pos_x < (- 1)) or (self.pos_x > 1)):
+            self.vel_x = (- self.vel_x)
+        if ((self.pos_y < (- 1)) or (self.pos_y > 1)):
+            self.vel_y = (- self.vel_y)
+'\nTODO: \nDevice classes and functions can be analysed\nfrom the main function looking for parallel_new\nand parallel_do calls\n'
+
+def kernel_initialize_bodies():
+    DeviceAllocator.device_class(Body)
+
+def _update():
+    DeviceAllocator.parallel_do(Body, Body.compute_force)
+    DeviceAllocator.parallel_do(Body, Body.update)
+
+def main(allocator, do_render):
+    '\n  Rendering setting\n  '
+
+    def render(b):
+        px = int(((b.pos.x + 1) * 150))
+        py = int(((b.pos.y + 1) * 150))
+        pygame.draw.circle(screen, (255, 255, 255), (px, py), ((b.mass / 10000) * 20))
+    if do_render:
+        os.environ['SDL_VIDEODRIVER'] = 'x11'
+        screen_width = 300
+        screen_height = 300
+        pygame.init()
+        screen = pygame.display.set_mode((screen_width, screen_height))
+        pygame.display.flip()
+    num: int = 100
+    iter: int = 5000
+    allocator.initialize()
+    initialize_time = time.perf_counter()
+    allocator.parallel_new(Body, num)
+    parallel_new_time = time.perf_counter()
+    for x in range(iter):
+        allocator.parallel_do(Body, Body.compute_force)
+        allocator.parallel_do(Body, Body.update)
+        if do_render:
+            allocator.do_all(Body, render)
+            pygame.display.flip()
+            screen.fill((0, 0, 0))
+        end_time = time.perf_counter()
+    print(('parallel new time(%-5d objects): %.dµs' % (num, ((parallel_new_time - initialize_time) * 1000000))))
+    print(('average computation time: %dµs' % (((end_time - parallel_new_time) * 1000000) / iter)))
+    print(('overall computation time(%-4d iterations): %dµs' % (iter, ((end_time - parallel_new_time) * 1000000))))
+

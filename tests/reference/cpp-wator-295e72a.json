@@ -1,0 +1,11 @@
+{
+    "basename": "cpp-wator-295e72a",
+    "cmd": "new-src/interface.py --emit-cpp {infile}",
+    "infile": "examples/wator/wator.py",
+    "infile_hash": "35a58be0d2e3583bed1a3e5c9c7c6d0149b2eed067c3400c6a4070d6",
+    "stdout": "cpp-wator-295e72a.stdout",
+    "stdout_hash": "63e58d5290dac98f691799d2e155e0abda80187b6cc8dca10446e912",
+    "stderr": null,
+    "stderr_hash": null,
+    "returncode": 0
+}
