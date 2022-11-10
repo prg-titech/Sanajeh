@@ -2,6 +2,7 @@
 
 import ast, sys
 from typing import Set
+import astunparse
 
 def ast_error(msg: str, ast_node):
     print("({},{}): {}".format(ast_node.lineno, ast_node.col_offset, msg), 
@@ -44,7 +45,7 @@ class RootNode(CallGraphNode):
         self.declared_variables: Set[VariableNode] = set()
         self.called_variables: Set[VariableNode] = set()
 
-        self.device_class_names = set()
+        self.device_class_names = []
         self.fields_class_names = set()
         self.has_device_data = False
 
@@ -174,10 +175,13 @@ class TypeNode():
         return None
     
     @property
-    def element_type(self):
+    def e_type(self):
         return None
 
     def to_cpp_type(self):
+        return "auto"
+
+    def to_field_type(self):
         return "auto"
 
 class IntNode(TypeNode):
@@ -195,6 +199,9 @@ class IntNode(TypeNode):
             return "uint" + str(self.size) + "_t"
         else:
             return "int" 
+        
+    def to_field_type(self):
+        return "int"
 
 class FloatNode(TypeNode):
     def __init__(self):
@@ -205,6 +212,9 @@ class FloatNode(TypeNode):
         return "float"
     
     def to_cpp_type(self):
+        return "float"
+
+    def to_field_type(self):
         return "float"
 
 class BoolNode(TypeNode):
@@ -218,6 +228,9 @@ class BoolNode(TypeNode):
     def to_cpp_type(self):
         return "bool"
 
+    def to_field_type(self):
+        return "bool"
+
 class CurandStateTypeNode(TypeNode):
     def __init__(self):
         super().__init__()
@@ -229,7 +242,12 @@ class CurandStateTypeNode(TypeNode):
     def to_cpp_type(self):
         return "curandState&"
 
+    def to_field_type(self):
+        return "curandState"
+
 class ListTypeNode(TypeNode):
+    size: int = None
+
     def __init__(self, element_type):
         super().__init__()
         self.element_type = element_type
@@ -238,9 +256,9 @@ class ListTypeNode(TypeNode):
     def name(self):
         return "list[" + self.element_type.name + "]"
 
-    @property
-    def element_type(self):
-        return self.element_type
+    def to_field_type(self):
+        return "DeviceArray<" + self.element_type.to_field_type() \
+            + ", " + str(self.size) + ">"
 
 class ClassTypeNode(TypeNode):
     def __init__(self, class_node):
@@ -254,6 +272,9 @@ class ClassTypeNode(TypeNode):
     def to_cpp_type(self):
         return self.name + "*"
 
+    def to_field_type(self):
+        return self.name + "*"
+
 class RefTypeNode(TypeNode):
     def __init__(self, type_node):
         super().__init__()
@@ -264,6 +285,9 @@ class RefTypeNode(TypeNode):
         return self.type_node.name    
 
     def to_cpp_type(self):
+        return self.name + "*"
+    
+    def to_field_type(self):
         return self.name + "*"
 
 """ visit AST and build call graph """
@@ -284,6 +308,23 @@ class CallGraphVisitor(ast.NodeVisitor):
     def visit_Module(self, node):
         self.generic_visit(node)
 
+    def visit_Module(self, node):
+        for body in node.body:
+            if type(body) is ast.ClassDef:
+                class_name = body.name
+                class_node = self.current_node.get_ClassNode(class_name)
+                if class_node is not None:
+                    ast_error("The class {} is already defined".format(class_name), node)
+                super_class = None
+                if len(body.bases) == 1:
+                    super_class = body.bases[0].id
+                elif len(body.bases) > 1:
+                    ast_error("Sanajeh does not yet support multiple inheritances", node)
+                class_node = ClassNode(class_name, super_class, ast_node=body)
+                self.current_node.declared_classes.add(class_node)
+        self.generic_visit(node)
+
+
     def visit_Global(self, node):
         for global_variable in node.names:
             var_node = self.root.get_VariableNode(global_variable)
@@ -295,16 +336,17 @@ class CallGraphVisitor(ast.NodeVisitor):
         if type(self.current_node) is not RootNode:
             ast_error("Sanajeh does not yet support nested classes", node)
         class_name = node.name
+        #class_node = self.current_node.get_ClassNode(class_name)
+        #if class_node is not None:
+        #    ast_error("The class {} is already defined".format(class_name), node)
+        #super_class = None
+        #if len(node.bases) == 1:
+        #    super_class = node.bases[0].id
+        #elif len(node.bases) > 1:
+        #    ast_error("Sanajeh does not yet support multiple inheritances", node)
+        #class_node = ClassNode(class_name, super_class, ast_node=node)
+        #self.current_node.declared_classes.add(class_node)
         class_node = self.current_node.get_ClassNode(class_name)
-        if class_node is not None:
-            ast_error("The class {} is already defined".format(class_name), node)
-        super_class = None
-        if len(node.bases) == 1:
-            super_class = node.bases[0].id
-        elif len(node.bases) > 1:
-            ast_error("Sanajeh does not yet support multiple inheritances", node)
-        class_node = ClassNode(class_name, super_class, ast_node=node)
-        self.current_node.declared_classes.add(class_node)
         self.stack.append(class_node)
         self.generic_visit(node)
         self.stack.pop()
@@ -348,6 +390,8 @@ class CallGraphVisitor(ast.NodeVisitor):
         if type(var) is ast.Attribute:
             var_name = var.attr
             var_type = ast_to_call_graph_type(self.stack, node.annotation, var_name=var_name)
+            if type(var_type) is ListTypeNode:
+                var_type.size = is_list_initialization(node.value)
             if hasattr(var.value, "id") and var.value.id == "self" \
                     and self.current_node.name == "__init__":
                 field_node = VariableNode(var_name, var_type)
@@ -359,6 +403,8 @@ class CallGraphVisitor(ast.NodeVisitor):
         elif type(var) is ast.Name:
             var_name = var.id
             var_type = ast_to_call_graph_type(self.stack, node.annotation, var_name=var_name)
+            if type(var_type) is ListTypeNode:
+                var_type.size = is_list_initialization(node.value)
             if self.current_node.get_VariableNode(var_name) is None:
                 var_node = VariableNode(var_name, var_type)
                 self.current_node.declared_variables.add(var_node)
@@ -390,12 +436,12 @@ class CallGraphVisitor(ast.NodeVisitor):
                     self.root.has_device_data = True
                     for cls in node.args:
                         if cls.id not in self.root.device_class_names:
-                            self.root.device_class_names.add(cls.id)
+                            self.root.device_class_names.append(cls.id)
                 if (node.func.value.id == "allocator" or node.func.value.id == "PyAllocator") and \
                         func_name == "parallel_new":
                     self.root.has_device_data = True
                     if node.args[0].id not in self.root.device_class_names:
-                        self.root.device_class_names.add(node.args[0].id)
+                        self.root.device_class_names.append(node.args[0].id)
             elif type(node.func.value) is ast.Attribute:
                 if hasattr(node.func.value.value, "id") and node.func.value.value.id == "self" and \
                         type(self.stack[-2]) is ClassNode:
@@ -431,86 +477,6 @@ class CallGraphVisitor(ast.NodeVisitor):
 
 """ visit call graph and marks corresponding nodes as device nodes """
 
-"""
-
-class MarkDeviceVisitor:
-    def __init__(self):
-        self.root = None
-
-    def visit(self, node):
-        self.root = node
-        if type(node) is RootNode:
-            self.visit_RootNode(node, self.root.device_class_names)
-
-    def visit_RootNode(self, node, device_class_names):
-        for cln in device_class_names:
-            children = []
-            for cls in node.declared_classes:
-                if cls.super_class == cln and cls.name not in device_class_names \
-                        and not cls.is_device:
-                    children.append(cls.name)
-                if cls.name == cln:
-                    self.visit_ClassNode(cls)
-                    for field in cls.declared_fields:
-                        self.visit_FieldNode(field)
-                    for func in cls.declared_functions:
-                        self.visit_FunctionNode(func)
-                    for var in cls.declared_variables:
-                        self.visit_VariableNode(var)
-        if children:
-            self.root.device_class_names.extend(children)
-            self.visit_RootNode(self.root, children)
-
-    def visit_ClassNode(self, node):
-        queue = [node]
-        while len(queue) > 0:
-            check = queue[0]
-            if check.is_device:
-                queue.pop(0)
-                continue
-            check.is_device = True
-            for var_node in check.declared_variables:
-                self.visit_VariableNode(var_node)
-            queue.pop(0)
-    
-    def visit_FieldNode(self, node):
-        node.is_device = True
-        field_class = None
-        if type(node.type) is ListTypeNode and type(node.type.element_type) is ClassTypeNode \
-                and node.type.element.class_name != "RandomState":
-            field_class = self.root.get_ClassNode(node.type.element.name)
-        elif type(node.type) is ClassTypeNode and node.type.name != "RandomState":
-            field_class = self.root.get_ClassNode(node.type.name)
-        if field_class is not None and not field_class.is_device:
-            if not field_class.name in self.root.fields_class_names:
-                self.root.fields_class_names.append(field_class.name)
-            self.visit_RootNode(self.root, [field_class.name])
-
-    def visit_VariableNode(self, node):
-        node.is_device = True
-        if type(node.type) is ClassTypeNode \
-                and not node.type.name in self.root.fields_class_names:
-            self.root.fields_class_names.append(node.type.name)
-
-    def visit_FunctionNode(self, node):
-        queue = [node]
-        while len(queue) > 0:
-            check = queue[0]
-            if check.is_device:
-                queue.pop(0)
-                continue
-            check.is_device = True
-            for var_node in check.called_variables:
-                self.visit_VariableNode(var_node)
-            for var_node in check.declared_variables:
-                self.visit_VariableNode(var_node)
-            for func_node in check.called_functions:
-                if not func_node.is_device:
-                    queue.append(func_node)
-            queue.pop(0)
-
-"""
-
 class MarkDeviceVisitor:
     def __init__(self):
         self.root = None
@@ -519,10 +485,15 @@ class MarkDeviceVisitor:
         self.root = node
         if type(node) is RootNode:
             self.visit_RootNode(node)
-        
+
     def visit_RootNode(self, node):
         for class_node in node.declared_classes:
-            if class_node.name in self.root.device_class_names:
+            if class_node.name in self.root.device_class_names \
+                    and not class_node.is_device:
+                self.visit_ClassNode(class_node)
+        for class_node in node.declared_classes:
+            if self.has_device_ancestor(class_node) \
+                    and not class_node.is_device:
                 self.visit_ClassNode(class_node)
         for device_class in self.root.device_class_names:
             if device_class in self.root.fields_class_names:
@@ -531,7 +502,7 @@ class MarkDeviceVisitor:
     def visit_ClassNode(self, node):
         node.is_device = True
         if not node.name in self.root.device_class_names:
-            self.root.device_class_names.add(node.name)
+            self.root.device_class_names.append(node.name)
         if node.super_class is not None:
             super_class_node = self.root.get_ClassNode(node.super_class)
             if not super_class_node.is_device:
@@ -550,7 +521,8 @@ class MarkDeviceVisitor:
             if type(elem_type) is ClassTypeNode:
                 if not elem_type.name in self.root.fields_class_names:
                     self.root.fields_class_names.add(elem_type.name)
-                self.visit_ClassNode(elem_type.class_node)
+                if not elem_type.class_node.is_device:
+                    self.visit_ClassNode(elem_type.class_node)
         elif type(node.type) is RefTypeNode and type(node.type.type_node) is ClassTypeNode:
             ref_type = node.type.type_node
             if not ref_type.class_node.is_device:
@@ -581,6 +553,22 @@ class MarkDeviceVisitor:
         if type(node_type) is ClassTypeNode:
             if not node_type.class_node.name in self.root.fields_class_names:
                 self.root.fields_class_names.add(node_type.class_node.name)  
+
+    def has_device_ancestor(self, class_node):
+        if class_node.super_class:
+            super_class_node = self.root.get_ClassNode(class_node.super_class)
+            if super_class_node.class_name in self.root.device_class_names:
+                return True
+            else:
+                return self.has_device_ancestor(super_class_node)
+        return False
+
+def is_list_initialization(node):
+    if type(node) is ast.BinOp and type(node.left) is ast.List and len(node.left.elts) == 1 \
+            and type(node.left.elts[0]) is ast.NameConstant and node.left.elts[0].value is None \
+            and type(node.right) is ast.Num:
+        return node.right.n
+    return False
 
 """ used to check equivalence between two typenodes """
 
@@ -661,9 +649,16 @@ def ast_to_call_graph_type(stack, node, var_name=None):
             for func in receiver_type.declared_functions:
                 if func.name == node.func.attr:
                     return func.return_type
-    elif type(node) is ast.Subscript and node.value.id == "list":
-        element_type = ast_to_call_graph_type(stack, node.slice.value, var_name)
-        if element_type is None:
-            ast_error("Requires element type for list", node)
-        return ListTypeNode(element_type)
+    elif type(node) is ast.Subscript:
+        if type(node.value) is ast.Name and node.value.id == "list":
+            e_type = ast_to_call_graph_type(stack, node.slice.value, var_name)
+            if e_type is None:
+                ast_error("Requires element type for list", node)
+            return ListTypeNode(e_type)
+        else:
+            list_type = ast_to_call_graph_type(stack, node.value, var_name)
+            slice_type = ast_to_call_graph_type(stack, node.slice.value, var_name)
+            if type(slice_type) is IntNode:
+                return list_type.element_type
     return TypeNode()
+

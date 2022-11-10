@@ -293,7 +293,7 @@ def main(allocator, do_render):
 
   # Initialize render
   if do_render:
-    os.environ["SDL_VIDEODRIVER"] = "windib"
+    os.environ["SDL_VIDEODRIVER"] = "x11"
     screen_width, screen_height = kSizeX, kSizeY
     scaling_factor = 6
     window, screen = initialize_render()

@@ -291,9 +291,9 @@ class Preprocessor(ast.NodeVisitor):
                     self.cdef_parallel_new_codes.append(pnb.buildCdef())
                     class_node = self.root.get_ClassNode(class_name)
                     dab = DoAllBuilder(class_node)
-                    self.__cpp_do_all_codes.append(dab.buildCpp())
-                    self.__hpp_do_all_codes.append(dab.buildHpp())
-                    self.__cdef_do_all_codes.append(dab.buildCdef())
+                    self.cpp_do_all_codes.append(dab.buildCpp())
+                    self.hpp_do_all_codes.append(dab.buildHpp())
+                    self.cdef_do_all_codes.append(dab.buildCdef())
             elif node.func.attr == "parallel_do":
                 hval = self.__gen_Hash([node.args[0].id, node.args[1].value.id, node.args[1].attr])
                 if hval not in self.parallel_do_hashtable:
@@ -306,6 +306,8 @@ class Preprocessor(ast.NodeVisitor):
         self.generic_visit(node)
     
 class CppVisitor(ast.NodeVisitor):
+    super_call = None
+
     def __init__(self, root: cg.RootNode):
         self.stack = [root]
         self.indent_level = 0
@@ -344,6 +346,7 @@ class CppVisitor(ast.NodeVisitor):
         return "\n".join(body)
 
     def visit_FunctionDef(self, node):
+        self.super_call = None
         cpp_code = ""
         func_node = self.stack[-1].get_FunctionNode(node.name, self.stack[-1].name)
         if not func_node.is_device or node.name == "__init__":
@@ -360,16 +363,28 @@ class CppVisitor(ast.NodeVisitor):
                 body.remove("")
             if node.name == self.stack[-2].name:
                 # Constructor
-                cpp_code = "\n".join([
-                    "\n{}__device__ {}::{}({}) {{".format(
-                        self.indent(1),
-                        self.stack[-1].name,
-                        self.stack[-1].name,
-                        args,
-                    ),
-                    "\n".join(body),
-                    self.indent(1) + "}",
-                ])
+                if self.super_call:
+                    cpp_code = "\n".join([
+                        "\n{}__device__ {}::{}({}) : {}{{".format(
+                            self.indent(1),
+                            self.stack[-1].name,
+                            self.stack[-1].name,
+                            args,
+                            self.super_call),
+                        "\n".join(body),
+                        self.indent(1) + "}"
+                    ])
+                else:
+                    cpp_code = "\n".join([
+                        "\n{}__device__ {}::{}({}) {{".format(
+                            self.indent(1),
+                            self.stack[-1].name,
+                            self.stack[-1].name,
+                            args,
+                        ),
+                        "\n".join(body),
+                        self.indent(1) + "}",
+                    ])
             else:
                 # Methods
                 rtype = self.return_type(node)
@@ -410,6 +425,11 @@ class CppVisitor(ast.NodeVisitor):
     def visit_AnnAssign(self, node):
         cpp_code = ""
         node_type = cg.ast_to_call_graph_type(self.stack, node.annotation)
+        # ignore non-device variables
+        if type(node.target) is ast.Name:
+            var_node = self.stack[-1].get_VariableNode(node.target.id)
+            if not var_node.is_device:
+                return ""
         if type(self.stack[-1]) is cg.RootNode:
             if type(node_type) is cg.ListTypeNode and type(node.value) is ast.Call \
                     and type(node.value.func.value) is ast.Name \
@@ -418,15 +438,23 @@ class CppVisitor(ast.NodeVisitor):
                         return self.indent() + "__device__ {}* {}[{}];".format(
                             self.visit(node.annotation.slice),
                             self.visit(node.target),
-                            ", ".join([self.visit(arg) for arg in node.value.args])) 
-        else:
+                            ", ".join([self.visit(arg) for arg in node.value.args]))
+        elif type(self.stack[-1]) is cg.FunctionNode:
             if node.value is not None:
                 if type(self.stack[-1]) is cg.FunctionNode and self.stack[-1].name == "__init__":
-                    return self.indent() + "{} = {};".format(
-                        self.visit(node.target),
-                        self.visit(node.value)
-                    ) 
+                    if not type(node_type) is cg.ListTypeNode:
+                        return self.indent() + "{} = {};".format(
+                            self.visit(node.target),
+                            self.visit(node.value)
+                        ) 
                 else:
+                    if type(node_type) is cg.ListTypeNode and type(node.value) is ast.BinOp \
+                            and self.is_none(node.value.left):
+                        return self.indent() + "{} {}[{}];".format(
+                            node_type.element_type.to_cpp_type(),
+                            self.visit(node.target),
+                            self.visit(node.value.right)
+                        )
                     return self.indent() + "{} {} = {};".format(
                         cg.ast_to_call_graph_type(self.stack, node.annotation).to_cpp_type(),
                         self.visit(node.target),
@@ -440,6 +468,14 @@ class CppVisitor(ast.NodeVisitor):
             self.visit(node.target),
             OPERATOR_MAP[node.op.__class__],
             self.visit(node.value))
+
+    def visit_Subscript(self, node):
+        return "{}[{}]".format(
+            self.visit(node.value),
+            self.visit(node.slice))
+    
+    def visit_Index(self, node):
+        return self.visit(node.value)
 
     def visit_If(self, node):
         self.indent_level += 1
@@ -467,10 +503,78 @@ class CppVisitor(ast.NodeVisitor):
             result.append(self.indent() + "}")
         return "\n".join(result)
 
+    def visit_For(self, node):
+        self.indent_level += 1
+        body = [self.visit(for_body) for for_body in node.body]
+        self.indent_level -= 1
+        target = self.visit(node.target)
+        if type(node.iter) is ast.Call:
+            if type(node.iter.func) is ast.Name and node.iter.func.id == "range":
+                # for _ in range(_)
+                if len(node.iter.args) == 1:
+                    return "\n".join([
+                        "{}for (int {} = {}; {} < {}; ++{}) {{".format(
+                            self.indent(),
+                            target,
+                            "0",
+                            target,
+                            self.visit(node.iter.args[0]),
+                            target),
+                        "\n".join(body),
+                        self.indent() + "}"])
+                # for _ in range(_,_)
+                elif len(node.iter.args) == 2:
+                    return "\n".join([
+                        "{}for (int {} = {}; {} < {}; ++{}) {{".format(
+                            self.indent(),
+                            target,
+                            self.visit(node.iter.args[0]),
+                            target,
+                            self.visit(node.iter.args[1]),
+                            target),
+                        "\n".join(body),
+                        self.indent() + "}"])
+                # for _ in range(_,_,_)
+                elif len(node.iter.args) == 3:
+                    return "\n".join([
+                        "{}for (int {} = {}; {} < {}; {} += {}) {{".format(
+                            self.indent(),
+                            target,
+                            self.visit(node.iter.args[0]),
+                            target,
+                            self.visit(node.iter.args[1]),
+                            target,
+                            self.visit(node.iter.args[2])),
+                        "\n".join(body),
+                        self.indent() + "}"])
+                else:
+                    # TODO: pass error
+                    pass
+        
+        return "\n".join([
+            "{}for (auto {} : {}) {{".format(
+                self.indent(),
+                target,
+                self.visit(iter)),
+            "\n".join(body),
+            self.indent() + "}"])
+
+    def visit_While(self, node):
+        self.indent_level += 1
+        body = [self.visit(while_body) for while_body in node.body]
+        self.indent_level -= 1
+        return "\n".join([
+            "{}while ({}) {{".format(
+                self.indent(),
+                self.visit(node.test)),
+            "\n".join(body),
+            self.indent() + "}"])
+
     def visit_Expr(self, node):
-        if self.visit(node.value) == "":
+        value = self.visit(node.value)
+        if value == "":
             return ""
-        return self.indent() + "{};".format(self.visit(node.value))
+        return self.indent() + "{};".format(value)
 
     def visit_BoolOp(self, node):
         values = []
@@ -536,6 +640,15 @@ class CppVisitor(ast.NodeVisitor):
         return " ".join(result)
 
     def visit_Call(self, node):
+        if type(self.stack[-1]) is cg.FunctionNode:
+            # case: super()._(args) in the method that initializes the object
+            if type(node.func) is ast.Attribute and node.func.attr == self.stack[-2].super_class \
+                    and self.stack[-1].name == self.stack[-2].name \
+                    and type(node.func.value) is ast.Call \
+                    and type(node.func.value.func) is ast.Name and node.func.value.func.id == "super":
+                args = [self.visit(arg) for arg in node.args]
+                self.super_call = "{}({}) ".format(self.stack[-2].super_class, ", ".join(args))
+                return ""
         if type(node.func) is ast.Attribute and type(node.func.value) is ast.Name \
                 and node.func.value.id == "DeviceAllocator":
             if node.func.attr == "device_do":
@@ -568,6 +681,12 @@ class CppVisitor(ast.NodeVisitor):
         args = ", ".join([self.visit(arg) for arg in node.args])
         return "{}({})".format(self.visit(node.func), args)
 
+    def visit_IfExp(self, node):
+        test = self.visit(node.test)
+        body = self.visit(node.body)
+        orelse = self.visit(node.orelse)
+        return "(({}) ? ({}) : ({}))".format(test, body, orelse)
+
     def visit_arguments(self, node):
         args = []
         for arg in node.args:
@@ -581,6 +700,22 @@ class CppVisitor(ast.NodeVisitor):
     
     def visit_arg(self, node):
         return node.arg
+    
+    def visit_Assert(self, node):
+        return self.indent() + "assert({})".format(self.visit(node.test)) + ";"
+
+    def visit_Pass(self, node):
+        return ""
+
+    def visit_Return(self, node):
+        if node.value:
+            return self.indent() + "return {};".format(self.visit(node.value))
+        else:
+            return self.indent() + "return;"
+
+    def is_none(self, node):
+        return type(node) is ast.List and type(node.elts[0]) is ast.NameConstant \
+            and node.elts[0].value is None
 
 class HppVisitor(ast.NodeVisitor):
     def __init__(self, root: cg.RootNode):
@@ -628,19 +763,20 @@ class HppVisitor(ast.NodeVisitor):
         do_field_types = []
         field_templates = []
         for i, field in enumerate(class_node.declared_fields):
-            if field.is_ref():
-                field_types.append(field.type.name + "*")
-            else:
-                field_types.append(field.type.name)
+            field_types.append(field.type.to_field_type())
             do_field_types.append(self.do_all_convert(field.type.name))
             field_templates.append(INDENT + "Field<{}, {}> {};".format(
                 node.name, i, field.name))
         field_predeclaration = ""
+        base = ""
+        if len(node.bases) > 0:
+            base = "\n" + self.indent() + INDENT + "using BaseClass = {};\n\n".format(self.visit(node.bases[0]))
         if len(field_types) == 0:
             field_predeclaration = self.indent() + "public:\n" \
                                     + self.indent() \
                                     + INDENT \
                                     + "declare_field_types({})\n".format(node.name) \
+                                    + base \
                                     + self.indent() \
                                     + ("\n" + self.indent()).join(field_templates)
         else:
@@ -648,11 +784,13 @@ class HppVisitor(ast.NodeVisitor):
                                     + self.indent() \
                                     + INDENT \
                                     + "declare_field_types({}, {})\n".format(node.name, ", ".join(field_types)) \
+                                    + base \
                                     + self.indent() \
                                     + ("\n" + self.indent()).join(field_templates)
         _do_function = self.indent() \
                         + INDENT \
                         + "void _do(void (*pf)({}));".format(", ".join(do_field_types))
+        body = [INDENT + built for built in body]
         return "\n".join([
             "\n{}class {}{} \n{{".format(
                 self.indent(),
@@ -661,7 +799,7 @@ class HppVisitor(ast.NodeVisitor):
                 else " : public AllocatorT::Base",
             ),
             field_predeclaration,
-            ("\n" + INDENT).join(body),
+            ("\n").join(body),
             _do_function,
             self.indent() + "};"
         ])
@@ -695,13 +833,22 @@ class HppVisitor(ast.NodeVisitor):
         ])
 
     def visit_AnnAssign(self, node):
+        # ignore non-device variables
+        if type(node.target) is ast.Name:
+            var_node = self.stack[-1].get_VariableNode(node.target.id)
+            if not var_node.is_device:
+                return ""
         if node.value is not None:
-            if (type(self.stack[-1]) is cg.RootNode and type(node.annotation) is not ast.Subscript) \
+            # ignore _: list[_] = DeviceAllocator.array(_)
+            if type(cg.ast_to_call_graph_type(self.stack, node.annotation)) is cg.ListTypeNode \
+                    and self.is_device_allocator_array(node.value):
+                return ""
+            elif (type(self.stack[-1]) is cg.RootNode and type(node.annotation) is not ast.Subscript) \
                     or not type(self.stack[-1]) is cg.RootNode:
                 return self.indent() + "static const {} {} = {};".format(
                     cg.ast_to_call_graph_type(self.stack, node.annotation).to_cpp_type(),
                     self.visit(node.target),
-                    self.visit(node.value))
+                    self.visit(node.value))        
         else:
             return ""
      
@@ -710,6 +857,13 @@ class HppVisitor(ast.NodeVisitor):
 
     def visit_Num(self, node):
         return "{}".format(node.n)
+
+    def visit_NameConstant(self, node):
+        if type(node.value) is bool:
+            return "true" if node.value else "false"
+        elif node.value is None:
+            return "nullptr"
+        return node.value
 
     def visit_arguments(self, node):
         args = []
@@ -724,3 +878,8 @@ class HppVisitor(ast.NodeVisitor):
 
     def visit_arg(self, node):
         return node.arg
+
+    def is_device_allocator_array(self, node):
+        return type(node) is ast.Call and type(node.func) is ast.Attribute \
+            and type(node.func.value) is ast.Name \
+            and node.func.value.id == "DeviceAllocator" and node.func.attr == "array"

@@ -192,7 +192,7 @@ class Normalizer(DeviceCodeVisitor):
         if type(node.value) is ast.Name:
             var_node = self.find_VariableNode(node.value.id)
             if var_node is not None:
-                self.receiver_type = var_node.element_type
+                self.receiver_type = var_node.type
             self.receiver = node
         else:
             self.visit(node.value.value)

@@ -160,7 +160,7 @@ class PyCompiler:
             cdef_file.write(cdef)
         with open(compile_path + "_py.py", mode="w") as py_file:
             py_file.write(py)
-    
+        
         so_path: str = "{}/{}.so".format(self.dir_path, self.file_name)
         if os.system("src/build.sh " + "{}/{}.cu".format(self.dir_path, self.file_name) + " -o " + so_path) != 0:
             print("Build failed!", file=sys.stderr)
