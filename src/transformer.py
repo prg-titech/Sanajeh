@@ -716,7 +716,7 @@ class FieldSynthesizer(DeviceCodeVisitor):
             # Add random_state_ field
             if node.name == "__init__" and self.node_path[-2].has_random_state:
                 node_body.append(ast.AnnAssign(
-                    target=ast.Attribute(attr="random_state_", value=ast.Name("self")),
+                    target=ast.Attribute(attr="random_state_", value=ast.Name(id="self")),
                     annotation=ast.Attribute(attr="RandomState", value=ast.Name(id="DeviceAllocator")),
                     simple=1,
                     value=ast.Constant(value=None, kind=None)
