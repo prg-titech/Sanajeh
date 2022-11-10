@@ -8,5 +8,5 @@ int Shark_Shark_prepare();
 int Shark_Shark_update();
 int parallel_new_Cell(int object_num);
 int AllocatorInitialize();
-int Cell_do_all(void (*pf)(int, int, int, int, int));
+int Cell_do_all(void (*pf)(int, int, int, int, int, int));
 int AllocatorUninitialize();

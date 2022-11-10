@@ -1,0 +1,59 @@
+#ifndef SANAJEH_DEVICE_CODE_H
+#define SANAJEH_DEVICE_CODE_H
+#define KNUMOBJECTS 64*64*64*64
+
+#include <curand_kernel.h>
+#include "dynasoar.h"
+
+class Body;
+
+
+using AllocatorT = SoaAllocator<KNUMOBJECTS, Body>;
+
+static const int kSeed = 42;
+static const float kMaxMass = 500;
+static const float kGravityConstant = 4e-06;
+static const float kDampeningFactor = 0.05;
+static const float kMergeThreshold = 0.1;
+static const float kTimeInterval = 0.05;
+
+class Body : public AllocatorT::Base 
+{
+public:
+	declare_field_types(Body, curandState, Body*, float, float, float, float, float, float, float, bool, bool)
+	Field<Body, 0> random_state_;
+	Field<Body, 1> merge_target_ref;
+	Field<Body, 2> pos_x;
+	Field<Body, 3> pos_y;
+	Field<Body, 4> vel_x;
+	Field<Body, 5> vel_y;
+	Field<Body, 6> force_x;
+	Field<Body, 7> force_y;
+	Field<Body, 8> mass;
+	Field<Body, 9> has_incoming_merge;
+	Field<Body, 10> successful_merge;
+	
+	__device__ Body(int idx);
+	__device__ void compute_force();
+	__device__ void apply_force(Body* other);
+	__device__ void body_update();
+	__device__ void check_merge_into_this(Body* other);
+	__device__ void initialize_merge();
+	__device__ void prepare_merge();
+	__device__ void update_merge();
+	__device__ void delete_merged();
+	void _do(void (*pf)(int, int, float, float, float, float, float, float, float, bool, bool));
+};
+
+extern "C" int Body_do_all(void (*pf)(int, int, float, float, float, float, float, float, float, bool, bool));
+extern "C" int Body_Body_compute_force();
+extern "C" int Body_Body_body_update();
+extern "C" int Body_Body_initialize_merge();
+extern "C" int Body_Body_prepare_merge();
+extern "C" int Body_Body_update_merge();
+extern "C" int Body_Body_delete_merged();
+extern "C" int parallel_new_Body(int object_num);
+extern "C" int AllocatorInitialize();
+extern "C" int AllocatorUninitialize();
+
+#endif

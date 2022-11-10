@@ -24,12 +24,14 @@ class Cell:
     self.neighbors_: list[Cell] = [None]*4
     self.agent_ref: Agent = None
     self.id_: int = None
+    self.agent_type_: int = 0
     self.neighbor_request_: list[bool] = [None]*5
   
   def Cell(self, cell_id: int):
     random.seed(cell_id)
     self.agent_ref = None
     self.id_ = cell_id
+    self.agent_type_ = 0
     self.prepare()
     cells[cell_id] = self
   
@@ -80,6 +82,10 @@ class Cell:
     assert agent != None
 
     self.agent_ref = agent
+    if type(agent) == Fish:
+        self.agent_type_ = 1
+    if type(agent) == Shark:
+        self.agent_type_ = 2
     agent.set_position(self)
 
   def has_fish(self) -> bool:
@@ -95,10 +101,12 @@ class Cell:
     assert self.agent_ref != None
     DeviceAllocator.destroy(self.agent_ref)
     self.agent_ref = None
+    self.agent_type_ = 0
   
   def leave(self):
     assert self.agent_ref != None
     self.agent_ref = None
+    self.agent_type_ = 0
   
   def prepare(self):
     i: int = 0
@@ -226,7 +234,7 @@ class Shark(Agent):
   
   def Shark(self, seed: int):
     super().Agent(seed)
-    self.energy_ = kEnergyStart
+    self.energy_ = 2
     self.egg_timer_ = seed % kSpawnThreshold
 
   def prepare(self):
@@ -268,18 +276,15 @@ def main(allocator, do_render):
     screen.fill((0,0,0))
     return (window, screen)
 
-  def render():
-    for i in range(kSizeX*kSizeY):
-      x = i % kSizeX
-      y = i // kSizeX
-      if cells[i].has_fish():
-        pxarray[x,y] = pygame.Color(0,255,0)
-      elif cells[i].has_shark():
-        pxarray[x,y] = pygame.Color(255,0,0)
-      else:
-        pxarray[x,y] = pygame.Color(0,0,0)
-    window.blit(pygame.transform.scale(screen, window.get_rect().size), (0,0))
-    pygame.display.update()   
+  def render(b):
+    x = b.id_ % kSizeX
+    y = b.id_ // kSizeX			
+    if b.agent_type_ == 1:
+      pxarray[x,y] = pygame.Color(0,255,0)
+    elif b.agent_type_ == 2:
+      pxarray[x,y] = pygame.Color(255,0,0)
+    else:
+      pxarray[x,y] = pygame.Color(0,0,0)			
 
   allocator.initialize()
 
@@ -288,12 +293,14 @@ def main(allocator, do_render):
 
   # Initialize render
   if do_render:
-    os.environ["SDL_VIDEODRIVER"] = "windib"
+    os.environ["SDL_VIDEODRIVER"] = "x11"
     screen_width, screen_height = kSizeX, kSizeY
     scaling_factor = 6
     window, screen = initialize_render()
     pxarray = pygame.PixelArray(screen)
-    render()
+    allocator.do_all(Cell, render)
+    window.blit(pygame.transform.scale(screen, window.get_rect().size), (0,0))
+    pygame.display.update()  
 
   total_time = time.perf_counter()
 
@@ -315,6 +322,8 @@ def main(allocator, do_render):
 
     # No render support for GPU
     if do_render:
-      render()
+      allocator.do_all(Cell, render)
+      window.blit(pygame.transform.scale(screen, window.get_rect().size), (0,0))
+      pygame.display.update()  
 
   print(total_time)

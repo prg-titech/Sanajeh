@@ -1,0 +1,11 @@
+{
+    "basename": "cpp-collision_nested-2969ff5",
+    "cmd": "new-src/interface.py --emit-cpp {infile}",
+    "infile": "examples/collision/collision_nested.py",
+    "infile_hash": "32b6014a5cbf9597cb4b52c12e91d20c646ad1a3138607b7120da6e7",
+    "stdout": "cpp-collision_nested-2969ff5.stdout",
+    "stdout_hash": "1f30c4e0c5d6a3935878b341b989e97f6620cfd488263e57da7fbf7d",
+    "stderr": null,
+    "stderr_hash": null,
+    "returncode": 0
+}

@@ -1,0 +1,11 @@
+{
+    "basename": "cpp-wator_render-4fd5f29",
+    "cmd": "new-src/interface.py --emit-cpp {infile}",
+    "infile": "examples/wator/wator_render.py",
+    "infile_hash": "35a58be0d2e3583bed1a3e5c9c7c6d0149b2eed067c3400c6a4070d6",
+    "stdout": "cpp-wator_render-4fd5f29.stdout",
+    "stdout_hash": "91ae650f9d575263b67ce32e1778c12854c672df09d2954bc7509675",
+    "stderr": null,
+    "stderr_hash": null,
+    "returncode": 0
+}

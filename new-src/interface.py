@@ -1,4 +1,4 @@
-#!/usr/bin/env python3.7
+#!/usr/bin/env python
 
 import argparse
 import sanajeh
@@ -42,7 +42,7 @@ def main():
         if run_cpu:
             main_func(sanajeh.SeqAllocator(), to_render)
         else:
-            main_func(sanajeh.PyAllocator(file_path, file_name), to_render)
+            main_func(sanajeh.PyAllocator(file_name), to_render)
         return
 
     compiler: PyCompiler = sanajeh.PyCompiler(file_path)

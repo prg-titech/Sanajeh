@@ -1,0 +1,11 @@
+{
+    "basename": "python-collision_nested-b129220",
+    "cmd": "new-src/interface.py --emit-py {infile}",
+    "infile": "examples/collision/collision_nested.py",
+    "infile_hash": "32b6014a5cbf9597cb4b52c12e91d20c646ad1a3138607b7120da6e7",
+    "stdout": "python-collision_nested-b129220.stdout",
+    "stdout_hash": "35dc2947d9c5e7944e379ecbe01f8f0acd6452f7aef7802700a8f60c",
+    "stderr": null,
+    "stderr_hash": null,
+    "returncode": 0
+}

@@ -1,34 +1,35 @@
-#include "wator_parallel.h"
+#include "wator.h"
 
 AllocatorHandle<AllocatorT>* allocator_handle;
 __device__ AllocatorT* device_allocator;
+__device__ Cell* cells[kSizeX * kSizeY];
 
 __device__ Cell::Cell(int cell_id) {
 	curand_init(kSeed, cell_id, 0, &random_state_);
-	this->id = cell_id;
+	this->agent_ref = nullptr;
+	this->id_ = cell_id;
+	this->agent_type_ = 0;
 	this->prepare();
 	cells[cell_id] = this;
 }
 
-__device__ Cell* cells[kSizeX * kSizeY];
-
 __device__ void Cell::setup() {
-	int x = this->id % kSizeX;
-	int y = this->id // kSizeX;
+	int x = this->id_ % kSizeX;
+	int y = this->id_ / kSizeX;
 	Cell* left = ((x > 0) ? (cells[((y * kSizeX) + x) - 1]) : (cells[((y * kSizeX) + kSizeX) - 1]));
 	Cell* right = ((x < kSizeX - 1) ? (cells[((y * kSizeX) + x) + 1]) : (cells[y * kSizeX]));
 	Cell* top = ((y > 0) ? (cells[((y - 1) * kSizeX) + x]) : (cells[((kSizeY - 1) * kSizeX) + x]));
 	Cell* bottom = ((y < kSizeY - 1) ? (cells[((y + 1) * kSizeX) + x]) : (cells[x]));
-	cells[this->id]->set_neighbors(left, top, right, bottom);
+	cells[this->id_]->set_neighbors(left, top, right, bottom);
 	int agent_type = curand(&random_state_) % 4;
 	if (agent_type == 0) {
 		Agent* agent = new(device_allocator) Fish(curand(&random_state_));
-		assert(agent != nullptr)
-		cells[this->id]->enter(agent);
+		assert(agent != nullptr);
+		cells[this->id_]->enter(agent);
 	} else 	if (agent_type == 1) {
 		Agent* agent = new(device_allocator) Shark(curand(&random_state_));
-		assert(agent != nullptr)
-		cells[this->id]->enter(agent);
+		assert(agent != nullptr);
+		cells[this->id_]->enter(agent);
 	} else {
 	
 	}
@@ -44,25 +45,30 @@ __device__ void Cell::decide() {
 	} else {
 		int candidates[4];
 		int num_candidates = 0;
-		int i = 0;
-		while (i < 4) {
+		for (int i = 0; i < 4; ++i) {
 			if (this->neighbor_request_[i]) {
 				candidates[num_candidates] = i;
 				num_candidates += 1;
 			}
-			i += 1;
 		}
 		if (num_candidates > 0) {
 			int selected_index = curand(&random_state_) % num_candidates;
-			this->neighbors_[candidates[selected_index]]->agent()->set_new_position(this);
+			Agent* __auto_v0 = this->neighbors_[candidates[selected_index]]->agent();
+			__auto_v0->set_new_position(this);
 		}
 	}
 }
 
 __device__ void Cell::enter(Agent* agent) {
-	assert(this->agent_ref == nullptr)
-	assert(agent != nullptr)
+	assert(this->agent_ref == nullptr);
+	assert(agent != nullptr);
 	this->agent_ref = agent;
+	if (agent->cast<Fish>() != nullptr) {
+		this->agent_type_ = 1;
+	}
+	if (agent->cast<Shark>() != nullptr) {
+		this->agent_type_ = 2;
+	}
 	agent->set_position(this);
 }
 
@@ -79,14 +85,16 @@ __device__ bool Cell::is_free() {
 }
 
 __device__ void Cell::kill() {
-	assert(this->agent_ref != nullptr)
+	assert(this->agent_ref != nullptr);
 	destroy(device_allocator, this->agent_ref);
 	this->agent_ref = nullptr;
+	this->agent_type_ = 0;
 }
 
 __device__ void Cell::leave() {
-	assert(this->agent_ref != nullptr)
+	assert(this->agent_ref != nullptr);
 	this->agent_ref = nullptr;
+	this->agent_type_ = 0;
 }
 
 __device__ void Cell::prepare() {
@@ -105,20 +113,20 @@ __device__ void Cell::set_neighbors(Cell* left, Cell* top, Cell* right, Cell* bo
 }
 
 __device__ void Cell::request_random_fish_neighbor() {
-	if (!this->request_random_neighbor_has_fish(this->agent_ref->random_state_)) {
-		if (!this->request_random_neighbor_is_free(this->agent_ref->random_state_)) {
+	if (!this->request_random_neighbor_has_fish(this->agent_ref)) {
+		if (!this->request_random_neighbor_is_free(this->agent_ref)) {
 			this->neighbor_request_[4] = true;
 		}
 	}
 }
 
 __device__ void Cell::request_random_free_neighbor() {
-	if (!this->request_random_neighbor_is_free(this->agent_ref->random_state_)) {
+	if (!this->request_random_neighbor_is_free(this->agent_ref)) {
 		this->neighbor_request_[4] = true;
 	}
 }
 
-__device__ bool Cell::request_random_neighbor_has_fish(curandState& random_state) {
+__device__ bool Cell::request_random_neighbor_has_fish(Agent* agent) {
 	int candidates[4];
 	int num_candidates = 0;
 	int i = 0;
@@ -136,12 +144,12 @@ __device__ bool Cell::request_random_neighbor_has_fish(curandState& random_state
 		int selected = candidates[selected_index];
 		int neighbor_index = (selected + 2) % 4;
 		this->neighbors_[selected]->neighbor_request_[neighbor_index] = true;
-		assert(this->neighbors_[selected]->neighbors_[neighbor_index] == this)
+		assert(this->neighbors_[selected]->neighbors_[neighbor_index] == this);
 		return true;
 	}
 }
 
-__device__ bool Cell::request_random_neighbor_is_free(curandState& random_state) {
+__device__ bool Cell::request_random_neighbor_is_free(Agent* agent) {
 	int candidates[4];
 	int num_candidates = 0;
 	int i = 0;
@@ -159,13 +167,13 @@ __device__ bool Cell::request_random_neighbor_is_free(curandState& random_state)
 		int selected = candidates[selected_index];
 		int neighbor_index = (selected + 2) % 4;
 		this->neighbors_[selected]->neighbor_request_[neighbor_index] = true;
-		assert(this->neighbors_[selected]->neighbors_[neighbor_index] == this)
+		assert(this->neighbors_[selected]->neighbors_[neighbor_index] == this);
 		return true;
 	}
 }
 
 __device__ Agent::Agent(int seed) {
-	curand_init(seed, 0, 0, &random_state_);
+	curand_init(kSeed, seed, 0, &random_state_);
 }
 
 __device__ Cell* Agent::position() {
@@ -173,7 +181,7 @@ __device__ Cell* Agent::position() {
 }
 
 __device__ void Agent::set_new_position(Cell* new_pos) {
-	assert(this->new_position_ref == this->position_ref)
+	assert(this->new_position_ref == this->position_ref);
 	this->new_position_ref = new_pos;
 }
 
@@ -181,15 +189,14 @@ __device__ void Agent::set_position(Cell* cell) {
 	this->position_ref = cell;
 }
 
-__device__ Fish::Fish(int seed) {
-	super()->Agent(seed);
+__device__ Fish::Fish(int seed) : Agent(seed) {
 	this->egg_timer_ = seed % kSpawnThreshold;
 }
 
 __device__ void Fish::prepare() {
 	this->egg_timer_ += 1;
 	this->new_position_ref = this->position_ref;
-	assert(this->position_ref != nullptr)
+	assert(this->position_ref != nullptr);
 	this->position_ref->request_random_free_neighbor();
 }
 
@@ -200,23 +207,22 @@ __device__ void Fish::update() {
 		this->new_position_ref->enter(this);
 		if (kOptionFishSpawn && this->egg_timer_ > kSpawnThreshold) {
 			Fish* new_fish = new(device_allocator) Fish(curand(&random_state_));
-			assert(new_fish != nullptr)
+			assert(new_fish != nullptr);
 			old_position->enter(new_fish);
 			this->egg_timer_ = 0;
 		}
 	}
 }
 
-__device__ Shark::Shark(int seed) {
-	super()->Agent(seed);
-	this->energy_ = kEnergyStart;
+__device__ Shark::Shark(int seed) : Agent(seed) {
+	this->energy_ = 2;
 	this->egg_timer_ = seed % kSpawnThreshold;
 }
 
 __device__ void Shark::prepare() {
 	this->egg_timer_ += 1;
 	this->energy_ -= 1;
-	assert(this->position_ref != nullptr)
+	assert(this->position_ref != nullptr);
 	if (kOptionSharkDie && this->energy_ == 0) {
 
 	} else {
@@ -237,21 +243,20 @@ __device__ void Shark::update() {
 			}
 			old_position->leave();
 			this->new_position_ref->enter(this);
-			if (kOptionFishSpawn && this->egg_timer_ > kSpawnThreshold) {
+			if (kOptionSharkSpawn && this->egg_timer_ > kSpawnThreshold) {
 				Shark* new_shark = new(device_allocator) Shark(curand(&random_state_));
-				assert(new_shark != nullptr)
+				assert(new_shark != nullptr);
 				old_position->enter(new_shark);
 				this->egg_timer_ = 0;
 			}
 		}
 	}
 }
-
-void Cell::_do(void (*pf)(int, int, int, int, int)){
-	pf(0, 0, 0, 0, this->id);
+void Cell::_do(void (*pf)(int, int, int, int, int, int)){
+	pf(0, 0, 0, this->id_, this->agent_type_, 0);
 }
 
-extern "C" int Cell_do_all(void (*pf)(int, int, int, int, int)){
+extern "C" int Cell_do_all(void (*pf)(int, int, int, int, int, int)){
 	allocator_handle->template device_do<Cell>(&Cell::_do, pf);
  	return 0;
 }
