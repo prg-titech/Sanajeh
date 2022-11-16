@@ -155,7 +155,7 @@ def main(allocator, do_render):
     pygame.draw.circle(screen, (255, 255, 255), (px, py), size)  
 
   if (do_render):
-    os.environ["SDL_VIDEODRIVER"] = "windib"
+    os.environ["SDL_VIDEODRIVER"] = "x11"
     screen_width = 500
     screen_height = 500
     pygame.init()

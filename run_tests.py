@@ -133,16 +133,16 @@ def main():
         print("TEST:", filename)
 
         if py:
-            run_test("python", "src/interface.py --emit-py {infile}",
+            run_test("python", "new-src/interface.py --emit-py {infile}",
                 filename, update_reference)
         if cpp:
-            run_test("cpp", "src/interface.py --emit-cpp {infile}",
+            run_test("cpp", "new-src/interface.py --emit-cpp {infile}",
                 filename, update_reference)
         if hpp:
-            run_test("hpp", "src/interface.py --emit-hpp {infile}",
+            run_test("hpp", "new-src/interface.py --emit-hpp {infile}",
                 filename, update_reference)
         if cdef:
-            run_test("cdef", "src/interface.py --emit-cdef {infile}",
+            run_test("cdef", "new-src/interface.py --emit-cdef {infile}",
                 filename, update_reference)
 
         print()

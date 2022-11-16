@@ -1,0 +1,11 @@
+{
+    "basename": "python-wator_render-b5eecfa",
+    "cmd": "new-src/interface.py --emit-py {infile}",
+    "infile": "examples/wator/wator_render.py",
+    "infile_hash": "35a58be0d2e3583bed1a3e5c9c7c6d0149b2eed067c3400c6a4070d6",
+    "stdout": "python-wator_render-b5eecfa.stdout",
+    "stdout_hash": "7766a923baf3bd1c51d955d377d9c85d05ea42029c1106aff9bd6d71",
+    "stderr": null,
+    "stderr_hash": null,
+    "returncode": 0
+}

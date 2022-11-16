@@ -1,0 +1,11 @@
+{
+    "basename": "hpp-wator_render-69614ce",
+    "cmd": "new-src/interface.py --emit-hpp {infile}",
+    "infile": "examples/wator/wator_render.py",
+    "infile_hash": "35a58be0d2e3583bed1a3e5c9c7c6d0149b2eed067c3400c6a4070d6",
+    "stdout": "hpp-wator_render-69614ce.stdout",
+    "stdout_hash": "d36e4aee8959ebb0069dec5b0aad5f9799fa4765ee5606bd7fcad3b9",
+    "stderr": null,
+    "stderr_hash": null,
+    "returncode": 0
+}
