@@ -4,6 +4,7 @@ import cffi
 import random
 
 import call_graph as cg
+from inheritance import ClassInspectorMain
 from transformer import Normalizer, Inliner, Eliminator, FieldSynthesizer
 from py2cpp import Preprocessor, CppVisitor, HppVisitor, INDENT
 from expander import RuntimeExpander
@@ -132,11 +133,11 @@ class PyCompiler:
         self.file_name, _ = os.path.splitext(os.path.basename(path))
         self.dir_path = "device_code/{}".format(self.file_name)
 
-    def compile(self, emit_py, emit_cpp, emit_hpp, emit_cdef):
+    def compile(self, emit_py, emit_cpp, emit_hpp, emit_cdef, verbose):
         source = open(self.file_path, encoding="utf-8").read()
         if not os.path.isdir("device_code"):
             os.mkdir("device_code")
-        py, cpp, hpp, cdef = compile(source, self.dir_path, self.file_name)
+        py, cpp, hpp, cdef = compile(source, self.dir_path, self.file_name, verbose)
 
         if emit_py:
             print(py)
@@ -164,7 +165,7 @@ class PyCompiler:
             py_file.write(py)
         
         so_path: str = "{}/{}.so".format(self.dir_path, self.file_name)
-        if os.system("src/build.sh " + "{}/{}.cu".format(self.dir_path, self.file_name) + " -o " + so_path) != 0:
+        if os.system("new-src/build.sh " + "{}/{}.cu".format(self.dir_path, self.file_name) + " -o " + so_path) != 0:
             print("Build failed!", file=sys.stderr)
             sys.exit(1)
 
@@ -249,7 +250,7 @@ class PyAllocator:
             print("Do_all expression failed!", file=sys.stderr)
             sys.exit(1)   
 
-def compile(source_code, dir_path, file_name):
+def compile(source_code, dir_path, file_name, verbose):
     """
     Compile python source_code into c++ source file and header file
         source_code:    codes written in python
@@ -257,8 +258,11 @@ def compile(source_code, dir_path, file_name):
     # Set the global variable for file name
     FILE_NAME = file_name
 
+    classinspector = ClassInspectorMain(source_code, verbose)
+    classinspector.Start()
+
     # Generate python ast
-    py_ast = ast.parse(source_code)
+    py_ast = classinspector.ast_code
 
     # Generate python call graph and mark device data
     cgv = cg.CallGraphVisitor()

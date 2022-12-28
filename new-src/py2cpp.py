@@ -346,7 +346,7 @@ class CppVisitor(ast.NodeVisitor):
         return "\n".join(body)
 
     def visit_FunctionDef(self, node):
-        self.super_call = None
+        """ self.super_call = None """
         cpp_code = ""
         func_node = self.stack[-1].get_FunctionNode(node.name, self.stack[-1].name)
         if not func_node.is_device or node.name == "__init__":
@@ -363,6 +363,7 @@ class CppVisitor(ast.NodeVisitor):
                 body.remove("")
             if node.name == self.stack[-2].name:
                 # Constructor
+                """
                 if self.super_call:
                     cpp_code = "\n".join([
                         "\n{}__device__ {}::{}({}) : {}{{".format(
@@ -384,6 +385,30 @@ class CppVisitor(ast.NodeVisitor):
                         ),
                         "\n".join(body),
                         self.indent(1) + "}",
+                    ])
+                """
+                cpp_code = "\n".join([
+                    "\n{}__device__ {}::{}({}) {{".format(
+                        self.indent(1),
+                        self.stack[-1].name,
+                        self.stack[-1].name,
+                        args,
+                    ),
+                    "\n".join(body),
+                    self.indent(1) + "}"
+                ])
+                arg_count = len(node.args.args) - 1
+                if arg_count > 0:
+                    cpp_code += "\n"
+                    cpp_code += "\n".join([
+                        "\n{}__device__ void {}::{}__init({}) {{".format(
+                            self.indent(1),
+                            self.stack[-1].name,
+                            self.stack[-1].name,
+                            args,
+                        ),
+                        "\n".join(body),
+                        self.indent(1) + "}"
                     ])
             else:
                 # Methods
@@ -642,6 +667,7 @@ class CppVisitor(ast.NodeVisitor):
     def visit_Call(self, node):
         if type(self.stack[-1]) is cg.FunctionNode:
             # case: super()._(args) in the method that initializes the object
+            """
             if type(node.func) is ast.Attribute and node.func.attr == self.stack[-2].super_class \
                     and self.stack[-1].name == self.stack[-2].name \
                     and type(node.func.value) is ast.Call \
@@ -649,6 +675,12 @@ class CppVisitor(ast.NodeVisitor):
                 args = [self.visit(arg) for arg in node.args]
                 self.super_call = "{}({}) ".format(self.stack[-2].super_class, ", ".join(args))
                 return ""
+            """
+            if type(node.func) is ast.Attribute and self.stack[-1].name == self.stack[-2].name \
+                    and type(node.func.value) is ast.Call \
+                    and type(node.func.value.func) is ast.Name and node.func.value.func.id == "super":
+                args = [self.visit(arg) for arg in node.args]
+                return "this->{}::{}__init({})".format(node.func.attr, node.func.attr, ", ".join(args))
         if type(node.func) is ast.Attribute and type(node.func.value) is ast.Name \
                 and node.func.value.id == "DeviceAllocator":
             if node.func.attr == "device_do":
@@ -662,8 +694,19 @@ class CppVisitor(ast.NodeVisitor):
                 return "new(device_allocator) {}({})".format(self.visit(node.args[0]), args)
             elif node.func.attr == "destroy":
                 return "destroy(device_allocator, {})".format(self.visit(node.args[0]))
+            elif node.func.attr == "virtual":
+                # TODO: get children name
+                func_name = node.args[0].attr
+                children = ["Fish", "Shark"]
+                result = ""
+                for child in children:
+                    result += "this->cast<{}>() != nullptr ? this->cast<{}>()->{}() : " \
+                        .format(child, child, func_name)
+                result += "nullptr"
+                return result
             else:
                 # No API provided by Sanajeh
+                print("{} is not provided by Sanajeh".format(node.func.attr))
                 assert False
         if type(node.func) is ast.Attribute and type(node.func.value) is ast.Name \
                 and node.func.value.id == "random":
@@ -749,7 +792,7 @@ class HppVisitor(ast.NodeVisitor):
         class_predefine = "\n\n"
         for class_name in self.root.device_class_names:
             class_predefine += "class " + class_name + ";\n"
-        allocator = "\n\nusing AllocatorT = SoaAllocator<" + "KNUMOBJECTS" + ", " + class_str + ">;\n\n"
+        allocator = "\nusing AllocatorT = SoaAllocator<" + "KNUMOBJECTS" + ", " + class_str + ">;\n\n"
         return class_predefine + allocator + "\n".join(body)
 
     def visit_ClassDef(self, node):
@@ -776,9 +819,7 @@ class HppVisitor(ast.NodeVisitor):
                                     + self.indent() \
                                     + INDENT \
                                     + "declare_field_types({})\n".format(node.name) \
-                                    + base \
-                                    + self.indent() \
-                                    + ("\n" + self.indent()).join(field_templates)
+                                    + base
         else:
             field_predeclaration = self.indent() + "public:\n" \
                                     + self.indent() \
@@ -790,6 +831,7 @@ class HppVisitor(ast.NodeVisitor):
         _do_function = self.indent() \
                         + INDENT \
                         + "void _do(void (*pf)({}));".format(", ".join(do_field_types))
+        body.append("__device__ {}() {{}};".format(node.name))
         body = [INDENT + built for built in body]
         return "\n".join([
             "\n{}class {}{} \n{{".format(
@@ -816,6 +858,7 @@ class HppVisitor(ast.NodeVisitor):
         if func_node.name == "__init__" and type(self.stack[-1]) is cg.ClassNode:
             return ""
         if func_node.name == self.stack[-1].name and type(self.stack[-1]) is cg.ClassNode:
+            """
             return "\n".join([
                 "{}__device__ {}({});".format(
                     self.indent(),
@@ -823,6 +866,21 @@ class HppVisitor(ast.NodeVisitor):
                     args,
                 )
             ])
+            """
+            result = ["{}__device__ {}({});".format(
+                self.indent(),
+                self.stack[-1].name,
+                args,
+            )]
+            arg_count = len(node.args.args) - 1
+            if arg_count > 0:
+                # TODO: I don't like this INDENT
+                result.append(INDENT + "{}__device__ void {}__init({});".format(
+                    self.indent(),
+                    self.stack[-1].name,
+                    args,
+                ))
+            return "\n".join(result)
         return "\n".join([
             "{}__device__ {} {}({});".format(
                 self.indent(),

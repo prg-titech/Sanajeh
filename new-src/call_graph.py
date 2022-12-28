@@ -23,13 +23,13 @@ class CallGraphNode:
 
 class RootNode(CallGraphNode):
     def __init__(self):
-        self.declared_classes: Set[ClassNode] = set()
+        self.declared_classes: list[ClassNode] = []
 
         random_class: ClassNode = ClassNode("random", None)
         random_class.declared_functions.add(FunctionNode("getrandbits", "random", IntNode()))
         random_class.declared_functions.add(FunctionNode("uniform", "random", FloatNode()))
         random_class.declared_functions.add(FunctionNode("seed", "random", None))
-        self.declared_classes.add(random_class)
+        self.declared_classes.append(random_class)
 
         da_class: ClassNode = ClassNode("DeviceAllocator", None)
         da_class.declared_functions.add(FunctionNode("new", "DeviceAllocator", None))
@@ -37,7 +37,7 @@ class RootNode(CallGraphNode):
         da_class.declared_functions.add(FunctionNode("device_do", "DeviceAllocator", None))
         da_class.declared_functions.add(FunctionNode("parallel_do", "DeviceAllocator", None))
         da_class.declared_functions.add(FunctionNode("array", "DeviceAllocator", None))
-        self.declared_classes.add(da_class)
+        self.declared_classes.append(da_class)
 
         self.declared_functions: Set[FunctionNode] = set()
         self.library_functions: Set[FunctionNode] = set()
@@ -113,10 +113,11 @@ class ClassNode(CallGraphNode):
         return None
 
 class FunctionNode(CallGraphNode):
-    def __init__(self, function_name, host_name, return_type, ast_node=None):
+    def __init__(self, function_name, host_name, return_type, owner_class=None, ast_node=None):
         super().__init__()
         self.function_name = function_name
         self.host_name = host_name
+        self.owner_class = owner_class
         self.return_type = return_type        
         self.ast_node = ast_node
         self.arguments: list[VariableNode] = []
@@ -147,11 +148,13 @@ class FunctionNode(CallGraphNode):
         return None 
 
 class VariableNode(CallGraphNode):
-    def __init__(self, var_name, var_type):
+    def __init__(self, var_name, var_type, owner_class=None):
         super().__init__()
         self.var_name = var_name
         self.var_type = var_type
         self.is_device = True if var_name == "kSeed" else False
+        # add fields for multiple inheritance
+        self.owner_class = owner_class
 
     @property
     def name(self):
@@ -306,7 +309,7 @@ class CallGraphVisitor(ast.NodeVisitor):
         super(CallGraphVisitor, self).visit(node)
     
     def visit_Module(self, node):
-        self.generic_visit(node)
+        self.generic_visit(node) 
 
     def visit_Module(self, node):
         for body in node.body:
@@ -321,7 +324,7 @@ class CallGraphVisitor(ast.NodeVisitor):
                 elif len(body.bases) > 1:
                     ast_error("Sanajeh does not yet support multiple inheritances", node)
                 class_node = ClassNode(class_name, super_class, ast_node=body)
-                self.current_node.declared_classes.add(class_node)
+                self.current_node.declared_classes.append(class_node)
         self.generic_visit(node)
 
 
@@ -361,7 +364,8 @@ class CallGraphVisitor(ast.NodeVisitor):
             return_type = self.current_node.type
         elif hasattr(node.returns, "id"):
             return_type = ast_to_call_graph_type(self.stack, node.returns)
-        func_node = FunctionNode(func_name, self.current_node.name, return_type, ast_node=node)
+        host = self.stack[-1] if type(self.stack[-1]) is ClassNode else None
+        func_node = FunctionNode(func_name, self.current_node.name, return_type, owner_class=host, ast_node=node)
         self.current_node.declared_functions.add(func_node)
         self.stack.append(func_node)
         self.generic_visit(node)
@@ -394,12 +398,13 @@ class CallGraphVisitor(ast.NodeVisitor):
                 var_type.size = is_list_initialization(node.value)
             if hasattr(var.value, "id") and var.value.id == "self" \
                     and self.current_node.name == "__init__":
-                field_node = VariableNode(var_name, var_type)
-                self.stack[-2].declared_fields.append(field_node)
+                host_class = self.stack[-2]
+                field_node = VariableNode(var_name, var_type, host_class)
+                host_class.declared_fields.append(field_node)
                 if type(var_type) is ClassTypeNode:
-                    self.stack[-2].expanded_fields[var_name] = self.expand_field(field_node)
+                    host_class.expanded_fields[var_name] = self.expand_field(field_node)
                 else:
-                    self.stack[-2].expanded_fields[var_name] = [field_node]
+                    host_class.expanded_fields[var_name] = [field_node]
         elif type(var) is ast.Name:
             var_name = var.id
             var_type = ast_to_call_graph_type(self.stack, node.annotation, var_name=var_name)

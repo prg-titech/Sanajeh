@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3.7
 
 import argparse
 import sanajeh
@@ -22,6 +22,8 @@ def main():
         help="Run the file with render option")
     parser.add_argument("--cpu", action="store_true",
         help="Run the program sequentially")
+    parser.add_argument("--verbose", action="store_true",
+        help="Print the multiple inheritance conversion process")
     args = parser.parse_args()
     file_path = args.prog
     emit_py = args.emit_py
@@ -31,6 +33,7 @@ def main():
     to_run = args.run
     to_render = args.render
     run_cpu = args.cpu
+    verbose = args.verbose
 
     directory = os.path.dirname(file_path)
     basename = os.path.basename(file_path)
@@ -46,7 +49,7 @@ def main():
         return
 
     compiler: PyCompiler = sanajeh.PyCompiler(file_path)
-    compiler.compile(emit_py, emit_cpp, emit_hpp, emit_cdef)
+    compiler.compile(emit_py, emit_cpp, emit_hpp, emit_cdef, verbose)
 
 if __name__ == "__main__":
     main()
