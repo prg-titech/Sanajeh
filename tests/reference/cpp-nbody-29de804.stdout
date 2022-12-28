@@ -14,6 +14,17 @@ __device__ Body::Body(int idx) {
 	this->mass = ((curand_uniform(&random_state_) / 2.0) + 0.5) * kMaxMass;
 }
 
+__device__ void Body::Body__init(int idx) {
+	curand_init(kSeed, idx, 0, &random_state_);
+	this->pos_x = (2.0 * curand_uniform(&random_state_)) - 1.0;
+	this->pos_y = (2.0 * curand_uniform(&random_state_)) - 1.0;
+	this->vel_x = 0.0;
+	this->vel_y = 0.0;
+	this->force_x = 0.0;
+	this->force_y = 0.0;
+	this->mass = ((curand_uniform(&random_state_) / 2.0) + 0.5) * kMaxMass;
+}
+
 __device__ void Body::compute_force() {
 	this->force_x = 0.0;
 	this->force_y = 0.0;

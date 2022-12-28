@@ -7,10 +7,11 @@
 
 class Cell;
 class Agent;
+class BreedBehavior;
 class Fish;
 class Shark;
 
-using AllocatorT = SoaAllocator<KNUMOBJECTS, Cell, Agent, Fish, Shark>;
+using AllocatorT = SoaAllocator<KNUMOBJECTS, Cell, Agent, BreedBehavior, Fish, Shark>;
 
 static const int kSeed = 42;
 static const int kSpawnThreshold = 4;
@@ -18,8 +19,6 @@ static const int kEnergyBoost = 4;
 static const int kSizeX = 100;
 static const int kSizeY = 100;
 static const bool kOptionSharkDie = true;
-static const bool kOptionFishSpawn = true;
-static const bool kOptionSharkSpawn = true;
 
 class Cell : public AllocatorT::Base 
 {
@@ -71,41 +70,60 @@ public:
 	void _do(void (*pf)(int, int, int));
 };
 
-class Fish : public Agent 
+class BreedBehavior : public Agent 
 {
 public:
-	declare_field_types(Fish, int)
+	declare_field_types(BreedBehavior, int)
 
 	using BaseClass = Agent;
 
-	Field<Fish, 0> egg_timer_;
+	Field<BreedBehavior, 0> egg_timer_;
+	
+	__device__ BreedBehavior(int seed);
+	__device__ void BreedBehavior__init(int seed);
+	__device__ void breed_prepare();
+	__device__ Agent* newling();
+	__device__ void breed_update(Cell* position);
+	__device__ BreedBehavior() {};
+	void _do(void (*pf)(int));
+};
+
+class Fish : public BreedBehavior 
+{
+public:
+	declare_field_types(Fish)
+
+	using BaseClass = BreedBehavior;
+
+
 	static const bool kIsAbstract = false;
 	
 	__device__ Fish(int seed);
 	__device__ void Fish__init(int seed);
 	__device__ void prepare();
 	__device__ void update();
+	__device__ Agent* newling();
 	__device__ Fish() {};
-	void _do(void (*pf)(int));
+	void _do(void (*pf)());
 };
 
-class Shark : public Agent 
+class Shark : public BreedBehavior 
 {
 public:
-	declare_field_types(Shark, int, int)
+	declare_field_types(Shark, int)
 
-	using BaseClass = Agent;
+	using BaseClass = BreedBehavior;
 
-	Field<Shark, 0> egg_timer_;
-	Field<Shark, 1> energy_;
+	Field<Shark, 0> energy_;
 	static const bool kIsAbstract = false;
 	
 	__device__ Shark(int seed);
 	__device__ void Shark__init(int seed);
 	__device__ void prepare();
 	__device__ void update();
+	__device__ Agent* newling();
 	__device__ Shark() {};
-	void _do(void (*pf)(int, int));
+	void _do(void (*pf)(int));
 };
 
 extern "C" int Cell_do_all(void (*pf)(int, int, int, int, int, int));
