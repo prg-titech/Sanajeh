@@ -8,7 +8,7 @@ hpp = true
 cdef = true
 
 [[test]]
-filename = "examples/collision/collision_nested.py"
+filename = "examples/collision/collision.py"
 py = true
 cpp = true
 hpp = true
@@ -16,6 +16,13 @@ cdef = true
 
 [[test]]
 filename = "examples/wator/wator.py"
+py = true
+cpp = true
+hpp = true
+cdef = true
+
+[[test]]
+filename = "examples/wator_extend/wator_extend.py"
 py = true
 cpp = true
 hpp = true

@@ -1,4 +1,4 @@
-#include "wator.h"
+#include "wator_extend.h"
 
 AllocatorHandle<AllocatorT>* allocator_handle;
 __device__ AllocatorT* device_allocator;
@@ -202,18 +202,44 @@ __device__ void Agent::set_position(Cell* cell) {
 	this->position_ref = cell;
 }
 
+__device__ BreedBehavior::BreedBehavior(int seed) {
+	this->egg_timer_ = seed % kSpawnThreshold;
+}
+
+__device__ void BreedBehavior::BreedBehavior__init(int seed) {
+	this->egg_timer_ = seed % kSpawnThreshold;
+}
+
+__device__ void BreedBehavior::breed_prepare() {
+	this->egg_timer_ += 1;
+}
+
+__device__ Agent* BreedBehavior::newling() {
+	Agent* ret = this->cast<Fish>() != nullptr ? this->cast<Fish>()->newling() : this->cast<Shark>() != nullptr ? this->cast<Shark>()->newling() : nullptr;
+	return ret;
+}
+
+__device__ void BreedBehavior::breed_update(Cell* position) {
+	if (this->egg_timer_ > kSpawnThreshold) {
+		Agent* newling = this->newling();
+		assert(newling != nullptr);
+		position->enter(newling);
+		this->egg_timer_ = 0;
+	}
+}
+
 __device__ Fish::Fish(int seed) {
 	this->Agent::Agent__init(seed);
-	this->egg_timer_ = seed % kSpawnThreshold;
+	this->BreedBehavior::BreedBehavior__init(seed);
 }
 
 __device__ void Fish::Fish__init(int seed) {
 	this->Agent::Agent__init(seed);
-	this->egg_timer_ = seed % kSpawnThreshold;
+	this->BreedBehavior::BreedBehavior__init(seed);
 }
 
 __device__ void Fish::prepare() {
-	this->egg_timer_ += 1;
+	this->breed_prepare();
 	this->new_position_ref = this->position_ref;
 	assert(this->position_ref != nullptr);
 	this->position_ref->request_random_free_neighbor();
@@ -224,29 +250,28 @@ __device__ void Fish::update() {
 	if (old_position != this->new_position_ref) {
 		old_position->leave();
 		this->new_position_ref->enter(this);
-		if (kOptionFishSpawn && this->egg_timer_ > kSpawnThreshold) {
-			Fish* new_fish = new(device_allocator) Fish(curand(&random_state_));
-			assert(new_fish != nullptr);
-			old_position->enter(new_fish);
-			this->egg_timer_ = 0;
-		}
+		this->breed_update(old_position);
 	}
+}
+
+__device__ Agent* Fish::newling() {
+	return new(device_allocator) Fish(curand(&random_state_));
 }
 
 __device__ Shark::Shark(int seed) {
 	this->Agent::Agent__init(seed);
+	this->BreedBehavior::BreedBehavior__init(seed);
 	this->energy_ = 2;
-	this->egg_timer_ = seed % kSpawnThreshold;
 }
 
 __device__ void Shark::Shark__init(int seed) {
 	this->Agent::Agent__init(seed);
+	this->BreedBehavior::BreedBehavior__init(seed);
 	this->energy_ = 2;
-	this->egg_timer_ = seed % kSpawnThreshold;
 }
 
 __device__ void Shark::prepare() {
-	this->egg_timer_ += 1;
+	this->breed_prepare();
 	this->energy_ -= 1;
 	assert(this->position_ref != nullptr);
 	if (kOptionSharkDie && this->energy_ == 0) {
@@ -269,14 +294,13 @@ __device__ void Shark::update() {
 			}
 			old_position->leave();
 			this->new_position_ref->enter(this);
-			if (kOptionSharkSpawn && this->egg_timer_ > kSpawnThreshold) {
-				Shark* new_shark = new(device_allocator) Shark(curand(&random_state_));
-				assert(new_shark != nullptr);
-				old_position->enter(new_shark);
-				this->egg_timer_ = 0;
-			}
+			this->breed_update(old_position);
 		}
 	}
+}
+
+__device__ Agent* Shark::newling() {
+	return new(device_allocator) Shark(curand(&random_state_));
 }
 void Cell::_do(void (*pf)(int, int, int, int, int, int)){
 	pf(0, 0, 0, this->id_, this->agent_type_, 0);

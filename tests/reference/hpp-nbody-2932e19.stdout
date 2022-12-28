@@ -7,7 +7,6 @@
 
 class Body;
 
-
 using AllocatorT = SoaAllocator<KNUMOBJECTS, Body>;
 
 static const int kSeed = 45;
@@ -30,9 +29,11 @@ public:
 	Field<Body, 7> mass;
 	
 	__device__ Body(int idx);
+	__device__ void Body__init(int idx);
 	__device__ void compute_force();
 	__device__ void apply_force(Body* other);
 	__device__ void update();
+	__device__ Body() {};
 	void _do(void (*pf)(int, float, float, float, float, float, float, float));
 };
 

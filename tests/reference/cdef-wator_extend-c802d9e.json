@@ -1,0 +1,11 @@
+{
+    "basename": "cdef-wator_extend-c802d9e",
+    "cmd": "new-src/interface.py --emit-cdef {infile}",
+    "infile": "examples/wator_extend/wator_extend.py",
+    "infile_hash": "f8853d509215a4778d3960d668be20874bd42a346df542f20cdde8f7",
+    "stdout": "cdef-wator_extend-c802d9e.stdout",
+    "stdout_hash": "f8ee96c0a4baba25c2e2d3015ffc2a4429f4e6a8e28066069a9bf966",
+    "stderr": null,
+    "stderr_hash": null,
+    "returncode": 0
+}

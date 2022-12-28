@@ -1,0 +1,181 @@
+#include "collision.h"
+
+AllocatorHandle<AllocatorT>* allocator_handle;
+__device__ AllocatorT* device_allocator;
+
+__device__ Body::Body(int idx) {
+	curand_init(kSeed, idx, 0, &random_state_);
+	this->merge_target_ref = nullptr;
+	this->pos_x = (2.0 * curand_uniform(&random_state_)) - 1.0;
+	this->pos_y = (2.0 * curand_uniform(&random_state_)) - 1.0;
+	this->vel_x = (curand_uniform(&random_state_) - 0.5) / 1000;
+	this->vel_y = (curand_uniform(&random_state_) - 0.5) / 1000;
+	this->force_x = 0.0;
+	this->force_y = 0.0;
+	this->mass = ((curand_uniform(&random_state_) / 2) + 0.5) * kMaxMass;
+	this->has_incoming_merge = false;
+	this->successful_merge = false;
+}
+
+__device__ void Body::Body__init(int idx) {
+	curand_init(kSeed, idx, 0, &random_state_);
+	this->merge_target_ref = nullptr;
+	this->pos_x = (2.0 * curand_uniform(&random_state_)) - 1.0;
+	this->pos_y = (2.0 * curand_uniform(&random_state_)) - 1.0;
+	this->vel_x = (curand_uniform(&random_state_) - 0.5) / 1000;
+	this->vel_y = (curand_uniform(&random_state_) - 0.5) / 1000;
+	this->force_x = 0.0;
+	this->force_y = 0.0;
+	this->mass = ((curand_uniform(&random_state_) / 2) + 0.5) * kMaxMass;
+	this->has_incoming_merge = false;
+	this->successful_merge = false;
+}
+
+__device__ void Body::compute_force() {
+	this->force_x = 0.0;
+	this->force_y = 0.0;
+	device_allocator->template device_do<Body>(&Body::apply_force, this);
+}
+
+__device__ void Body::apply_force(Body* other) {
+	if (other != this) {
+		float d_x = this->pos_x - other->pos_x;
+		float d_y = this->pos_y - other->pos_y;
+		float dist = sqrt((d_x * d_x) + (d_y * d_y));
+		float f = ((kGravityConstant * this->mass) * other->mass) / ((dist * dist) + kDampeningFactor);
+		float __auto_v0_x = d_x * f;
+		float __auto_v0_y = d_y * f;
+		float __auto_v1_x = __auto_v0_x / dist;
+		float __auto_v1_y = __auto_v0_y / dist;
+		other->force_x += __auto_v1_x;
+		other->force_y += __auto_v1_y;
+	}
+}
+
+__device__ void Body::body_update() {
+	float __auto_v0_x = this->force_x * kTimeInterval;
+	float __auto_v0_y = this->force_y * kTimeInterval;
+	float __auto_v1_x = __auto_v0_x / this->mass;
+	float __auto_v1_y = __auto_v0_y / this->mass;
+	this->vel_x += __auto_v1_x;
+	this->vel_y += __auto_v1_y;
+	float __auto_v2_x = this->vel_x * kTimeInterval;
+	float __auto_v2_y = this->vel_y * kTimeInterval;
+	this->pos_x += __auto_v2_x;
+	this->pos_y += __auto_v2_y;
+	if (this->pos_x < -1 || this->pos_x > 1) {
+		this->vel_x = -this->vel_x;
+	}
+	if (this->pos_y < -1 || this->pos_y > 1) {
+		this->vel_y = -this->vel_y;
+	}
+}
+
+__device__ void Body::check_merge_into_this(Body* other) {
+	if (!other->has_incoming_merge && this->mass > other->mass) {
+		float d_x = this->pos_x - other->pos_x;
+		float d_y = this->pos_y - other->pos_y;
+		float dist_square = sqrt((d_x * d_x) + (d_y * d_y));
+		if (dist_square < kMergeThreshold * kMergeThreshold) {
+			this->merge_target_ref = other;
+			other->has_incoming_merge = true;
+		}
+	}
+}
+
+__device__ void Body::initialize_merge() {
+	this->merge_target_ref = nullptr;
+	this->has_incoming_merge = false;
+	this->successful_merge = false;
+}
+
+__device__ void Body::prepare_merge() {
+	device_allocator->template device_do<Body>(&Body::check_merge_into_this, this);
+}
+
+__device__ void Body::update_merge() {
+	Body* m = this->merge_target_ref;
+	if (m != nullptr) {
+		if (m->merge_target_ref != nullptr) {
+			float new_mass = this->mass + m->mass;
+			float __auto_v0_x = m->vel_x * m->mass;
+			float __auto_v0_y = m->vel_y * m->mass;
+			float __auto_v1_x = this->vel_x * this->mass;
+			float __auto_v1_y = this->vel_y * this->mass;
+			float __auto_v2_x = __auto_v1_x + __auto_v0_x;
+			float __auto_v2_y = __auto_v1_y + __auto_v0_y;
+			float new_vel_x = __auto_v2_x / new_mass;
+			float new_vel_y = __auto_v2_y / new_mass;
+			m->mass = new_mass;
+			m->vel_x = new_vel_x;
+			m->vel_y = new_vel_y;
+			this->pos_x += m->pos_x;
+			this->pos_y += m->pos_y;
+			float __auto_v3_x = this->pos_x;
+			float __auto_v3_y = this->pos_y;
+			m->pos_x = __auto_v3_x / 2;
+			m->pos_y = __auto_v3_y / 2;
+			this->successful_merge = true;
+		}
+	}
+}
+
+__device__ void Body::delete_merged() {
+	if (this->successful_merge) {
+		destroy(device_allocator, this);
+	}
+}
+void Body::_do(void (*pf)(int, int, float, float, float, float, float, float, float, bool, bool)){
+	pf(0, 0, this->pos_x, this->pos_y, this->vel_x, this->vel_y, this->force_x, this->force_y, this->mass, this->has_incoming_merge, this->successful_merge);
+}
+
+extern "C" int Body_do_all(void (*pf)(int, int, float, float, float, float, float, float, float, bool, bool)){
+	allocator_handle->template device_do<Body>(&Body::_do, pf);
+ 	return 0;
+}
+
+extern "C" int Body_Body_compute_force(){
+	allocator_handle->parallel_do<Body, &Body::compute_force>();
+	return 0;
+}
+
+extern "C" int Body_Body_body_update(){
+	allocator_handle->parallel_do<Body, &Body::body_update>();
+	return 0;
+}
+
+extern "C" int Body_Body_initialize_merge(){
+	allocator_handle->parallel_do<Body, &Body::initialize_merge>();
+	return 0;
+}
+
+extern "C" int Body_Body_prepare_merge(){
+	allocator_handle->parallel_do<Body, &Body::prepare_merge>();
+	return 0;
+}
+
+extern "C" int Body_Body_update_merge(){
+	allocator_handle->parallel_do<Body, &Body::update_merge>();
+	return 0;
+}
+
+extern "C" int Body_Body_delete_merged(){
+	allocator_handle->parallel_do<Body, &Body::delete_merged>();
+	return 0;
+}
+
+extern "C" int parallel_new_Body(int object_num){
+	allocator_handle->parallel_new<Body>(object_num);
+	return 0;
+}
+
+extern "C" int AllocatorInitialize(){
+	allocator_handle = new AllocatorHandle<AllocatorT>(/* unified_memory= */ true);
+	AllocatorT* dev_ptr = allocator_handle->device_pointer();
+	cudaMemcpyToSymbol(device_allocator, &dev_ptr, sizeof(AllocatorT*), 0, cudaMemcpyHostToDevice);
+	return 0;
+}
+
+extern "C" int AllocatorUninitialize(){
+	return 0;
+}

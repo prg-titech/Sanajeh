@@ -1,0 +1,11 @@
+{
+    "basename": "cdef-collision-71af289",
+    "cmd": "new-src/interface.py --emit-cdef {infile}",
+    "infile": "examples/collision/collision.py",
+    "infile_hash": "32b6014a5cbf9597cb4b52c12e91d20c646ad1a3138607b7120da6e7",
+    "stdout": "cdef-collision-71af289.stdout",
+    "stdout_hash": "8cbf5102868c18d596d4220480db29298b46c3e741b531586dfc9fe5",
+    "stderr": null,
+    "stderr_hash": null,
+    "returncode": 0
+}

@@ -1,0 +1,11 @@
+{
+    "basename": "hpp-wator_extend-0027e58",
+    "cmd": "new-src/interface.py --emit-hpp {infile}",
+    "infile": "examples/wator_extend/wator_extend.py",
+    "infile_hash": "f8853d509215a4778d3960d668be20874bd42a346df542f20cdde8f7",
+    "stdout": "hpp-wator_extend-0027e58.stdout",
+    "stdout_hash": "3a8dd023d48b7aefd3bce47b8ca1239aedd04c9a0fcc6627c812d903",
+    "stderr": null,
+    "stderr_hash": null,
+    "returncode": 0
+}
