@@ -106,13 +106,6 @@ class SeqAllocator:
         pass
   
     def parallel_do(self, cls, func, *args):
-        # TODO: calls functions on all subclasses of cls
-        """
-        if cls in objects:
-            objects_to_check = objects[cls][:len(objects[cls])]
-            for cls_object in objects_to_check:
-                getattr(cls_object, func.__name__)(*args)
-        """
         classes = [c for c in objects]
         for cls_check in classes:
             if subtype(cls_check, cls):
