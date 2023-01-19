@@ -43,7 +43,7 @@ class Cell:
     self.sugar_capacity_ = sugar_capacity
     self.cell_id_ = cell_id
 
-    # random.seed(cell_id)
+    random.seed(cell_id)
     r: float = random.uniform(0,1)
     if r <= 0.02:
       self.grow_rate_ = max_grow_rate
@@ -180,8 +180,7 @@ class Agent:
     self.metabolism_ = metabolism
     self.permission_ = False
     assert cell != None
-    # random.seed(0)
-
+    
   def give_permission(self):
     self.permission_ = True
   
@@ -472,13 +471,10 @@ def main(allocator, do_render):
     allocator.parallel_do(Cell, Cell.prepare_diffuse)
     allocator.parallel_do(Cell, Cell.update_diffuse)
 
-    allocator.parallel_do(Male, Male.age_and_metabolize)
-    allocator.parallel_do(Female, Female.age_and_metabolize)
-    allocator.parallel_do(Male, Male.prepare_move)
-    allocator.parallel_do(Female, Female.prepare_move)
+    allocator.parallel_do(Agent, Agent.age_and_metabolize)
+    allocator.parallel_do(Agent, Agent.prepare_move)
     allocator.parallel_do(Cell, Cell.decide_permission)
-    allocator.parallel_do(Male, Male.update_move)
-    allocator.parallel_do(Female, Female.update_move)
+    allocator.parallel_do(Agent, Agent.update_move)
 
     allocator.parallel_do(Male, Male.propose)
     allocator.parallel_do(Female, Female.decide_proposal)
