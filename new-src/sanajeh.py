@@ -115,7 +115,7 @@ class SeqAllocator:
         """
         classes = [c for c in objects]
         for cls_check in classes:
-            if self.is_subtype(cls_check, cls):
+            if subtype(cls_check, cls):
                 objects_to_check = objects[cls_check][:len(objects[cls_check])]
                 for cls_object in objects_to_check:
                     getattr(cls_object, func.__name__)(*args)
@@ -134,14 +134,6 @@ class SeqAllocator:
     def do_all(self, cls, func):
         for obj in objects[cls]:
             func(obj)
-
-    def is_subtype(self, cls_check, cls):
-        if cls_check == cls:
-            return True
-        for super_cls_check in cls_check.__bases__:
-            if self.is_subtype(super_cls_check, cls):
-                return True
-        return False
 
 class PyCompiler:
   
@@ -266,6 +258,14 @@ class PyAllocator:
         else:
             print("Do_all expression failed!", file=sys.stderr)
             sys.exit(1)   
+
+def subtype(cls_check, cls):
+    if cls_check == cls:
+        return True
+    for super_cls_check in cls_check.__bases__:
+        if subtype(super_cls_check, cls):
+            return True
+    return False
 
 def compile(source_code, dir_path, file_name, verbose):
     """
