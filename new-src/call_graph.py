@@ -349,6 +349,11 @@ class CallGraphVisitor(ast.NodeVisitor):
         #    ast_error("Sanajeh does not yet support multiple inheritances", node)
         #class_node = ClassNode(class_name, super_class, ast_node=node)
         #self.current_node.declared_classes.add(class_node)
+        for decorator in node.decorator_list:
+            if type(decorator) is ast.Name and decorator.id == "device":
+                self.root.has_device_data = True
+                if class_name not in self.root.device_class_names:
+                    self.root.device_class_names.append(class_name)
         class_node = self.current_node.get_ClassNode(class_name)
         self.stack.append(class_node)
         self.generic_visit(node)
@@ -437,11 +442,6 @@ class CallGraphVisitor(ast.NodeVisitor):
                 if node.func.value.id == "random" and func_name == "seed" and \
                         type(self.stack[-2]) is ClassNode:
                     self.stack[-2].has_random_state = True
-                if node.func.value.id == "DeviceAllocator" and func_name == "device_class":
-                    self.root.has_device_data = True
-                    for cls in node.args:
-                        if cls.id not in self.root.device_class_names:
-                            self.root.device_class_names.append(cls.id)
                 if (node.func.value.id == "allocator" or node.func.value.id == "PyAllocator") and \
                         func_name == "parallel_new":
                     self.root.has_device_data = True
