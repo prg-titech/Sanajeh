@@ -250,11 +250,37 @@ class Preprocessor(ast.NodeVisitor):
 
     def visit_Call(self, node):
         # Find device classes through device code
-        if type(node.func) is ast.Attribute and type(node.func.value) is ast.Name \
-                and node.func.value.id == "DeviceAllocator":
-            if node.func.attr == "device_class":
-                for class_arg in node.args:
-                    class_name = class_arg.id
+        if type(node.func) is ast.Attribute and type(node.func.value) is ast.Name:
+            if node.func.value.id == "DeviceAllocator":
+                if node.func.attr == "device_class":
+                    for class_arg in node.args:
+                        class_name = class_arg.id
+                        if class_name not in self.classes:
+                            self.classes.append(class_name)
+                            pnb = ParallelNewBuilder(class_name)
+                            self.cpp_parallel_new_codes.append(pnb.buildCpp())
+                            self.hpp_parallel_new_codes.append(pnb.buildHpp())
+                            self.cdef_parallel_new_codes.append(pnb.buildCdef())
+                            class_node = self.root.get_ClassNode(class_name)
+                            dab = DoAllBuilder(class_node)
+                            self.cpp_do_all_codes.append(dab.buildCpp())
+                            self.hpp_do_all_codes.append(dab.buildHpp())
+                            self.cdef_do_all_codes.append(dab.buildCdef())
+                elif node.func.attr == "parallel_do":
+                    hval = self.__gen_Hash([node.args[0].id, node.args[1].value.id, node.args[1].attr])
+                    if hval not in self.parallel_do_hashtable:
+                        self.parallel_do_hashtable.append(hval)
+                        func_node = self.root.get_FunctionNode(node.args[1].attr, node.args[1].value.id)
+                        pdb = ParallelDoBuilder(func_node)
+                        self.cpp_parallel_do_codes.append(pdb.buildCpp())
+                        self.hpp_parallel_do_codes.append(pdb.buildHpp())
+                        self.cdef_parallel_do_codes.append(pdb.buildCdef())
+                elif node.func.attr == "array_size":
+                    self.global_device_variables[str(node.args[0].id)] = node.args[1].n
+            # Find device classes through host code
+            elif node.func.value.id == "allocator" or node.func.value.id == "PyAllocator":
+                if node.func.attr == "parallel_new":
+                    class_name = node.args[0].id
                     if class_name not in self.classes:
                         self.classes.append(class_name)
                         pnb = ParallelNewBuilder(class_name)
@@ -266,43 +292,15 @@ class Preprocessor(ast.NodeVisitor):
                         self.cpp_do_all_codes.append(dab.buildCpp())
                         self.hpp_do_all_codes.append(dab.buildHpp())
                         self.cdef_do_all_codes.append(dab.buildCdef())
-            elif node.func.attr == "parallel_do":
-                hval = self.__gen_Hash([node.args[0].id, node.args[1].value.id, node.args[1].attr])
-                if hval not in self.parallel_do_hashtable:
-                    self.parallel_do_hashtable.append(hval)
-                    func_node = self.root.get_FunctionNode(node.args[1].attr, node.args[1].value.id)
-                    pdb = ParallelDoBuilder(func_node)
-                    self.cpp_parallel_do_codes.append(pdb.buildCpp())
-                    self.hpp_parallel_do_codes.append(pdb.buildHpp())
-                    self.cdef_parallel_do_codes.append(pdb.buildCdef())
-            elif node.func.attr == "array_size":
-                self.global_device_variables[str(node.args[0].id)] = node.args[1].n
-        # Find device classes through host code
-        if type(node.func) is ast.Attribute \
-                and type(node.func.value) is ast.Name \
-                and (node.func.value.id == "allocator" or node.func.value.id == "PyAllocator"):
-            if node.func.attr == "parallel_new":
-                class_name = node.args[0].id
-                if class_name not in self.classes:
-                    self.classes.append(class_name)
-                    pnb = ParallelNewBuilder(class_name)
-                    self.cpp_parallel_new_codes.append(pnb.buildCpp())
-                    self.hpp_parallel_new_codes.append(pnb.buildHpp())
-                    self.cdef_parallel_new_codes.append(pnb.buildCdef())
-                    class_node = self.root.get_ClassNode(class_name)
-                    dab = DoAllBuilder(class_node)
-                    self.cpp_do_all_codes.append(dab.buildCpp())
-                    self.hpp_do_all_codes.append(dab.buildHpp())
-                    self.cdef_do_all_codes.append(dab.buildCdef())
-            elif node.func.attr == "parallel_do":
-                hval = self.__gen_Hash([node.args[0].id, node.args[1].value.id, node.args[1].attr])
-                if hval not in self.parallel_do_hashtable:
-                    self.parallel_do_hashtable.append(hval)
-                    func_node = self.root.get_FunctionNode(node.args[1].attr, node.args[1].value.id)
-                    pdb = ParallelDoBuilder(func_node)
-                    self.cpp_parallel_do_codes.append(pdb.buildCpp())
-                    self.hpp_parallel_do_codes.append(pdb.buildHpp())
-                    self.cdef_parallel_do_codes.append(pdb.buildCdef())
+                elif node.func.attr == "parallel_do":
+                    hval = self.__gen_Hash([node.args[0].id, node.args[1].value.id, node.args[1].attr])
+                    if hval not in self.parallel_do_hashtable:
+                        self.parallel_do_hashtable.append(hval)
+                        func_node = self.root.get_FunctionNode(node.args[1].attr, node.args[1].value.id)
+                        pdb = ParallelDoBuilder(func_node)
+                        self.cpp_parallel_do_codes.append(pdb.buildCpp())
+                        self.hpp_parallel_do_codes.append(pdb.buildHpp())
+                        self.cdef_parallel_do_codes.append(pdb.buildCdef())
         self.generic_visit(node)
     
 class CppVisitor(ast.NodeVisitor):
@@ -464,27 +462,26 @@ class CppVisitor(ast.NodeVisitor):
                             self.visit(node.annotation.slice),
                             self.visit(node.target),
                             ", ".join([self.visit(arg) for arg in node.value.args]))
-        elif type(self.stack[-1]) is cg.FunctionNode:
-            if node.value is not None:
-                if type(self.stack[-1]) is cg.FunctionNode and self.stack[-1].name == "__init__":
-                    if not type(node_type) is cg.ListTypeNode:
-                        return self.indent() + "{} = {};".format(
-                            self.visit(node.target),
-                            self.visit(node.value)
-                        ) 
-                else:
-                    if type(node_type) is cg.ListTypeNode and type(node.value) is ast.BinOp \
-                            and self.is_none(node.value.left):
-                        return self.indent() + "{} {}[{}];".format(
-                            node_type.element_type.to_cpp_type(),
-                            self.visit(node.target),
-                            self.visit(node.value.right)
-                        )
-                    return self.indent() + "{} {} = {};".format(
-                        cg.ast_to_call_graph_type(self.stack, node.annotation).to_cpp_type(),
+        elif type(self.stack[-1]) is cg.FunctionNode and node.value is not None:
+            if type(self.stack[-1]) is cg.FunctionNode and self.stack[-1].name == "__init__":
+                if not type(node_type) is cg.ListTypeNode:
+                    return self.indent() + "{} = {};".format(
                         self.visit(node.target),
                         self.visit(node.value)
+                    ) 
+            else:
+                if type(node_type) is cg.ListTypeNode and type(node.value) is ast.BinOp \
+                        and self.is_none(node.value.left):
+                    return self.indent() + "{} {}[{}];".format(
+                        node_type.element_type.to_cpp_type(),
+                        self.visit(node.target),
+                        self.visit(node.value.right)
                     )
+                return self.indent() + "{} {} = {};".format(
+                    cg.ast_to_call_graph_type(self.stack, node.annotation).to_cpp_type(),
+                    self.visit(node.target),
+                    self.visit(node.value)
+                )
         return cpp_code
 
     def visit_AugAssign(self, node):
@@ -682,46 +679,52 @@ class CppVisitor(ast.NodeVisitor):
                     and type(node.func.value.func) is ast.Name and node.func.value.func.id == "super":
                 args = [self.visit(arg) for arg in node.args]
                 return "this->{}::{}__init({})".format(node.func.attr, node.func.attr, ", ".join(args))
-        if type(node.func) is ast.Attribute and type(node.func.value) is ast.Name \
-                and node.func.value.id == "DeviceAllocator":
-            if node.func.attr == "device_do":
-                return "device_allocator->template device_do<{}>(&{}::{}, {})".format(
-                    self.visit(node.args[0]),
-                    self.visit(node.args[1].value),
-                    node.args[1].attr,
-                    ", ".join([self.visit(arg) for arg in node.args[2:]]))
-            elif node.func.attr == "new":
-                args = ", ".join([self.visit(arg) for arg in node.args[1:]])
-                return "new(device_allocator) {}({})".format(self.visit(node.args[0]), args)
-            elif node.func.attr == "destroy":
-                return "destroy(device_allocator, {})".format(self.visit(node.args[0]))
-            elif node.func.attr == "virtual":
-                # TODO: get children name
-                func_name = node.args[0].attr
-                children = ["Fish", "Shark"]
-                result = ""
-                for child in children:
-                    result += "this->cast<{}>() != nullptr ? this->cast<{}>()->{}() : " \
-                        .format(child, child, func_name)
-                result += "nullptr"
-                return result
-            else:
-                # No API provided by Sanajeh
-                print("{} is not provided by Sanajeh".format(node.func.attr))
-                assert False
-        if type(node.func) is ast.Attribute and type(node.func.value) is ast.Name \
-                and node.func.value.id == "random":
-            if node.func.attr == "getrandbits":
-                return "curand(&random_state_)"
-            elif node.func.attr == "uniform":
-                return "curand_uniform(&random_state_)"
-            # Set a random state field for the class
-            elif node.func.attr == "seed":
-                args = ", ".join([self.visit(arg) for arg in node.args])
-                return "curand_init(kSeed, {}, 0, &random_state_)".format(args)
-            else:
-                # No API provided by Sanajeh
-                assert False
+        if type(node.func) is ast.Attribute and type(node.func.value) is ast.Name:
+            if node.func.value.id == "DeviceAllocator":
+                if node.func.attr == "device_do":
+                    return "device_allocator->template device_do<{}>(&{}::{}, {})".format(
+                        self.visit(node.args[0]),
+                        self.visit(node.args[1].value),
+                        node.args[1].attr,
+                        ", ".join([self.visit(arg) for arg in node.args[2:]]))
+                elif node.func.attr == "new":
+                    args = ", ".join([self.visit(arg) for arg in node.args[1:]])
+                    return "new(device_allocator) {}({})".format(self.visit(node.args[0]), args)
+                elif node.func.attr == "destroy":
+                    return "destroy(device_allocator, {})".format(self.visit(node.args[0]))
+                elif node.func.attr == "virtual":
+                    # TODO: get children name
+                    func_name = node.args[0].attr
+                    children = ["Fish", "Shark"]
+                    result = ""
+                    for child in children:
+                        result += "this->cast<{}>() != nullptr ? this->cast<{}>()->{}() : " \
+                            .format(child, child, func_name)
+                    result += "nullptr"
+                    return result
+                else:
+                    # No API provided by Sanajeh
+                    print("{} is not provided by Sanajeh".format(node.func.attr))
+                    assert False
+            if node.func.value.id == "random":
+                if node.func.attr == "getrandbits":
+                    return "curand(&random_state_)"
+                elif node.func.attr == "uniform":
+                    return "curand_uniform(&random_state_)"
+                # Set a random state field for the class
+                elif node.func.attr == "seed":
+                    args = ", ".join([self.visit(arg) for arg in node.args])
+                    return "curand_init(kSeed, {}, 0, &random_state_)".format(args)
+                else:
+                    # No API provided by Sanajeh
+                    assert False
+        if type(node.func) is ast.Name:
+            if node.func.id == "cast":
+                if len(node.args) != 2:
+                    assert False
+                cast_target = self.visit(node.args[0])
+                cast_value = self.visit(node.args[1])
+                return "{}->cast<{}>()".format(cast_value, cast_target)
         args = ", ".join([self.visit(arg) for arg in node.args])
         return "{}({})".format(self.visit(node.func), args)
 
@@ -897,19 +900,17 @@ class HppVisitor(ast.NodeVisitor):
             var_node = self.stack[-1].get_VariableNode(node.target.id)
             if not var_node.is_device:
                 return ""
-        if node.value is not None:
-            # ignore _: list[_] = DeviceAllocator.array(_)
-            if type(cg.ast_to_call_graph_type(self.stack, node.annotation)) is cg.ListTypeNode \
-                    and self.is_device_allocator_array(node.value):
-                return ""
-            elif (type(self.stack[-1]) is cg.RootNode and type(node.annotation) is not ast.Subscript) \
-                    or not type(self.stack[-1]) is cg.RootNode:
-                return self.indent() + "static const {} {} = {};".format(
-                    cg.ast_to_call_graph_type(self.stack, node.annotation).to_cpp_type(),
-                    self.visit(node.target),
-                    self.visit(node.value))        
-        else:
+        # ignore _: list[_] = DeviceAllocator.array(_)
+        if type(cg.ast_to_call_graph_type(self.stack, node.annotation)) is cg.ListTypeNode \
+                and self.is_device_allocator_array(node.value):
             return ""
+        if (type(self.stack[-1]) is cg.RootNode and type(node.annotation) is not ast.Subscript) \
+                or not type(self.stack[-1]) is cg.RootNode and node.value is not None:
+            return self.indent() + "static const {} {} = {};".format(
+                cg.ast_to_call_graph_type(self.stack, node.annotation).to_cpp_type(),
+                self.visit(node.target),
+                self.visit(node.value))     
+        return ""
      
     def visit_Name(self, node):
         return node.id
