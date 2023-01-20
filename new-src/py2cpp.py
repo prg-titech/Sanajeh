@@ -521,10 +521,11 @@ class CppVisitor(ast.NodeVisitor):
             result.extend(lines[1:])
         elif node.orelse:
             result[-1] = self.indent() + "} else {"
-            for orelse_body in node.orelse:
-                built = self.visit(orelse_body)
-                built = "\n".join([self.indent() + built_line for built_line in built.split("\n")])
-                result.append(built)
+            self.indent_level += 1
+            orelse = [self.visit(orelse_body) for orelse_body in node.orelse]
+            self.indent_level -= 1
+            built = "\n".join(orelse)
+            result.append(built)
             result.append(self.indent() + "}")
         return "\n".join(result)
 
