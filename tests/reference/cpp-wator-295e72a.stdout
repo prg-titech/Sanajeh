@@ -40,7 +40,7 @@ __device__ void Cell::setup() {
 		assert(agent != nullptr);
 		cells[this->id_]->enter(agent);
 	} else {
-	
+
 	}
 }
 
