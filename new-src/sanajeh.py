@@ -106,10 +106,12 @@ class SeqAllocator:
         pass
   
     def parallel_do(self, cls, func, *args):
-        if cls in objects:
-            objects_to_check = objects[cls][:len(objects[cls])]
-            for cls_object in objects_to_check:
-                getattr(cls_object, func.__name__)(*args)
+        classes = [c for c in objects]
+        for cls_check in classes:
+            if subtype(cls_check, cls):
+                objects_to_check = objects[cls_check][:len(objects[cls_check])]
+                for cls_object in objects_to_check:
+                    getattr(cls_object, func.__name__)(*args)
 
     def parallel_new(self, cls, object_num):
         cls_objects = [cls() for _ in range(object_num)]
@@ -249,6 +251,14 @@ class PyAllocator:
         else:
             print("Do_all expression failed!", file=sys.stderr)
             sys.exit(1)   
+
+def subtype(cls_check, cls):
+    if cls_check == cls:
+        return True
+    for super_cls_check in cls_check.__bases__:
+        if subtype(super_cls_check, cls):
+            return True
+    return False
 
 def compile(source_code, dir_path, file_name, verbose):
     """
