@@ -14,6 +14,9 @@ ffi = cffi.FFI()
 cpu_flag = False
 objects = {}  
 
+def device(cls):
+    return cls
+
 # Device side allocator
 class DeviceAllocator:
 

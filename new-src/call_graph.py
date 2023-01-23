@@ -187,6 +187,9 @@ class TypeNode():
     def to_field_type(self):
         return "auto"
 
+    def declared_functions(self):
+        return None
+
 class IntNode(TypeNode):
     def __init__(self, unsigned=False, size=None):
         super().__init__()
@@ -278,6 +281,9 @@ class ClassTypeNode(TypeNode):
     def to_field_type(self):
         return self.name + "*"
 
+    def declared_functions(self):
+        return self.class_node.declared_functions
+
 class RefTypeNode(TypeNode):
     def __init__(self, type_node):
         super().__init__()
@@ -292,6 +298,9 @@ class RefTypeNode(TypeNode):
     
     def to_field_type(self):
         return self.name + "*"
+    
+    def declared_functions(self):
+        return self.type_node.declared_functions()
 
 """ visit AST and build call graph """
 
@@ -320,7 +329,7 @@ class CallGraphVisitor(ast.NodeVisitor):
                     ast_error("The class {} is already defined".format(class_name), node)
                 super_class = None
                 if len(body.bases) == 1:
-                    super_class = body.bases[0].id
+                    super_class = self.current_node.get_ClassNode(body.bases[0].id)
                 elif len(body.bases) > 1:
                     ast_error("Sanajeh does not yet support multiple inheritances", node)
                 class_node = ClassNode(class_name, super_class, ast_node=body)
@@ -339,16 +348,11 @@ class CallGraphVisitor(ast.NodeVisitor):
         if type(self.current_node) is not RootNode:
             ast_error("Sanajeh does not yet support nested classes", node)
         class_name = node.name
-        #class_node = self.current_node.get_ClassNode(class_name)
-        #if class_node is not None:
-        #    ast_error("The class {} is already defined".format(class_name), node)
-        #super_class = None
-        #if len(node.bases) == 1:
-        #    super_class = node.bases[0].id
-        #elif len(node.bases) > 1:
-        #    ast_error("Sanajeh does not yet support multiple inheritances", node)
-        #class_node = ClassNode(class_name, super_class, ast_node=node)
-        #self.current_node.declared_classes.add(class_node)
+        for decorator in node.decorator_list:
+            if type(decorator) is ast.Name and decorator.id == "device":
+                self.root.has_device_data = True
+                if class_name not in self.root.device_class_names:
+                    self.root.device_class_names.append(class_name)
         class_node = self.current_node.get_ClassNode(class_name)
         self.stack.append(class_node)
         self.generic_visit(node)
@@ -437,11 +441,6 @@ class CallGraphVisitor(ast.NodeVisitor):
                 if node.func.value.id == "random" and func_name == "seed" and \
                         type(self.stack[-2]) is ClassNode:
                     self.stack[-2].has_random_state = True
-                if node.func.value.id == "DeviceAllocator" and func_name == "device_class":
-                    self.root.has_device_data = True
-                    for cls in node.args:
-                        if cls.id not in self.root.device_class_names:
-                            self.root.device_class_names.append(cls.id)
                 if (node.func.value.id == "allocator" or node.func.value.id == "PyAllocator") and \
                         func_name == "parallel_new":
                     self.root.has_device_data = True
@@ -509,8 +508,7 @@ class MarkDeviceVisitor:
         if not node.name in self.root.device_class_names:
             self.root.device_class_names.append(node.name)
         if node.super_class is not None:
-            super_class_node = self.root.get_ClassNode(node.super_class)
-            if not super_class_node.is_device:
+            if not node.super_class.is_device:
                 self.visit_ClassNode(super_class_node)
         for field_node in node.declared_fields:
             self.visit_FieldNode(field_node)
@@ -561,8 +559,7 @@ class MarkDeviceVisitor:
 
     def has_device_ancestor(self, class_node):
         if class_node.super_class:
-            super_class_node = self.root.get_ClassNode(class_node.super_class)
-            if super_class_node.class_name in self.root.device_class_names:
+            if class_node.super_class.class_name in self.root.device_class_names:
                 return True
             else:
                 return self.has_device_ancestor(super_class_node)
@@ -651,9 +648,10 @@ def ast_to_call_graph_type(stack, node, var_name=None):
     elif type(node) is ast.Call:
         if type(node.func) is ast.Attribute:
             receiver_type = ast_to_call_graph_type(stack, node.func.value, var_name)
-            for func in receiver_type.declared_functions:
-                if func.name == node.func.attr:
-                    return func.return_type
+            if receiver_type.declared_functions():
+                for func in receiver_type.declared_functions():
+                    if func.name == node.func.attr:
+                        return func.return_type
     elif type(node) is ast.Subscript:
         if type(node.value) is ast.Name and node.value.id == "list":
             e_type = ast_to_call_graph_type(stack, node.slice.value, var_name)

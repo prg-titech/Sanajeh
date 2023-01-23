@@ -4,7 +4,7 @@
     "infile": "examples/wator_extend/wator_extend.py",
     "infile_hash": "f8853d509215a4778d3960d668be20874bd42a346df542f20cdde8f7",
     "stdout": "cpp-wator_extend-7fa8181.stdout",
-    "stdout_hash": "d43880179b63a98b3fcb50acebfaa4c869a88601ed11a1b046bec8c0",
+    "stdout_hash": "0a6bf19a17ff2955be7bc1a4483dc16c1453716c55e0494819da677b",
     "stderr": null,
     "stderr_hash": null,
     "returncode": 0

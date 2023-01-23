@@ -39,13 +39,14 @@ def main():
     basename = os.path.basename(file_path)
     file_name, _ = os.path.splitext(basename)
 
-    if to_run:
-        sys.path.append(directory)
-        main_func = getattr(__import__(file_name), "main")
-        if run_cpu:
-            main_func(sanajeh.SeqAllocator(), to_render)
-        else:
-            main_func(sanajeh.PyAllocator(file_name), to_render)
+    sys.path.append(directory)
+    main_func = getattr(__import__(file_name), "main")
+
+    if run_cpu:
+        main_func(sanajeh.SeqAllocator(), to_render)
+        return
+    elif to_run:
+        main_func(sanajeh.PyAllocator(file_name), to_render)
         return
 
     compiler: PyCompiler = sanajeh.PyCompiler(file_path)

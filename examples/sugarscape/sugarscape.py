@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from typing import cast
 import os, sys, time, random, pygame
 
 parentdir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 sys.path.append(parentdir + "/src")
-from sanajeh import DeviceAllocator
+from sanajeh import DeviceAllocator, device
+from typing import cast
 
 kSize: int = 100
 kNumObjects: int = 262144
@@ -22,11 +22,12 @@ kMaxMetabolism: int = 80
 kSugarCapacity: int = 3500
 kMaxSugarDiffusion: int = 60
 kSugarDiffusionRate: float = 0.125
-kMinMatingAge = 22
-kMaxChildren = 8
+kMinMatingAge: int = 22
+kMaxChildren: int = 8
 
 cells: list[Cell] = DeviceAllocator.array(kSize*kSize)
 
+@device
 class Cell:
   def __init__(self):
     self.agent_ref: Agent = None
@@ -35,6 +36,7 @@ class Cell:
     self.sugar_capacity_: int = 0
     self.grow_rate_: int = 0
     self.cell_id_: int = None
+    self.agent_type_: int = 0
 
   def Cell(self, seed: int, sugar: int, sugar_capacity: int,
       max_grow_rate: int, cell_id: int):
@@ -43,7 +45,7 @@ class Cell:
     self.sugar_capacity_ = sugar_capacity
     self.cell_id_ = cell_id
 
-    random.seed(cell_id)
+    random.seed(cell_id+1)
     r: float = random.uniform(0,1)
     if r <= 0.02:
       self.grow_rate_ = max_grow_rate
@@ -121,6 +123,10 @@ class Cell:
     assert self.agent_ref == None
     assert agent != None
     self.agent_ref = agent
+    if type(agent) == Male:
+        self.agent_type_ = 1
+    if type(agent) == Female:
+        self.agent_type_ = 2
   
   def sugar(self) -> int:
     return self.sugar_
@@ -143,9 +149,11 @@ class Cell:
     c_max_children: int = self.random_int(2, kMaxChildren)
     agent: Agent = None
     if r < kProbMale:
-      agent: Agent = DeviceAllocator.new(Male, self, c_vision, 0, c_max_age, c_endowment, c_metabolism)
+      self.agent_type_ = 1
+      agent = DeviceAllocator.new(Male, self, c_vision, 0, c_max_age, c_endowment, c_metabolism)
     elif r < kProbMale + kProbFemale:
-      agent: Agent = DeviceAllocator.new(Female, self, c_vision, 0, c_max_age, c_endowment, c_metabolism, c_max_children)
+      self.agent_type_ = 2
+      agent = DeviceAllocator.new(Female, self, c_vision, 0, c_max_age, c_endowment, c_metabolism, c_max_children)
 
     if agent != None:
       self.enter(agent)
@@ -153,7 +161,9 @@ class Cell:
   def leave(self):
     assert self.agent_ref != None
     self.agent_ref = None
+    self.agent_type_ = 0
 
+@device
 class Agent:
   kIsAbstract: bool = True
 
@@ -180,6 +190,7 @@ class Agent:
     self.metabolism_ = metabolism
     self.permission_ = False
     assert cell != None
+    random.seed(cell.random_int(0, kSize*kSize))
     
   def give_permission(self):
     self.permission_ = True
@@ -273,6 +284,7 @@ class Agent:
   def random_float(self) -> float:
     return random.uniform(0,1)
 
+@device
 class Male(Agent):
   kIsAbstract: bool = False
 
@@ -301,10 +313,9 @@ class Male(Agent):
           if nx >= 0 and nx < kSize and ny >= 0 and ny < kSize:
             n_id: int = nx + ny*kSize
             n_cell: Cell = cells[n_id]
-            # n_female: Female = cast(Female, n_cell.agent())
 
             if type(n_cell.agent()) == Female:
-              n_female: Female = n_cell.agent()
+              n_female: Female = cast(Female, n_cell.agent())
               if n_female.ready_to_mate() and n_female.sugar() > target_sugar:
                 target_agent = n_female
                 target_sugar = n_female.sugar()
@@ -360,11 +371,13 @@ class Male(Agent):
       c_max_age: int = (self.max_age_ + self.female_request_ref.max_age()) // 2
       c_metabolism: int = (self.metabolism_ + self.female_request_ref.metabolism()) // 2
 
-      child: Agent
+      child: Agent = None
       if self.random_float() <= 0.5:
+        self.cell_request_ref.agent_type_ = 1
         child = DeviceAllocator.new(Male, self.cell_request_ref, c_vision, 0, c_max_age, c_endowment,
           c_metabolism)
       else:
+        self.cell_request_ref.agent_type_ = 2
         child = DeviceAllocator.new(Female, self.cell_request_ref, c_vision, 0, c_max_age, c_endowment,
           c_metabolism, self.female_request_ref.max_children())
       
@@ -378,6 +391,7 @@ class Male(Agent):
     self.female_request_ref = None
     self.cell_request_ref = None
 
+@device
 class Female(Agent):
   kIsAbstract: bool = False
 
@@ -405,10 +419,10 @@ class Female(Agent):
           if nx >= 0 and nx < kSize and ny >= 0 and ny < kSize:
             n_id: int = nx + ny*kSize 
             n_cell: Cell = cells[n_id]
-            # n_male: Male = cast(Male, n_cell.agent())
 
             if type(n_cell.agent()) == Male:
-              n_male: Male = n_cell.agent()
+              # TODO: automatically add cast during compilation
+              n_male: Male = cast(Male, n_cell.agent())
               if n_male.female_request() == self and n_male.sugar() > selected_sugar:
                 selected_agent = n_male
                 selected_sugar = n_male.sugar()
@@ -424,6 +438,8 @@ class Female(Agent):
   def max_children(self) -> int:
     return self.max_children_
 
+# TODO: add annotations to define device classes/functions
+
 def main(allocator, do_render):
 
   def initialize_render():
@@ -436,9 +452,9 @@ def main(allocator, do_render):
   def render(b):
     x = b.cell_id_ % kSize
     y = b.cell_id_ // kSize
-    if type(b.agent_ref) == Male:
+    if b.agent_type_ == 1:
       pxarray[x,y] = pygame.Color(0,0,255)
-    elif type(b.agent_ref) == Female:
+    elif b.agent_type_ == 2:
       pxarray[x,y] = pygame.Color(255,0,0)
     else:
       sugar_level = b.sugar_ / kSugarCapacity
@@ -447,9 +463,9 @@ def main(allocator, do_render):
 
   allocator.initialize()
 
-  # allocator.parallel_new(Cell, kSize*kSize)
   for i in range(kSize*kSize):
     cells[i] = DeviceAllocator.new(Cell, i, 0, kSugarCapacity, 50, i)
+
   allocator.parallel_do(Cell, Cell.setup)
 
   if do_render:
