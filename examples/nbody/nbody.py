@@ -9,7 +9,7 @@ kMaxMass: float = 1000.0
 kDt: float = 0.01
 kGravityConstant: float = 4e-6
 kDampeningFactor: float = 0.05 
- 
+
 class Vector:
 
   def __init__(self, x_: float, y_: float):
@@ -92,19 +92,6 @@ class Body:
         self.vel.x = -self.vel.x
     if self.pos.y < -1 or self.pos.y > 1:
         self.vel.y = -self.vel.y
-
-"""
-TODO: 
-Device classes and functions can be analysed
-from the main function looking for parallel_new
-and parallel_do calls
-"""
-def kernel_initialize_bodies():
-  DeviceAllocator.device_class(Body)
-
-def _update():
-  DeviceAllocator.parallel_do(Body, Body.compute_force)
-  DeviceAllocator.parallel_do(Body, Body.update)
 
 def main(allocator, do_render):
   """

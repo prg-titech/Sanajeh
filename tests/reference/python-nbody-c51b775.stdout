@@ -1,3 +1,5 @@
+pygame 2.0.1 (SDL 2.0.14, Python 3.7.5)
+Hello from the pygame community. https://www.pygame.org/contribute.html
 
 from __future__ import annotations
 import os, math, time, random
@@ -110,14 +112,6 @@ class Body():
             self.vel_x = (- self.vel_x)
         if ((self.pos_y < (- 1)) or (self.pos_y > 1)):
             self.vel_y = (- self.vel_y)
-'\nTODO: \nDevice classes and functions can be analysed\nfrom the main function looking for parallel_new\nand parallel_do calls\n'
-
-def kernel_initialize_bodies():
-    DeviceAllocator.device_class(Body)
-
-def _update():
-    DeviceAllocator.parallel_do(Body, Body.compute_force)
-    DeviceAllocator.parallel_do(Body, Body.update)
 
 def main(allocator, do_render):
     '\n  Rendering setting\n  '

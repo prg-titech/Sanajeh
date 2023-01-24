@@ -2,9 +2,9 @@
     "basename": "cpp-nbody-29de804",
     "cmd": "new-src/interface.py --emit-cpp {infile}",
     "infile": "examples/nbody/nbody.py",
-    "infile_hash": "6f95c9faf5c3a5e37fabf40b92e892f22609d9e9068a718d59dedde4",
+    "infile_hash": "e784ab7151f9972256afbed6791594909c057bc93d85b2afab286123",
     "stdout": "cpp-nbody-29de804.stdout",
-    "stdout_hash": "4787a2521ee926071e242ab911defda77512a217da44d14854c64002",
+    "stdout_hash": "d769abf4d048979c351440925d00c34e99e7face197f7619a1576791",
     "stderr": null,
     "stderr_hash": null,
     "returncode": 0

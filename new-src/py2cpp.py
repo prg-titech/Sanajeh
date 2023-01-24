@@ -237,14 +237,14 @@ class Preprocessor(ast.NodeVisitor):
     def visit_ClassDef(self, node):
         class_name = node.name
         class_node = self.stack[-1].get_ClassNode(class_name)
-        for decorator in node.decorator_list:
-            if type(decorator) is ast.Name and decorator.id == "device":
-                if class_name not in self.classes:
-                    self.classes.append(class_name)
-                    dab = DoAllBuilder(class_node)
-                    self.cpp_do_all_codes.append(dab.buildCpp())
-                    self.hpp_do_all_codes.append(dab.buildHpp())
-                    self.cdef_do_all_codes.append(dab.buildCdef())
+        #for decorator in node.decorator_list:
+        #    if type(decorator) is ast.Name and decorator.id == "device":
+        #        if class_name not in self.classes:
+        #            self.classes.append(class_name)
+        #            dab = DoAllBuilder(class_node)
+        #            self.cpp_do_all_codes.append(dab.buildCpp())
+        #            self.hpp_do_all_codes.append(dab.buildHpp())
+        #            self.cdef_do_all_codes.append(dab.buildCdef())
         self.stack.append(class_node)
         self.generic_visit(node)
         self.stack.pop()

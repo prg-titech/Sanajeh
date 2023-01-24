@@ -2,9 +2,9 @@
     "basename": "python-wator-8fda5eb",
     "cmd": "new-src/interface.py --emit-py {infile}",
     "infile": "examples/wator/wator.py",
-    "infile_hash": "35a58be0d2e3583bed1a3e5c9c7c6d0149b2eed067c3400c6a4070d6",
+    "infile_hash": "e4c14a4bb87ddae6ac992283f4a5adad638b0914c5ad051ba2c18ac2",
     "stdout": "python-wator-8fda5eb.stdout",
-    "stdout_hash": "7766a923baf3bd1c51d955d377d9c85d05ea42029c1106aff9bd6d71",
+    "stdout_hash": "6a664d0222f09b8e8a1b566007035013f7a5b8363dd2e6399b91a606",
     "stderr": null,
     "stderr_hash": null,
     "returncode": 0
