@@ -289,17 +289,13 @@ class Preprocessor(ast.NodeVisitor):
             elif node.func.value.id == "allocator" or node.func.value.id == "PyAllocator":
                 if node.func.attr == "parallel_new":
                     class_name = node.args[0].id
-                    if class_name not in self.classes:
+                    if class_name in self.classes:
                         self.classes.append(class_name)
                         pnb = ParallelNewBuilder(class_name)
                         self.cpp_parallel_new_codes.append(pnb.buildCpp())
                         self.hpp_parallel_new_codes.append(pnb.buildHpp())
                         self.cdef_parallel_new_codes.append(pnb.buildCdef())
                         class_node = self.root.get_ClassNode(class_name)
-                        dab = DoAllBuilder(class_node)
-                        self.cpp_do_all_codes.append(dab.buildCpp())
-                        self.hpp_do_all_codes.append(dab.buildHpp())
-                        self.cdef_do_all_codes.append(dab.buildCdef())
                 elif node.func.attr == "parallel_do":
                     hval = self.__gen_Hash([node.args[0].id, node.args[1].value.id, node.args[1].attr])
                     if hval not in self.parallel_do_hashtable:
