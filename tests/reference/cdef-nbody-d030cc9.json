@@ -2,9 +2,9 @@
     "basename": "cdef-nbody-d030cc9",
     "cmd": "new-src/interface.py --emit-cdef {infile}",
     "infile": "examples/nbody/nbody.py",
-    "infile_hash": "6f95c9faf5c3a5e37fabf40b92e892f22609d9e9068a718d59dedde4",
+    "infile_hash": "e784ab7151f9972256afbed6791594909c057bc93d85b2afab286123",
     "stdout": "cdef-nbody-d030cc9.stdout",
-    "stdout_hash": "db0c5c12e550ca3a0f16c53bfd1f197578fa84a843bcfd2d78e567d3",
+    "stdout_hash": "21430e63007713582d49a240ea5176a2a8a678b42693c197535b98e9",
     "stderr": null,
     "stderr_hash": null,
     "returncode": 0

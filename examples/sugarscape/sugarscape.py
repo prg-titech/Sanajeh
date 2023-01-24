@@ -27,7 +27,6 @@ kMaxChildren: int = 8
 
 cells: list[Cell] = DeviceAllocator.array(kSize*kSize)
 
-@device
 class Cell:
   def __init__(self):
     self.agent_ref: Agent = None
@@ -164,7 +163,6 @@ class Cell:
     self.agent_ref = None
     self.agent_type_ = 0
 
-@device
 class Agent:
   kIsAbstract: bool = True
 
@@ -285,7 +283,6 @@ class Agent:
   def random_float(self) -> float:
     return random.uniform(0,1)
 
-@device
 class Male(Agent):
   kIsAbstract: bool = False
 
@@ -392,7 +389,6 @@ class Male(Agent):
     self.female_request_ref = None
     self.cell_request_ref = None
 
-@device
 class Female(Agent):
   kIsAbstract: bool = False
 
@@ -422,7 +418,6 @@ class Female(Agent):
             n_cell: Cell = cells[n_id]
 
             if type(n_cell.agent()) == Male:
-              # TODO: automatically add cast during compilation
               n_male: Male = cast(Male, n_cell.agent())
               if n_male.female_request() == self and n_male.sugar() > selected_sugar:
                 selected_agent = n_male

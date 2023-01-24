@@ -18,7 +18,7 @@ kOptionFishSpawn: bool = True
 kOptionSharkSpawn: bool = True
 
 cells: list[Cell] = DeviceAllocator.array(kSizeX*kSizeY)
-  
+
 class Cell:
   def __init__(self):
     self.neighbors_: list[Cell] = [None]*4

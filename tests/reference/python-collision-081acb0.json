@@ -4,7 +4,7 @@
     "infile": "examples/collision/collision.py",
     "infile_hash": "32b6014a5cbf9597cb4b52c12e91d20c646ad1a3138607b7120da6e7",
     "stdout": "python-collision-081acb0.stdout",
-    "stdout_hash": "35dc2947d9c5e7944e379ecbe01f8f0acd6452f7aef7802700a8f60c",
+    "stdout_hash": "6f7f81d272a25ef6935cd886ffe8e44f4351f175e1837e36111510f2",
     "stderr": null,
     "stderr_hash": null,
     "returncode": 0

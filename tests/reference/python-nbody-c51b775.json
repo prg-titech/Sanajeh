@@ -2,9 +2,9 @@
     "basename": "python-nbody-c51b775",
     "cmd": "new-src/interface.py --emit-py {infile}",
     "infile": "examples/nbody/nbody.py",
-    "infile_hash": "6f95c9faf5c3a5e37fabf40b92e892f22609d9e9068a718d59dedde4",
+    "infile_hash": "e784ab7151f9972256afbed6791594909c057bc93d85b2afab286123",
     "stdout": "python-nbody-c51b775.stdout",
-    "stdout_hash": "a79940a20baa8f80fa5eea327bba13e855fad3e7a43e0120b7fc38ab",
+    "stdout_hash": "0d9ca9616e66ad5f565a1a5b651f33052c1d6b7e53ed37129dd14155",
     "stderr": null,
     "stderr_hash": null,
     "returncode": 0
