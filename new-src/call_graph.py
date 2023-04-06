@@ -509,7 +509,7 @@ class MarkDeviceVisitor:
             self.root.device_class_names.append(node.name)
         if node.super_class is not None:
             if not node.super_class.is_device:
-                self.visit_ClassNode(super_class_node)
+                self.visit_ClassNode(node.super_class)
         for field_node in node.declared_fields:
             self.visit_FieldNode(field_node)
         for func_node in node.declared_functions:
@@ -562,7 +562,7 @@ class MarkDeviceVisitor:
             if class_node.super_class.class_name in self.root.device_class_names:
                 return True
             else:
-                return self.has_device_ancestor(super_class_node)
+                return self.has_device_ancestor(class_node.super_class)
         return False
 
 def is_list_initialization(node):
