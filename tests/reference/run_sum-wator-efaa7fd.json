@@ -1,0 +1,11 @@
+{
+    "basename": "run_sum-wator-efaa7fd",
+    "cmd": "new-src/interface.py --run {infile}",
+    "infile": "examples/wator/wator.py",
+    "infile_hash": "881d065157c07b9b943434cefd615669afe6d54e10eaf935cd8bbc61",
+    "stdout": "run_sum-wator-efaa7fd.stdout",
+    "stdout_hash": "c34b38a8a21e510bcd63085737c3ae5283df68e6b1bf4bdadc92ea6d",
+    "stderr": null,
+    "stderr_hash": null,
+    "returncode": 0
+}

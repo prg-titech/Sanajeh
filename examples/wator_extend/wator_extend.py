@@ -19,6 +19,8 @@ kOptionSharkSpawn: bool = True
 
 cells: list[Cell] = DeviceAllocator.array(kSizeX*kSizeY)
 
+d_checksum = 0
+
 class Cell:
   def __init__(self):
     self.neighbors_: list[Cell] = [None]*4
@@ -302,6 +304,14 @@ def main(allocator, do_render):
     else:
       pxarray[x,y] = pygame.Color(0,0,0)			
 
+  def checksum_fish(b):
+    global d_checksum
+    d_checksum += 3
+
+  def checksum_shark(b):
+    global d_checksum
+    d_checksum += 7
+
   allocator.initialize()
 
   allocator.parallel_new(Cell, kSizeX*kSizeY)
@@ -333,10 +343,8 @@ def main(allocator, do_render):
     allocator.parallel_do(Cell, Cell.decide)
     allocator.parallel_do(Shark, Shark.update)
 
-
     time_after = time.perf_counter()
     total_time += time_after - time_before
-    print("iterate",i)
 
     # No render support for GPU
     if do_render:
@@ -344,4 +352,10 @@ def main(allocator, do_render):
       window.blit(pygame.transform.scale(screen, window.get_rect().size), (0,0))
       pygame.display.update()  
 
-  print(total_time)
+  allocator.do_all(Fish, checksum_fish)
+  allocator.do_all(Shark, checksum_shark)
+
+  # print(total_time)
+
+  global d_checksum
+  print(d_checksum)

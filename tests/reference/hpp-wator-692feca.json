@@ -2,9 +2,9 @@
     "basename": "hpp-wator-692feca",
     "cmd": "new-src/interface.py --emit-hpp {infile}",
     "infile": "examples/wator/wator.py",
-    "infile_hash": "714472d87cc5dc8bcdca3c3509f048d97a30e2633456ee502025a1ca",
+    "infile_hash": "881d065157c07b9b943434cefd615669afe6d54e10eaf935cd8bbc61",
     "stdout": "hpp-wator-692feca.stdout",
-    "stdout_hash": "2f46a74c0b9db094e502103875b561e71d582fa9e29601762b2cc277",
+    "stdout_hash": "82be82efe1dfb4465ae7661b4d7f3649d92586393e3ef5f2d232ff87",
     "stderr": null,
     "stderr_hash": null,
     "returncode": 0

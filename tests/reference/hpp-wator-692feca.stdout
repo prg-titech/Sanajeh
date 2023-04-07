@@ -110,6 +110,10 @@ public:
 	void _do(void (*pf)(int, int));
 };
 
+extern "C" int Fish_do_all(void (*pf)(int));
+
+extern "C" int Shark_do_all(void (*pf)(int, int));
+
 extern "C" int Cell_do_all(void (*pf)(int, int, int, int, int, int));
 extern "C" int Cell_Cell_setup();
 extern "C" int Cell_Cell_prepare();

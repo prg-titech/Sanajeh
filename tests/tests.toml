@@ -20,6 +20,7 @@ py = true
 cpp = true
 hpp = true
 cdef = true
+run_sum = true
 
 [[test]]
 filename = "examples/wator_extend/wator_extend.py"
@@ -27,3 +28,4 @@ py = true
 cpp = true
 hpp = true
 cdef = true
+run_sum = true

@@ -2,9 +2,9 @@
     "basename": "cdef-wator-906f118",
     "cmd": "new-src/interface.py --emit-cdef {infile}",
     "infile": "examples/wator/wator.py",
-    "infile_hash": "714472d87cc5dc8bcdca3c3509f048d97a30e2633456ee502025a1ca",
+    "infile_hash": "881d065157c07b9b943434cefd615669afe6d54e10eaf935cd8bbc61",
     "stdout": "cdef-wator-906f118.stdout",
-    "stdout_hash": "b0cd8422d8e63894e1bdd698563ff577401015b3812b4a7773c817a2",
+    "stdout_hash": "89827d237ee22c898f524a665cb7cca2d8cafd70b11f5815b61c68ed",
     "stderr": null,
     "stderr_hash": null,
     "returncode": 0

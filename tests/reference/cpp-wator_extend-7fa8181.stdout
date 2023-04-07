@@ -304,6 +304,26 @@ __device__ void Shark::update() {
 __device__ Agent* Shark::newling() {
 	return new(device_allocator) Shark(curand(&random_state_));
 }
+void Fish::_do(void (*pf)()){
+	pf();
+}
+
+extern "C" int Fish_do_all(void (*pf)()){
+	allocator_handle->template device_do<Fish>(&Fish::_do, pf);
+ 	return 0;
+}
+
+
+void Shark::_do(void (*pf)(int)){
+	pf(this->energy_);
+}
+
+extern "C" int Shark_do_all(void (*pf)(int)){
+	allocator_handle->template device_do<Shark>(&Shark::_do, pf);
+ 	return 0;
+}
+
+
 void Cell::_do(void (*pf)(int, int, int, int, int, int)){
 	pf(0, 0, 0, this->id_, this->agent_type_, 0);
 }

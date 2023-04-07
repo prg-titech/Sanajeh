@@ -129,6 +129,7 @@ def main():
         cpp = test.get("cpp", False)
         hpp = test.get("hpp", False)
         cdef = test.get("cdef", False)
+        run_sum = test.get("run_sum", False)
 
         print("TEST:", filename)
 
@@ -144,7 +145,12 @@ def main():
         if cdef:
             run_test("cdef", "new-src/interface.py --emit-cdef {infile}",
                 filename, update_reference)
-
+        if run_sum:
+            subprocess.run("new-src/interface.py {}".format(filename),
+                shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            run_test("run_sum", "new-src/interface.py --run {infile}",
+                filename, update_reference)
+            
         print()
     
     if update_reference:

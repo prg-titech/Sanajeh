@@ -280,6 +280,26 @@ __device__ void Shark::update() {
 		}
 	}
 }
+void Fish::_do(void (*pf)(int)){
+	pf(this->egg_timer_);
+}
+
+extern "C" int Fish_do_all(void (*pf)(int)){
+	allocator_handle->template device_do<Fish>(&Fish::_do, pf);
+ 	return 0;
+}
+
+
+void Shark::_do(void (*pf)(int, int)){
+	pf(this->egg_timer_, this->energy_);
+}
+
+extern "C" int Shark_do_all(void (*pf)(int, int)){
+	allocator_handle->template device_do<Shark>(&Shark::_do, pf);
+ 	return 0;
+}
+
+
 void Cell::_do(void (*pf)(int, int, int, int, int, int)){
 	pf(0, 0, 0, this->id_, this->agent_type_, 0);
 }
