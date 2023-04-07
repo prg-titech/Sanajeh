@@ -6,7 +6,7 @@ parentdir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__f
 sys.path.append(parentdir + "/new-src")
 from sanajeh import DeviceAllocator
 
-kMaxNodes: int = 100
+kMaxNodes: int = 80
 kMaxDegree: int = 5
 kMaxSprings: int = kMaxNodes*kMaxDegree // 2
 kMaxDistance: int = 32768
@@ -26,12 +26,12 @@ spring_max: float = 5.0
 mass_min: float = 500.0
 mass_max: float = 500.0
 
-num_nodes: int = 65
-num_pull_nodes: int = 25
-num_anchor_nodes: int = 10
-num_springs: int = 7*kMaxSprings//10
+num_nodes: int = int(0.65*kMaxNodes)
+num_pull_nodes: int = int(0.25*kMaxNodes)
+num_anchor_nodes: int = int(0.1*kMaxNodes)
+num_springs: int = int(0.7*kMaxSprings)
 
-nodes: list[NodeBase] = DeviceAllocator.array(kMaxNodes)
+nodes: list[NodeBase] = DeviceAllocator.array(num_nodes+num_pull_nodes+num_anchor_nodes)
 dev_bfs_continue: bool = False
 
 class NodeBase:
@@ -120,8 +120,8 @@ class AnchorNode(NodeBase):
 
 class AnchorPullNode(NodeBase):
     def __init__(self):
-        self.vel_x_: float = 0.0
-        self.vel_y_: float = 0.0
+        self.vel_x_: float = 0
+        self.vel_y_: float = 0
     
     def AnchorPullNode(self, node_id: int):
         super().NodeBase(num_nodes + node_id)
@@ -134,9 +134,9 @@ class AnchorPullNode(NodeBase):
 
 class Node(NodeBase):
     def __init__(self):
-        self.vel_x_: float = 0.0
-        self.vel_y_: float = 0.0
-        self.mass_: float = 0.0
+        self.vel_x_: float = 0
+        self.vel_y_: float = 0
+        self.mass_: float = 0
 
     def Node(self, node_id: int):
         super().NodeBase(node_id)
@@ -145,8 +145,8 @@ class Node(NodeBase):
         self.vel_y_ = random.uniform(border_margin, 1.0 - border_margin)
 
     def move(self):
-        force_x: float = 0.0
-        force_y: float = 0.0
+        force_x: float = 0
+        force_y: float = 0
 
         for i in range(0, kMaxDegree):
             s: Spring = self.springs_[i]
@@ -212,7 +212,6 @@ class Spring:
         dist: float = self.p1_ref.distance_to(self.p2_ref)
         displacement: float = max(0.0, dist - self.initial_length_)
         self.force_ = self.spring_factor_ * displacement
-
         if self.force_ > self.max_force_:
             self.self_destruct()
     
@@ -242,40 +241,39 @@ class Spring:
 
 def main(allocator, do_render):
 
-    pygame.init()
-    screen = pygame.display.set_mode((kWindowWidth, kWindowHeight))
-    window = pygame.Surface((kWindowWidth, kWindowHeight))
-    screen.fill((0,0,0))
+    def initialize_render():
+        pygame.init()
+        window = pygame.display.set_mode((kWindowWidth, kWindowHeight))
+        screen = pygame.Surface((kWindowWidth, kWindowHeight))
+        screen.fill((0,0,0))
+        return (window, screen)
 
     def render(ob):
-        force_ratio: float = ob.force_ / ob.max_force_
-        r: int = 0
-        g: int = 0
-        b: int = 0
-        if force_ratio <= 1.0:
-            r = 255*force_ratio
-        else:
-            b = 255
+        x1 = int(ob.p1_ref.pos_x_ * kWindowWidth)
+        x2 = int(ob.p2_ref.pos_x_ * kWindowWidth)
+        y1 = int(ob.p1_ref.pos_y_ * kWindowHeight)
+        y2 = int(ob.p2_ref.pos_y_ * kWindowHeight)
+        pygame.draw.line(screen, (255,255,255), (x1,y1), (x2,y2), 1)
             
     allocator.initialize()
     
-    allocator.parallel_new(Node, 65)
-    allocator.parallel_new(AnchorPullNode, 25)
-    allocator.parallel_new(AnchorNode, 10)
+    allocator.parallel_new(Node, num_nodes)
+    allocator.parallel_new(AnchorPullNode, num_pull_nodes)
+    allocator.parallel_new(AnchorNode, num_anchor_nodes)
     allocator.parallel_new(Spring, num_springs)
 
     if do_render:
         os.environ["SDL_VIDEODRIVER"] = "x11"
-        scaling_factor = 6
-        pxarray = pygame.PixelArray(screen)
+        screen = pygame.display.set_mode((kWindowWidth, kWindowHeight))
         allocator.do_all(Spring, render)
-        window.blit(pygame.transform.scale(screen, window.get_rect().size), (0,0))
         pygame.display.update()
 
     total_time = time.perf_counter()
 
     for i in range(kNumIterations):
         time_before = time.perf_counter()
+
+        allocator.parallel_do(AnchorPullNode, AnchorPullNode.pull)
 
         for j in range(kNumComputeIterations):
             allocator.parallel_do(Spring, Spring.compute_force)
@@ -293,6 +291,7 @@ def main(allocator, do_render):
         allocator.parallel_do(Spring, Spring.bfs_delete)
 
         if do_render:
+            screen.fill((0, 0, 0))
             allocator.do_all(Spring, render)
             pygame.display.update()
 
