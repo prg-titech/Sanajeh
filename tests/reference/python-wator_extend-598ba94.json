@@ -2,9 +2,9 @@
     "basename": "python-wator_extend-598ba94",
     "cmd": "new-src/interface.py --emit-py {infile}",
     "infile": "examples/wator_extend/wator_extend.py",
-    "infile_hash": "846b89a2e81d27685e6a3609a40d55b01437c15430e8ccb2f6c88657",
+    "infile_hash": "54df538ce7cdbfb5c9d69dfa33934d1c5da941b24f8dbfa75f8b0d81",
     "stdout": "python-wator_extend-598ba94.stdout",
-    "stdout_hash": "3fe80aecbe715cc040ec1a6226c4258cdbfd6b907a5032af7d240ff5",
+    "stdout_hash": "07a43016c7edab7006bda0148b956a7860f4297cc764f6df2a103a5b",
     "stderr": null,
     "stderr_hash": null,
     "returncode": 0
