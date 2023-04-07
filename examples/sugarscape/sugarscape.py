@@ -3,7 +3,7 @@ from __future__ import annotations
 import os, sys, time, random, pygame
 
 parentdir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
-sys.path.append(parentdir + "/src")
+sys.path.append(parentdir + "/new-src")
 from sanajeh import DeviceAllocator, device
 from typing import cast
 
