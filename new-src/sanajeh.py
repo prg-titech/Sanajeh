@@ -199,9 +199,10 @@ class PyAllocator:
         ffi.cdef(self.cdef_code)
         self.lib = ffi.dlopen("device_code/{}/{}.so".format(self.file_name, self.file_name))
         if self.lib.AllocatorInitialize() == 0:
-            print("Successfully initialized the allocator through FFI.")
+            # print("Successfully initialized the allocator through FFI.")
+            pass
         else:
-            print("Initialization failed!", file=sys.stderr)
+            # print("Initialization failed!", file=sys.stderr)
             sys.exit(1)
 
     def uninitialize():
@@ -209,9 +210,10 @@ class PyAllocator:
         Initialize ffi module
         """
         if self.lib.AllocatorUninitialize() == 0:
-            print("Successfully uninitialized the allocator through FFI.")
+            # print("Successfully uninitialized the allocator through FFI.")
+            pass
         else:
-            print("Initialization failed!", file=sys.stderr)
+            # print("Initialization failed!", file=sys.stderr)
             sys.exit(1)
 
     def parallel_do(self, cls, func, *args):
@@ -225,9 +227,10 @@ class PyAllocator:
         func_name = func_str[1]
         # todo args
         if eval("self.lib.{}_{}_{}".format(object_class_name, func_class_name, func_name))() == 0:
-            print("Successfully called parallel_do {} {} {}".format(object_class_name, func_class_name, func_name))
+            # print("Successfully called parallel_do {} {} {}".format(object_class_name, func_class_name, func_name))
+            pass
         else:
-            print("Parallel_do expression failed!", file=sys.stderr)
+            # print("Parallel_do expression failed!", file=sys.stderr)
             sys.exit(1)
 
     def parallel_new(self, cls, object_num):
@@ -236,9 +239,10 @@ class PyAllocator:
         """
         object_class_name = cls.__name__
         if eval("self.lib.parallel_new_{}".format(object_class_name))(object_num) == 0:
-            print("Successfully called parallel_new {} {}".format(object_class_name, object_num))
+            # print("Successfully called parallel_new {} {}".format(object_class_name, object_num))
+            pass
         else:
-            print("Parallel_new expression failed!", file=sys.stderr)
+            # print("Parallel_new expression failed!", file=sys.stderr)
             sys.exit(1)
 
     def do_all(self, cls, func):
@@ -252,7 +256,7 @@ class PyAllocator:
         if eval("self.lib.{}_do_all".format(name))(lambda_for_callback) == 0:
             pass
         else:
-            print("Do_all expression failed!", file=sys.stderr)
+            # print("Do_all expression failed!", file=sys.stderr)
             sys.exit(1)   
 
 def subtype(cls_check, cls):

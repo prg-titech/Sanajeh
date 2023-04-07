@@ -274,6 +274,15 @@ class Preprocessor(ast.NodeVisitor):
                             self.cpp_do_all_codes.append(dab.buildCpp())
                             self.hpp_do_all_codes.append(dab.buildHpp())
                             self.cdef_do_all_codes.append(dab.buildCdef())
+                elif node.func.attr == "new":
+                    class_name = node.args[0].id
+                    if class_name not in self.classes:
+                        self.classes.append(class_name)
+                        class_node = self.root.get_ClassNode(class_name)
+                        dab = DoAllBuilder(class_node)
+                        self.cpp_do_all_codes.append(dab.buildCpp())
+                        self.hpp_do_all_codes.append(dab.buildHpp())
+                        self.cdef_do_all_codes.append(dab.buildCdef())
                 elif node.func.attr == "parallel_do":
                     hval = self.__gen_Hash([node.args[0].id, node.args[1].value.id, node.args[1].attr])
                     if hval not in self.parallel_do_hashtable:
